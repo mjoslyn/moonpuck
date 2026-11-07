@@ -8,7 +8,7 @@ import { useSite } from './member-settings';
 import { featuresOf, showsType } from '../lib/features';
 import { Group, Space, StyleControls } from './panels';
 import { browserClient } from '../lib/db/browser';
-import { CARD_PRESETS } from '../lib/content/card-presets';
+import { CARD_PRESETS, cardOffered } from '../lib/content/card-presets';
 import { LISTABLE_TYPES, featuredOn, taxonomiesOf, taxonomyLabel, typeDef } from '../lib/site';
 
 type SetFn = (patch: Attrs) => void;
@@ -175,7 +175,7 @@ export function CollectionPanel({ a, set }: { a: Attrs; set: SetFn }) {
       <Group title="Card" open>
         <Row title="Card design">
           <select className={inputClass} value={card} onChange={(e) => set({ card: e.target.value })}>
-            {CARD_PRESETS.map((p) => (
+            {CARD_PRESETS.filter((p) => p.id === card || cardOffered(p.id, !!site && featuresOf(site).shop)).map((p) => (
               <option key={p.id} value={p.id}>
                 {p.label}
               </option>

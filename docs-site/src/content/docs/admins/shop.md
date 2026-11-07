@@ -36,7 +36,8 @@ A product without a price isn't for sale. The other settings under **Shop**:
 - **Members** (when your site has Members turned on): for each member level, what they pay: The usual
   price, A percent off, or A price of their own. Members never pay more than the usual price.
   **Members only** limits who may buy it, with the levels that may. The product's page says what
-  members save or pay and that it is for members, with a link to sign in. The cart charges signed-in
+  members save or pay and that it is for members, with a link to sign in; for anyone who isn't one of
+  those members, the button says **Members only**. The cart charges signed-in
   members their price.
 - A variant can have its own price for each member level too. Left empty, it uses the product's member
   pricing.

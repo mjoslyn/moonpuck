@@ -25,7 +25,9 @@ export function ProductForm({ entryId, fields, onChange }: { entryId: number | n
   const s = shopSettings(site);
   const set = (patch: Raw) => onChange({ ...fields, [SHOP_KEY]: { ...raw, ...patch } });
   const options: ProductOption[] = raw.options ?? [];
-  const variants: Variant[] = raw.variants?.length ? raw.variants : variantsFor(cleanOptions(options), [], newVariantId);
+  // Stored variants, else those the options make, with ids made from their values (comboId: the same
+  // on every render, as productOf reads them) until a change stores them.
+  const variants: Variant[] = raw.variants?.length ? raw.variants : variantsFor(cleanOptions(options), []);
   // The variants follow the options' values when a value list is left (not on each key, which would
   // lose a variant's price and stock while a value is half typed).
   const regroup = (opts: ProductOption[]) => set({ options: opts, variants: variantsFor(cleanOptions(opts), variants, newVariantId) });

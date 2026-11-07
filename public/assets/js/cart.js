@@ -62,13 +62,18 @@
     const label = form.dataset.label || 'Add to cart';
     const currency = form.dataset.currency || 'USD';
     const product = Number(form.dataset.product);
-    // The product's image on the page, swapped for a variant's own.
-    const img = document.querySelector('.c-entry-image img');
+    // The product's image, swapped for a variant's own: in a card, the card's; for the page's own product
+    // (not one an Add to cart block names), the page's Featured image outside any card. Else none.
+    const card = form.closest('.c-collection__items > li');
+    const outside = () => [...document.querySelectorAll('.c-entry-image img')].find((i) => !i.closest('.c-collection__items'));
+    const img = card ? card.querySelector('.c-entry-image img') : form.hasAttribute('data-own') ? outside() : null;
     const original = img && { src: img.getAttribute('src'), srcset: img.getAttribute('srcset'), sources: [...(img.closest('picture')?.querySelectorAll('source') ?? [])] };
     const chosen = () => {
       const values = selects.map((s) => s.value);
       return variants.find((v) => v.values.every((x, i) => x === values[i]));
     };
+    // A members-only product this visitor may not buy (the availability check says): the button says so.
+    let buyable = true;
     const inCart = (v) => read().find((l) => l.product === product && l.variant === v.id)?.quantity ?? 0;
     const refresh = () => {
       const v = chosen();
@@ -87,9 +92,9 @@
         button.textContent = 'Not available';
         return;
       }
-      const room = Math.max(0, v.left - inCart(v));
+      const room = buyable ? Math.max(0, v.left - inCart(v)) : 0;
       button.disabled = room <= 0;
-      button.textContent = v.left <= 0 ? 'Sold out' : room <= 0 ? 'All in your cart' : label;
+      button.textContent = !buyable ? 'Members only' : v.left <= 0 ? 'Sold out' : room <= 0 ? 'All in your cart' : label;
       if (qty && qty.type === 'number') {
         qty.max = String(Math.max(1, room));
         if (Number(qty.value) > room && room > 0) qty.value = String(room);
@@ -116,7 +121,7 @@
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const v = chosen();
-      if (!v) return;
+      if (!v || !buyable) return;
       const room = Math.max(0, v.left - inCart(v));
       const n = Math.min(room, Math.max(1, Math.floor(Number(qty?.value) || 1)));
       if (n <= 0) return refresh();
@@ -131,7 +136,7 @@
       refresh();
     });
     refresh();
-    return { product, variants, refresh };
+    return { product, variants, refresh, setBuyable: (b) => (buyable = b) };
   });
 
   // What's left now (the page may be cached).
@@ -144,7 +149,8 @@
         for (const s of states) {
           const own = left[s.product];
           if (!own) continue;
-          for (const v of s.variants) v.left = v.id in own ? (own[v.id] === null ? MAX : Math.min(MAX, own[v.id])) : 0;
+          for (const v of s.variants) v.left = v.id in own.left ? Math.min(MAX, own.left[v.id]) : 0;
+          s.setBuyable(own.buyable !== false);
           s.refresh();
         }
       })

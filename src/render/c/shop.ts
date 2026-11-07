@@ -131,7 +131,7 @@ const addToCart: Renderer = (b, env) => {
   const soldOut = first.left <= 0;
   const qty = a.showQuantity === false ? '<input type="hidden" name="quantity" value="1">' : `<label class="c-add-to-cart__quantity"><span>Quantity</span><input type="number" name="quantity" value="1" min="1" max="${Math.max(1, first.left)}" inputmode="numeric"></label>`;
   return (
-    `<form ${root(a, ['c-add-to-cart'])} id="${id}" data-add-to-cart data-product="${e.id}" data-title="${escAttr(e.title)}" data-currency="${escAttr(cur)}" data-variants="${jsonAttr(variants)}" data-label="${escAttr(label)}" data-cart-path="${CART_PATH}">` +
+    `<form ${root(a, ['c-add-to-cart'])} id="${id}" data-add-to-cart data-product="${e.id}" data-title="${escAttr(e.title)}" data-currency="${escAttr(cur)}" data-variants="${jsonAttr(variants)}" data-label="${escAttr(label)}" data-cart-path="${CART_PATH}"${Number(a.product) ? '' : ' data-own'}>` +
     (choices ? `<div class="c-add-to-cart__options">${choices}</div>` : '') +
     `<p class="c-price c-add-to-cart__price">${priceHtml(first.price!, first.compareAt, cur)}</p>` +
     memberNote(p, e, env) +

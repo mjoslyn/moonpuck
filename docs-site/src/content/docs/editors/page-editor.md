@@ -919,6 +919,52 @@ Its settings:
 
 - **Shows first**: **Email preferences** or **Unsubscribe**.
 
+### Shop
+
+Shown only while your site has a shop (an admin turns it on under **Settings**, **Shop**: see
+[Selling things](/admins/shop/)).
+
+#### Add to cart
+
+The product's options as choices, its price, a quantity and the button. On a product's page, or in a
+product's card, it sells that product.
+
+![Add to cart on a product's page](../../../assets/guide/shop-product-page.png)
+
+Its settings:
+
+- **Product**: leave it empty to sell the page's own product; choose one to sell it anywhere.
+- **Button**.
+- **Ask how many**.
+
+#### Product price
+
+The product's price, or "From" the lowest when its variants differ, with any compare-at price struck
+through.
+
+Its settings:
+
+- **Product**: leave it empty for the page's or card's own product.
+
+#### Cart
+
+What the visitor has added, with quantities to change and the subtotal. The cart at `/cart/` shows it
+on its own; a page you make with that address needs this block.
+
+![The Cart block](../../../assets/guide/shop-cart.png)
+
+Its settings:
+
+- **When it is empty**: the message shown.
+
+#### Cart link
+
+A link to the cart with the number of things in it, for the header.
+
+Its settings:
+
+- **Label**.
+
 ### Advanced
 
 #### HTML

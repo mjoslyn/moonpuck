@@ -236,7 +236,7 @@ export async function cartTotals(
   settings: CheckoutSettings,
   input: { destination?: Destination | null; option?: string | null; sources?: ShippingSource[] },
 ): Promise<CartTotals> {
-  const lines = quote.lines.filter((l) => l.quantity > 0 && l.total >= 0 && l.problem !== 'members-only' && l.problem !== 'sold-out' && l.problem !== 'gone');
+  const lines = quote.lines.filter((l) => l.quantity > 0 && l.problem !== 'members-only' && l.problem !== 'sold-out' && l.problem !== 'gone');
   const cart: CartFacts = { lines, subtotal: quote.subtotal };
   const dest = input.destination?.country ? input.destination : null;
   const shipping = await shippingChoices(settings, cart, dest, input.sources);

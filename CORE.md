@@ -1250,10 +1250,14 @@ answer 404.
   (`product-price`: its price, or From the lowest; the compare-at price struck through), **Add to cart**
   (`add-to-cart`: options as choices, quantity, button; the product it names, else the page's or card's),
   **Cart** (`cart`) and **Cart link** (`cart-link`, the number of items). Collections get a `product`
-  card design unless the site has its own (`card-presets.ts`).
+  card design unless the site has its own (`card-presets.ts`), offered while the shop is on
+  (`cardOffered`) and never the default (`DEFAULT_CARD` is the site's first).
 - **Cart**: kept in the visitor's browser (`localStorage`, `public/assets/js/cart.js`, added by these
   blocks), so their pages stay cached and shared. The script adds to the cart, asks what's left of the
-  page's products (`GET /api/shop/availability?ids=`, no-store) and fills the Cart block from the server's
+  page's products (`GET /api/shop/availability?ids=`, no-store: per product the most one order can take
+  of each variant, `maxQuantity`, and whether this visitor may buy it, the button then saying Members
+  only), swaps the variant's image into its own product's (the card's, or for the page's own product,
+  `data-own`, the page's Featured image outside cards) and fills the Cart block from the server's
   prices (`POST /api/shop/quote`, `quoteCart` in `src/lib/shop/cart.ts`: lines cleaned by `cleanCart`, at
   most 50 of up to 99 each; each priced as sold now, cut to what's left (`fewer`), `sold-out` or `gone`;
   the subtotal in the shop's currency). Both read as the visitor sees the site (`visibleTo`). `/cart/`

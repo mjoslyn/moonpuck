@@ -29,8 +29,11 @@ const PRODUCT_CARD: CardPreset = {
 
 const SITE_CARDS = SITE_RENDER.cards ?? [];
 export const CARD_PRESETS: CardPreset[] = SITE_CARDS.some((c) => c.id === PRODUCT_CARD.id) ? SITE_CARDS : [...SITE_CARDS, PRODUCT_CARD];
-/** The design new collections start with. */
-export const DEFAULT_CARD = CARD_PRESETS[0]?.id ?? 'custom';
+/** The design new collections start with: the site's first (never the shop's own product card). */
+export const DEFAULT_CARD = SITE_CARDS[0]?.id ?? 'custom';
+/** Whether a card design is offered: the shop's product card only while the shop is on (one a site
+ *  defines itself always). */
+export const cardOffered = (id: string, shopIsOn: boolean) => shopIsOn || id !== PRODUCT_CARD.id || SITE_CARDS.some((c) => c.id === id);
 export const CARD_IDS = CARD_PRESETS.map((p) => p.id);
 
 /** A preset's template with fresh block ids (Puck needs them unique). */

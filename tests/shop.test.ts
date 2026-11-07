@@ -163,3 +163,27 @@ describe('product category pages', () => {
     await setSite({ shop: undefined });
   });
 });
+
+describe('availability and cards', () => {
+  it('answers the most one order can take, and whether the visitor may buy it', async () => {
+    const db = siteDb();
+    const add = async (slug: string, shop: Record<string, unknown>) => (await db.from('entries').insert({ type: 'product', slug, title: slug, status: 'publish', fields: { shop } }).select('id').single()).data!.id as number;
+    const limited = await add('limited-mug', { price: 900, maxPerOrder: 2 });
+    const club = await add('club-scarf', { price: 900, membersOnly: true, trackStock: true });
+    await db.from('shop_stock').insert({ product_id: club, variant: 'default', on_hand: 5 });
+    await setSite({ shop: { enabled: true } });
+    const { GET } = await import('../src/pages/api/shop/availability');
+    const url = new URL(`http://localhost/api/shop/availability?ids=${limited},${club}`);
+    const res = await GET({ url, request: new Request(url) } as any);
+    expect(await res.json()).toEqual({ [limited]: { left: { default: 2 }, buyable: true }, [club]: { left: { default: 5 }, buyable: false } });
+    await setSite({ shop: undefined });
+  });
+
+  it('never starts collections with the product card, and offers it only while the shop is on', async () => {
+    const { DEFAULT_CARD, cardOffered } = await import('../src/lib/content/card-presets');
+    expect(DEFAULT_CARD).not.toBe('product');
+    expect(cardOffered('product', false)).toBe(false);
+    expect(cardOffered('product', true)).toBe(true);
+    expect(cardOffered(DEFAULT_CARD, false)).toBe(true);
+  });
+});
