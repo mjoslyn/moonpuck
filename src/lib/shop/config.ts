@@ -80,6 +80,8 @@ export interface Variant {
   image?: number | null;
   /** Not sold (a combination that doesn't exist). */
   off?: boolean;
+  /** Its price for active members, by level id (over the product's member price and discount). */
+  memberPrices?: Record<string, number>;
 }
 
 export interface Product {
@@ -102,6 +104,9 @@ export interface Product {
   variants: Variant[];
   /** Percent off every variant's price for active members, by level id. */
   memberDiscounts?: Record<string, number>;
+  /** A fixed price for active members, by level id: every variant's, unless it has its own (over the
+   *  level's percent off). */
+  memberPrices?: Record<string, number>;
   /** Only active members (of `levels`, or any level when none) may buy it. */
   membersOnly?: boolean;
   levels?: string[];
@@ -119,6 +124,7 @@ export interface ResolvedVariant {
   weight: number | null;
   image: number | null;
   off: boolean;
+  memberPrices?: Record<string, number>;
 }
 
 const cents = (v: unknown): number | null => (v === '' || v == null || !Number.isFinite(Number(v)) || Number(v) < 0 ? null : Math.round(Number(v)));
@@ -195,6 +201,7 @@ export function productOf(fields: Record<string, any> | null | undefined): Produ
       weight: num(v.weight),
       image: Number(v.image) > 0 ? Number(v.image) : null,
       off: v.off === true || undefined,
+      memberPrices: memberPricesOf(v.memberPrices),
     }));
   const max = Math.floor(Number(raw.maxPerOrder));
   return {
@@ -211,6 +218,7 @@ export function productOf(fields: Record<string, any> | null | undefined): Produ
     // The variants that match the options now (a variant for values no longer offered is dropped).
     variants: variantsFor(options, variants),
     memberDiscounts: memberDiscountsOf(raw.memberDiscounts),
+    memberPrices: memberPricesOf(raw.memberPrices),
     membersOnly: raw.membersOnly === true || undefined,
     levels: Array.isArray(raw.levels) ? raw.levels.filter((l: unknown) => typeof l === 'string' && /^[\w-]{1,40}$/.test(l)).slice(0, 50) : undefined,
   };
@@ -226,6 +234,16 @@ function memberDiscountsOf(v: unknown): Record<string, number> | undefined {
   return Object.keys(out).length ? out : undefined;
 }
 
+function memberPricesOf(v: unknown): Record<string, number> | undefined {
+  if (!v || typeof v !== 'object') return undefined;
+  const out: Record<string, number> = {};
+  for (const [k, raw] of Object.entries(v as Record<string, unknown>)) {
+    const c = cents(raw);
+    if (/^[\w-]{1,40}$/.test(k) && c != null) out[k] = c;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 /** The member level a buyer counts as (an active member's), else null. Takes a Viewer's `member`. */
 type Membership = { level: string; status: string; expires_on?: string | null } | null | undefined;
 const activeLevel = (m: Membership): string | null => (m && m.status === 'active' && (!m.expires_on || m.expires_on >= new Date().toISOString().slice(0, 10)) ? m.level : null);
@@ -236,9 +254,17 @@ export const memberDiscount = (p: Product, member: Membership) => {
   return (level && p.memberDiscounts?.[level]) || 0;
 };
 
-/** What one of a variant costs a buyer: its price less their level's member discount. */
+/**
+ * What one of a variant costs a buyer: for an active member, the variant's member price for their level,
+ * else the product's, else its price less the level's percent off; for everyone else its price. Never
+ * more than its price.
+ */
 export const unitFor = (p: Product, v: ResolvedVariant, member: Membership) => {
-  const pct = memberDiscount(p, member);
+  const level = activeLevel(member);
+  if (!level) return v.price!;
+  const fixed = v.memberPrices?.[level] ?? p.memberPrices?.[level];
+  if (fixed != null) return Math.min(fixed, v.price!);
+  const pct = p.memberDiscounts?.[level] || 0;
   return pct ? Math.round((v.price! * (100 - pct)) / 100) : v.price!;
 };
 
@@ -268,6 +294,7 @@ export function resolveVariant(p: Product, v: Variant): ResolvedVariant {
     weight: v.weight ?? p.weight ?? null,
     image: v.image ?? null,
     off: !!v.off,
+    memberPrices: v.memberPrices,
   };
 }
 

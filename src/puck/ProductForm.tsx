@@ -4,7 +4,7 @@
 // image. Stock is kept apart (table shop_stock) and saves as it changes, so saving the product never
 // overwrites a count someone else set.
 import { useEffect, useRef, useState } from 'react';
-import { Num, Row, Toggle, inputClass, MediaModal } from './fields';
+import { Num, Row, Select, Toggle, inputClass, MediaModal } from './fields';
 import { PriceInput } from './TicketsForm';
 import { browserClient } from '../lib/db/browser';
 import { mediaUrl } from '../lib/media/image';
@@ -86,6 +86,7 @@ export function ProductForm({ entryId, fields, onChange }: { entryId: number | n
               <div className="border-t border-admin-ink/10 bg-white p-2">
                 <PriceInput title="Price (empty: the product's)" optional value={v.price ?? undefined} onChange={(price) => setVariant(v.id, { price: price ?? null })} />
                 <PriceInput title="Compare-at price (empty: the product's)" optional value={v.compareAt ?? undefined} onChange={(compareAt) => setVariant(v.id, { compareAt: compareAt ?? null })} />
+                {members?.enabled && members.levels.length > 0 && <VariantMemberPrices variant={v} levels={members.levels} onChange={(memberPrices) => setVariant(v.id, { memberPrices })} />}
                 {raw.trackStock && <StockInput label="In stock" value={stock.counts[v.id]} disabled={!entryId} onSave={(n) => stock.save(v.id, n)} />}
                 <Row title="SKU">
                   <input className={inputClass} value={v.sku ?? ''} placeholder={raw.sku ?? ''} onChange={(e) => setVariant(v.id, { sku: e.target.value || undefined })} />
@@ -102,23 +103,50 @@ export function ProductForm({ entryId, fields, onChange }: { entryId: number | n
   );
 }
 
-/** Members' discount by level (percent off every variant's price) and members only. */
+/** What members pay, by level: a percent off every variant's price or a fixed price; and members only. */
 function MemberPricing({ raw, levels, onChange }: { raw: Raw; levels: MemberLevel[]; onChange: (patch: Raw) => void }) {
   const off: Record<string, number> = raw.memberDiscounts ?? {};
-  const setOff = (level: string, pct: number | undefined) => {
-    const next = { ...off };
-    if (!pct) delete next[level];
-    else next[level] = Math.min(100, pct);
-    onChange({ memberDiscounts: Object.keys(next).length ? next : undefined });
+  const fixed: Record<string, number> = raw.memberPrices ?? {};
+  const setLevel = (level: string, kind: 'none' | 'percent' | 'fixed', amount?: number) => {
+    const o = { ...off };
+    const f = { ...fixed };
+    delete o[level];
+    delete f[level];
+    if (kind === 'percent' && amount) o[level] = Math.min(100, amount);
+    if (kind === 'fixed' && amount != null) f[level] = amount;
+    onChange({ memberDiscounts: Object.keys(o).length ? o : undefined, memberPrices: Object.keys(f).length ? f : undefined });
   };
+  // A level being set up: its kind shows before an amount is typed.
+  const [kinds, setKinds] = useState<Record<string, 'none' | 'percent' | 'fixed'>>({});
+  const kindOf = (id: string) => (fixed[id] != null ? 'fixed' : off[id] ? 'percent' : (kinds[id] ?? 'none'));
   const chosen: string[] = raw.levels ?? [];
   return (
     <div className="mb-3 rounded border border-admin-ink/10 p-2">
       <span className="mb-1 block text-xs font-medium text-admin-muted">Members</span>
-      {levels.map((l) => (
-        <Num key={l.id} title={`${l.name}: percent off (empty: none)`} min={0} max={100} value={off[l.id]} onChange={(pct) => setOff(l.id, pct)} />
-      ))}
-      <p className="-mt-2 mb-2 text-xs text-admin-muted">Taken off every variant's price for signed-in members of that level. The product page says what members save; the cart charges their price.</p>
+      {levels.map((l) => {
+        const kind = kindOf(l.id);
+        return (
+          <div key={l.id} className="mb-1">
+            <Select
+              title={`${l.name} members pay`}
+              value={kind}
+              options={[
+                ['none', 'The usual price'],
+                ['percent', 'A percent off'],
+                ['fixed', 'A price of their own'],
+              ]}
+              onChange={(v) => {
+                const k = (v ?? 'none') as 'none' | 'percent' | 'fixed';
+                setKinds((x) => ({ ...x, [l.id]: k }));
+                setLevel(l.id, k, k === 'percent' ? off[l.id] : k === 'fixed' ? fixed[l.id] : undefined);
+              }}
+            />
+            {kind === 'percent' && <Num title="Percent off" min={0} max={100} value={off[l.id]} onChange={(pct) => setLevel(l.id, 'percent', pct)} />}
+            {kind === 'fixed' && <PriceInput title="Their price (every variant's, unless a variant has its own)" optional value={fixed[l.id]} onChange={(c) => setLevel(l.id, 'fixed', c)} />}
+          </div>
+        );
+      })}
+      <p className="-mt-2 mb-2 text-xs text-admin-muted">For signed-in members of that level; never more than the usual price. The product's page says what members pay; the cart charges their price.</p>
       <Toggle title="Members only" value={raw.membersOnly} onChange={(membersOnly) => onChange({ membersOnly: membersOnly || undefined })} />
       {raw.membersOnly && levels.length > 1 && (
         <fieldset className="mb-2">
@@ -132,6 +160,29 @@ function MemberPricing({ raw, levels, onChange }: { raw: Raw; levels: MemberLeve
         </fieldset>
       )}
     </div>
+  );
+}
+
+/** A variant's own price for each member level (empty: the product's member pricing). */
+function VariantMemberPrices({ variant, levels, onChange }: { variant: Variant; levels: MemberLevel[]; onChange: (memberPrices: Record<string, number> | undefined) => void }) {
+  const prices = variant.memberPrices ?? {};
+  return (
+    <>
+      {levels.map((l) => (
+        <PriceInput
+          key={l.id}
+          title={`${l.name} members' price (empty: the product's member pricing)`}
+          optional
+          value={prices[l.id]}
+          onChange={(c) => {
+            const next = { ...prices };
+            if (c == null) delete next[l.id];
+            else next[l.id] = c;
+            onChange(Object.keys(next).length ? next : undefined);
+          }}
+        />
+      ))}
+    </>
   );
 }
 

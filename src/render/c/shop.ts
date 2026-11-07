@@ -9,7 +9,7 @@ import { esc } from '../html';
 import { attrs, escAttr, styleDecls } from './style';
 import { formatMoney } from '../../lib/payments/money';
 import { downsize, mediaUrl } from '../../lib/media/image';
-import { CART_PATH, maxQuantity, priceRange, productOf, sellable, shopSettings, type Product } from '../../lib/shop/config';
+import { CART_PATH, maxQuantity, priceRange, productOf, sellable, shopSettings, unitFor, type Product } from '../../lib/shop/config';
 import { leftOf, type StockMap } from '../../lib/shop/stock';
 import { ARCHIVE_PATHS } from '../../lib/site';
 import { ACCOUNT_PATH, memberSettings } from '../../lib/members/config';
@@ -39,24 +39,37 @@ function priceHtml(price: number, compareAt: number | null | undefined, cur: str
 }
 
 /**
- * What members get, under Add to cart's price: "Members save 10%" (by level when levels differ) and "Members only",
- * with a sign-in link. The same for everyone, so the page stays cached; the cart charges a member their
- * price. Nothing while Members is off.
+ * What members get, under Add to cart's price: "Members save 10%", "Members pay $15.00" (from the lowest
+ * when variants differ; by level when levels differ) and "For members only", with a sign-in link. The
+ * same for everyone, so the page stays cached; the cart charges a member their price. Nothing while
+ * Members is off.
  */
 function memberNote(p: Product, env: Env): string {
   const m = memberSettings(env.ctx.settings.site);
   if (!m.enabled) return '';
-  const name = (id: string) => m.levels.find((l) => l.id === id)?.name ?? id;
-  const off = Object.entries(p.memberDiscounts ?? {}).filter(([l]) => m.levels.some((x) => x.id === l));
+  const cur = currency(env);
+  const variants = sellable(p);
+  // What each level gets, in words.
+  const deals = m.levels
+    .map((l) => {
+      const member = { level: l.id, status: 'active' };
+      const fixed = p.memberPrices?.[l.id] != null || variants.some((v) => v.memberPrices?.[l.id] != null);
+      if (fixed) {
+        const units = variants.map((v) => unitFor(p, v, member));
+        const low = Math.min(...units);
+        if (!variants.length || units.every((u, i) => u >= variants[i].price!)) return null;
+        return [l, `pay ${units.every((u) => u === low) ? '' : 'from '}${formatMoney(low, cur)}`] as const;
+      }
+      const pct = p.memberDiscounts?.[l.id];
+      return pct ? ([l, `save ${pct}%`] as const) : null;
+    })
+    .filter((d): d is NonNullable<typeof d> => !!d);
   const parts: string[] = [];
-  if (off.length) {
-    const pcts = new Set(off.map(([, v]) => v));
-    parts.push(
-      pcts.size === 1 && off.length === m.levels.length
-        ? `Members save ${off[0][1]}%`
-        : off.map(([l, v]) => `${name(l)} members save ${v}%`).join(', '),
-    );
+  if (deals.length) {
+    const same = deals.length === m.levels.length && deals.every(([, t]) => t === deals[0][1]);
+    parts.push(same ? `Members ${deals[0][1]}` : deals.map(([l, t]) => `${l.name} members ${t}`).join(', '));
   }
+  const name = (id: string) => m.levels.find((l) => l.id === id)?.name ?? id;
   if (p.membersOnly) parts.push(p.levels?.length ? `For ${p.levels.map(name).join(' and ')} members only` : 'For members only');
   if (!parts.length) return '';
   return `<p class="c-price__members">${esc(parts.join('. '))}. <a href="${ACCOUNT_PATH}">Sign in</a></p>`;

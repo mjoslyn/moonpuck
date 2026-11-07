@@ -1258,10 +1258,12 @@ answer 404.
   most 50 of up to 99 each; each priced as sold now, cut to what's left (`fewer`), `sold-out` or `gone`;
   the subtotal in the shop's currency). Both read as the visitor sees the site (`visibleTo`). `/cart/`
   (`CART_PATH`) is a built-in page with a Cart block unless a page has that address.
-- **Member pricing** (while Members is on; the product's Shop settings, Members): a percent off every
-  variant's price per level (`memberDiscounts`) and members only (`membersOnly`, of `levels`; none: any
-  level). `unitFor` and `mayBuyProduct` (`src/lib/shop/config.ts`) decide for an active member's level.
-  Add to cart says what members save and that a product is for members only, with a sign-in link, the
+- **Member pricing** (while Members is on; the product's Shop settings, Members): per level, a percent
+  off every variant's price (`memberDiscounts`) or a price of their own (`memberPrices`, which a variant
+  can set for itself, its `memberPrices`), and members only (`membersOnly`, of `levels`; none: any level).
+  `unitFor` and `mayBuyProduct` (`src/lib/shop/config.ts`) decide for an active member's level: the
+  variant's member price, else the product's, else the percent off, never above the price. Add to cart
+  says what members save or pay and that a product is for members only, with a sign-in link, the
   same for everyone so the page stays cached; the quote charges a member their price (`listUnit` keeps the
   price before it) and gives others a members-only line no quantity (`members-only`), which the cart keeps
   for when they sign in.

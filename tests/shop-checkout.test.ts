@@ -142,6 +142,26 @@ describe('member pricing', () => {
     expect(mayBuyProduct(p, null)).toBe(false);
   });
 
+  it("takes a fixed member price: the variant's, else the product's, never above the price", () => {
+    const q = productOf({
+      shop: {
+        price: 2000,
+        memberDiscounts: { gold: 50, silver: 10 },
+        memberPrices: { gold: 1500, bronze: 2500 },
+        options: [{ name: 'Size', values: ['S', 'L'] }],
+        variants: [{ id: 's', values: ['S'] }, { id: 'l', values: ['L'], price: 3000, memberPrices: { gold: 2200, bad: -1 } }],
+      },
+    })!;
+    const at = (id: string, level: string) => unitFor(q, variantOf(q, id)!, { level, status: 'active' });
+    expect(variantOf(q, 'l')!.memberPrices).toEqual({ gold: 2200 });
+    // A fixed price wins over the level's percent off.
+    expect(at('s', 'gold')).toBe(1500);
+    expect(at('l', 'gold')).toBe(2200);
+    expect(at('s', 'silver')).toBe(1800);
+    expect(at('s', 'bronze')).toBe(2000);
+    expect(at('l', 'bronze')).toBe(2500);
+  });
+
   it('charges members their price in the cart and refuses members-only products to others', async () => {
     const db = siteDb();
     const id = (await db.from('entries').insert({ type: 'product', slug: 'club-mug', title: 'Club mug', status: 'publish', fields: { shop: { price: 2000, memberDiscounts: { gold: 10 } } } }).select('id').single()).data!.id as number;

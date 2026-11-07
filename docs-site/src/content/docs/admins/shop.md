@@ -33,9 +33,13 @@ A product without a price isn't for sale. The other settings under **Shop**:
 - **Pickup only**: collected, never posted.
 - **Taxed**: untick it for things you don't charge tax on.
 - **Most per order**: leave it empty for no limit.
-- **Members** (when your site has Members turned on): a percent off for each member level, and
-  **Members only**, with the levels that may buy it. The product's page says what members save and
-  that it is for members, with a link to sign in. The cart charges signed-in members their price.
+- **Members** (when your site has Members turned on): for each member level, what they pay: The usual
+  price, A percent off, or A price of their own. Members never pay more than the usual price.
+  **Members only** limits who may buy it, with the levels that may. The product's page says what
+  members save or pay and that it is for members, with a link to sign in. The cart charges signed-in
+  members their price.
+- A variant can have its own price for each member level too. Left empty, it uses the product's member
+  pricing.
 
 ## Sizes, colors and other options
 
