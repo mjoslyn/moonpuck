@@ -3,6 +3,7 @@
 // reserved key `shop`: its price, options (Size, Color...) and variants, each with its own price, SKU,
 // weight and image. Its stock is kept apart (table shop_stock, per variant), so saving a product never
 // overwrites a count. Prices are in minor units (cents). Safe in the browser.
+import { checkoutSettingsFrom, type CheckoutSettings } from './checkout-settings';
 
 /** The shop's blocks: offered in the editor, and shown on the site, only while the shop is on. */
 export const SHOP_BLOCKS = ['product-price', 'add-to-cart', 'cart', 'cart-link'];
@@ -45,10 +46,11 @@ export function shopSettings(site: Record<string, any> | null | undefined): Shop
   };
 }
 
-/** The shop's settings as saved (Settings > Shop): only what differs from the defaults. */
-export function shopSettingsFrom(raw: unknown): Partial<ShopSettings> | undefined {
+/** The shop's settings as saved (Settings > Shop): only what differs from the defaults, the checkout's
+ *  (src/lib/shop/checkout-settings.ts) with them. */
+export function shopSettingsFrom(raw: unknown): (Partial<ShopSettings> & Partial<CheckoutSettings>) | undefined {
   const s = shopSettings({ shop: raw });
-  const out: Partial<ShopSettings> = {};
+  const out: Partial<ShopSettings> & Partial<CheckoutSettings> = { ...checkoutSettingsFrom(raw as Record<string, any>) };
   if (s.enabled) out.enabled = true;
   if (s.currency !== 'USD') out.currency = s.currency;
   if (s.weightUnit !== 'lb') out.weightUnit = s.weightUnit;
@@ -98,6 +100,11 @@ export interface Product {
   trackStock: boolean;
   options: ProductOption[];
   variants: Variant[];
+  /** Percent off every variant's price for active members, by level id. */
+  memberDiscounts?: Record<string, number>;
+  /** Only active members (of `levels`, or any level when none) may buy it. */
+  membersOnly?: boolean;
+  levels?: string[];
 }
 
 /** A variant as sold: the product's settings where it has none of its own. */
@@ -203,8 +210,44 @@ export function productOf(fields: Record<string, any> | null | undefined): Produ
     options,
     // The variants that match the options now (a variant for values no longer offered is dropped).
     variants: variantsFor(options, variants),
+    memberDiscounts: memberDiscountsOf(raw.memberDiscounts),
+    membersOnly: raw.membersOnly === true || undefined,
+    levels: Array.isArray(raw.levels) ? raw.levels.filter((l: unknown) => typeof l === 'string' && /^[\w-]{1,40}$/.test(l)).slice(0, 50) : undefined,
   };
 }
+
+function memberDiscountsOf(v: unknown): Record<string, number> | undefined {
+  if (!v || typeof v !== 'object') return undefined;
+  const out: Record<string, number> = {};
+  for (const [k, raw] of Object.entries(v as Record<string, unknown>)) {
+    const pct = Number(raw);
+    if (/^[\w-]{1,40}$/.test(k) && Number.isFinite(pct) && pct > 0) out[k] = Math.min(100, Math.round(pct * 100) / 100);
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+/** The member level a buyer counts as (an active member's), else null. Takes a Viewer's `member`. */
+type Membership = { level: string; status: string; expires_on?: string | null } | null | undefined;
+const activeLevel = (m: Membership): string | null => (m && m.status === 'active' && (!m.expires_on || m.expires_on >= new Date().toISOString().slice(0, 10)) ? m.level : null);
+
+/** The percent off a buyer's level takes on a product (0 for everyone else). */
+export const memberDiscount = (p: Product, member: Membership) => {
+  const level = activeLevel(member);
+  return (level && p.memberDiscounts?.[level]) || 0;
+};
+
+/** What one of a variant costs a buyer: its price less their level's member discount. */
+export const unitFor = (p: Product, v: ResolvedVariant, member: Membership) => {
+  const pct = memberDiscount(p, member);
+  return pct ? Math.round((v.price! * (100 - pct)) / 100) : v.price!;
+};
+
+/** Whether a buyer may buy a product: anyone, or for a members-only one an active member of its levels. */
+export const mayBuyProduct = (p: Product, member: Membership) => {
+  if (!p.membersOnly) return true;
+  const level = activeLevel(member);
+  return !!level && (!p.levels?.length || p.levels.includes(level));
+};
 
 /** A stable id for a combination stored without one (the same each time it is read). */
 function comboId(values: string[]): string {

@@ -24,6 +24,7 @@ import Sync from '../admin/Sync';
 import Connections from '../admin/Connections';
 import BackupsTab from '../admin/Backups';
 import TicketSettingsPanel from '../admin/TicketSettings';
+import ShopCheckoutSettings from '../admin/ShopCheckoutSettings';
 import MemberSettingsPanel from '../admin/MemberSettings';
 import MailingSettingsPanel, { type MailgunInfo } from '../admin/MailingSettings';
 import { mailingOn, type MailList, type MailingSettings } from '../lib/mailing/config';
@@ -290,7 +291,7 @@ export default function SiteSettings({ section, site: initialSite, options: init
       id: 'shop',
       label: 'Shop',
       on: shopOn(site),
-      panel: <ShopSettingsPanel value={site.shop ?? {}} onChange={(shop) => setSite((s) => ({ ...s, shop }))} />,
+      panel: <ShopSettingsPanel value={site.shop ?? {}} providers={ticketProviders} onChange={(shop) => setSite((s) => ({ ...s, shop }))} />,
     },
     {
       id: 'popups',
@@ -791,19 +792,20 @@ function AdminThemePanel({ value, onChange }: { value: AdminTheme; onChange: (t:
 }
 
 /** Settings > Shop: on or off, the currency prices are in and the unit weights are in. */
-function ShopSettingsPanel({ value, onChange }: { value: Partial<ShopSettings>; onChange: (v: Partial<ShopSettings>) => void }) {
+function ShopSettingsPanel({ value, providers, onChange }: { value: Record<string, any>; providers: Record<PaymentProvider, ProviderStatus>; onChange: (v: Record<string, any>) => void }) {
   const s = shopSettings({ shop: value });
   return (
     <>
       <Toggle title="Shop on" value={s.enabled} onChange={(on) => onChange({ ...value, enabled: on })} />
       <p className="mb-3 text-xs text-admin-muted">
         {s.enabled
-          ? 'Products under Content, product pages, the shop (/shop/), product categories, the cart (/cart/) and the shop blocks. Checkout comes in the next part of this preview.'
+          ? 'Products under Content, product pages, the shop (/shop/), product categories, the cart (/cart/) and the shop blocks. Checkout comes in the next part of this preview: the payments, shipping, pickup and tax set below are what it will use.'
           : 'Turn on to add products under Content, product pages, a shop (/shop/), product categories, a cart (/cart/) and the shop blocks. Turning it off later deletes nothing: products are hidden until it is on again.'}
       </p>
       <Select title="Currency" value={s.currency} options={CURRENCIES} onChange={(v) => onChange({ ...value, currency: v || undefined })} />
       <Select title="Weights in" value={s.weightUnit} options={WEIGHT_UNITS} onChange={(v) => onChange({ ...value, weightUnit: v || undefined })} />
-      <p className="-mt-2 mb-3 text-xs text-admin-muted">Products' and variants' weights are in this unit; shipping rates by weight will use it.</p>
+      <p className="-mt-2 mb-3 text-xs text-admin-muted">Products' and variants' weights are in this unit; shipping rates by weight use it.</p>
+      {s.enabled && <ShopCheckoutSettings value={value} currency={s.currency} weightUnit={s.weightUnit} providers={providers} onChange={onChange} />}
     </>
   );
 }

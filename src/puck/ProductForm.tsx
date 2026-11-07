@@ -8,7 +8,8 @@ import { Num, Row, Toggle, inputClass, MediaModal } from './fields';
 import { PriceInput } from './TicketsForm';
 import { browserClient } from '../lib/db/browser';
 import { mediaUrl } from '../lib/media/image';
-import { useSite } from './member-settings';
+import { useMemberSettings, useSite } from './member-settings';
+import type { MemberLevel } from '../lib/members/config';
 import { DEFAULT_VARIANT, MAX_OPTIONS, SHOP_KEY, cleanOptions, newVariantId, shopSettings, variantsFor, type ProductOption, type Variant } from '../lib/shop/config';
 import { formatMoney } from '../lib/payments/money';
 
@@ -20,6 +21,7 @@ type Raw = Record<string, any> & { options?: ProductOption[]; variants?: Variant
 export function ProductForm({ entryId, fields, onChange }: { entryId: number | null; fields: Record<string, any>; onChange: (fields: Record<string, any>) => void }) {
   const raw: Raw = fields?.[SHOP_KEY] ?? {};
   const site = useSite();
+  const members = useMemberSettings();
   const s = shopSettings(site);
   const set = (patch: Raw) => onChange({ ...fields, [SHOP_KEY]: { ...raw, ...patch } });
   const options: ProductOption[] = raw.options ?? [];
@@ -44,6 +46,7 @@ export function ProductForm({ entryId, fields, onChange }: { entryId: number | n
       {raw.ships !== false && <Toggle title="Pickup only (never shipped)" value={raw.pickupOnly} onChange={(v) => set({ pickupOnly: v || undefined })} />}
       <Toggle title="Taxed" value={raw.taxable !== false} onChange={(v) => set({ taxable: v ? undefined : false })} />
       <Num title="Most per order (empty: no limit)" min={1} value={raw.maxPerOrder ?? undefined} onChange={(maxPerOrder) => set({ maxPerOrder: maxPerOrder || null })} />
+      {members?.enabled && members.levels.length > 0 && <MemberPricing raw={raw} levels={members.levels} onChange={set} />}
       <Toggle title="Count stock" value={raw.trackStock} onChange={(v) => set({ trackStock: v || undefined })} />
       {raw.trackStock && !hasOptions && <StockInput label="In stock" value={stock.counts[DEFAULT_VARIANT]} disabled={!entryId} onSave={(n) => stock.save(DEFAULT_VARIANT, n)} />}
       {raw.trackStock && <p className="-mt-2 mb-3 text-xs text-admin-muted" role="status">{stock.status || 'Stock saves as you change it, apart from the product.'}</p>}
@@ -94,6 +97,39 @@ export function ProductForm({ entryId, fields, onChange }: { entryId: number | n
             </details>
           ))}
         </>
+      )}
+    </div>
+  );
+}
+
+/** Members' discount by level (percent off every variant's price) and members only. */
+function MemberPricing({ raw, levels, onChange }: { raw: Raw; levels: MemberLevel[]; onChange: (patch: Raw) => void }) {
+  const off: Record<string, number> = raw.memberDiscounts ?? {};
+  const setOff = (level: string, pct: number | undefined) => {
+    const next = { ...off };
+    if (!pct) delete next[level];
+    else next[level] = Math.min(100, pct);
+    onChange({ memberDiscounts: Object.keys(next).length ? next : undefined });
+  };
+  const chosen: string[] = raw.levels ?? [];
+  return (
+    <div className="mb-3 rounded border border-admin-ink/10 p-2">
+      <span className="mb-1 block text-xs font-medium text-admin-muted">Members</span>
+      {levels.map((l) => (
+        <Num key={l.id} title={`${l.name}: percent off (empty: none)`} min={0} max={100} value={off[l.id]} onChange={(pct) => setOff(l.id, pct)} />
+      ))}
+      <p className="-mt-2 mb-2 text-xs text-admin-muted">Taken off every variant's price for signed-in members of that level. The product page says what members save; the cart charges their price.</p>
+      <Toggle title="Members only" value={raw.membersOnly} onChange={(membersOnly) => onChange({ membersOnly: membersOnly || undefined })} />
+      {raw.membersOnly && levels.length > 1 && (
+        <fieldset className="mb-2">
+          <legend className="mb-1 text-xs text-admin-muted">Levels that may buy it (none ticked: all)</legend>
+          {levels.map((l) => (
+            <label key={l.id} className="mr-3 inline-flex items-center gap-1 text-sm">
+              <input type="checkbox" checked={chosen.includes(l.id)} onChange={(e) => onChange({ levels: e.target.checked ? [...chosen, l.id] : chosen.filter((x) => x !== l.id) })} />
+              {l.name}
+            </label>
+          ))}
+        </fieldset>
       )}
     </div>
   );

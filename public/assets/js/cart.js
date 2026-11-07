@@ -170,7 +170,11 @@
         return;
       }
       // Keep what the server allows: lines no longer sold go, quantities fit what's left.
-      const kept = quote.lines.filter((l) => l.problem !== 'gone' && l.quantity > 0).map((l) => ({ product: l.product, variant: l.variant, quantity: l.quantity }));
+      // A members-only line stays as it was, for when the visitor signs in.
+      const had = (l) => lines.find((x) => x.product === l.product && x.variant === l.variant)?.quantity ?? 1;
+      const kept = quote.lines
+        .filter((l) => l.problem !== 'gone' && (l.quantity > 0 || l.problem === 'members-only'))
+        .map((l) => ({ product: l.product, variant: l.variant, quantity: l.problem === 'members-only' ? had(l) : l.quantity }));
       if (JSON.stringify(kept) !== JSON.stringify(lines)) {
         try {
           localStorage.setItem(KEY, JSON.stringify(kept));
@@ -195,12 +199,12 @@
         input.addEventListener('change', () => setQuantity(l, Math.floor(Number(input.value) || 0)));
         const remove = el('button', { type: 'button', className: 'c-cart__remove', textContent: 'Remove' });
         remove.addEventListener('click', () => setQuantity(l, 0));
-        const note = l.problem === 'sold-out' ? 'Sold out' : l.problem === 'fewer' ? `Only ${l.max} left` : '';
+        const note = l.problem === 'sold-out' ? 'Sold out' : l.problem === 'fewer' ? `Only ${l.max} left` : l.problem === 'members-only' ? 'For members only: sign in to buy it' : l.listUnit ? 'Member price' : '';
         return el('tr', {}, [
           el('td', { className: 'c-cart__image' }, l.image ? el('img', { src: l.image, alt: '', width: 64, height: 64, loading: 'lazy' }) : null),
           el('td', { className: 'c-cart__item' }, [el('a', { href: l.url, textContent: l.title }), l.label ? el('small', { textContent: l.label }) : null, note ? el('small', { className: 'c-cart__problem', textContent: note }) : null]),
           el('td', { className: 'c-cart__unit', textContent: money(l.unit, currency) }),
-          el('td', {}, l.problem === 'sold-out' ? null : input),
+          el('td', {}, l.problem === 'sold-out' || l.problem === 'members-only' ? null : input),
           el('td', { className: 'c-cart__total', textContent: l.total ? money(l.total, currency) : '' }),
           el('td', {}, remove),
         ]);

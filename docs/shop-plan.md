@@ -31,6 +31,10 @@ with the server's quote (`/api/shop/quote`) and availability (`/api/shop/availab
 
 ## Phase 2: checkout (the first usable release)
 
+Done so far: the checkout settings (provider, hold, zones and rates, pickup, tax), the totals engine
+(`src/lib/shop/totals.ts`, returned by the quote endpoint) and member pricing. Next: orders and
+checkout, the Cart's checkout steps, the admin's orders, emails, discounts, sync.
+
 ### Settings > Shop
 
 - Payment provider (Stripe or Square, offered as Settings > Tickets does, keys from Connections), how
@@ -115,7 +119,8 @@ with the server's quote (`/api/shop/quote`) and availability (`/api/shop/availab
   confirmation once. Expired holds are released by the hourly run. A total under `MIN_CHARGE` is refused.
 - The Cart block gets Checkout: details, address or pickup, rate, discount code, totals, then Pay.
   The order page (`/cart/?order=<token>`) is personal: never cached, noindex.
-- Member prices (by level, as tickets have) and members-only products.
+- Member prices (a percent off per level) and members-only products: built (product settings, Add to
+  cart's note, the quote); checkout charges the quote's price.
 
 ### Admin
 
@@ -163,6 +168,11 @@ the guide's "Selling things" with new screenshots.
   checked on save), live rates for USPS, UPS and FedEx from the store's address, the cart's shipped
   lines' weights and a default box size (Settings > Shop), offered beside the manual rates or instead of
   them; optionally buying the label from the order screen, which fills in the tracking number.
+- Tracking through the same carrier API: a label bought there is tracked on its own, and a tracking
+  number from elsewhere (typed on the order) can be registered with it. Its tracking webhook updates the
+  order's fulfilment (in transit, delivered, a problem) and emails the buyer when it ships and is
+  delivered; the order page shows the latest status. Without a carrier key, tracking is the number and a
+  link to the carrier's own page.
 
 ## Left out
 

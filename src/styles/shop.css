@@ -82,6 +82,14 @@
 .c-add-to-cart input[type='number'] {
   width: 5.5rem;
 }
+.c-price__members {
+  margin: -0.25rem 0 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+.c-price__members a {
+  color: inherit;
+}
 .c-add-to-cart__price {
   font-size: 1.25rem;
 }

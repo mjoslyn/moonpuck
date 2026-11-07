@@ -1258,6 +1258,30 @@ answer 404.
   most 50 of up to 99 each; each priced as sold now, cut to what's left (`fewer`), `sold-out` or `gone`;
   the subtotal in the shop's currency). Both read as the visitor sees the site (`visibleTo`). `/cart/`
   (`CART_PATH`) is a built-in page with a Cart block unless a page has that address.
+- **Member pricing** (while Members is on; the product's Shop settings, Members): a percent off every
+  variant's price per level (`memberDiscounts`) and members only (`membersOnly`, of `levels`; none: any
+  level). `unitFor` and `mayBuyProduct` (`src/lib/shop/config.ts`) decide for an active member's level.
+  Add to cart says what members save and that a product is for members only, with a sign-in link, the
+  same for everyone so the page stays cached; the quote charges a member their price (`listUnit` keeps the
+  price before it) and gives others a members-only line no quantity (`members-only`), which the cart keeps
+  for when they sign in.
+- **Checkout settings** (Settings > Shop, under `settings.site.shop`; `checkoutSettings`,
+  `checkoutSettingsFrom`, `src/lib/shop/checkout-settings.ts`, `src/admin/ShopCheckoutSettings.tsx`; cleaned
+  on save, only what isn't the default kept): the payment provider, the minutes an unpaid order holds its
+  stock (`hold`, 30-120, default 60), shipping zones (`zones`: name, places, rates), pickup locations
+  (`pickup`: name, address, hours, fee, place for tax) and tax (`tax`: `mode` rates or Stripe Tax, the
+  store's `rate` and per-place `regions` in percent, `onShipping`, Stripe's `taxCode`). Places
+  (`src/lib/shop/places.ts`) are ISO countries, US states as `US-NY`, and `*` for everywhere else.
+- **Totals** (`src/lib/shop/totals.ts`, safe in the browser): a zone is the first, in order, with a place
+  covering the address, a `*` zone only when none names it (`zoneFor`); a rate is flat or by subtotal or
+  shipped weight bands (min inclusive, max exclusive; a cart in no band isn't offered it), free over a
+  subtotal (`ratePrice`). Rates come from `ShippingSource`s (the manual zones, `manualSource`; a carrier
+  later), a failing source left out, listed cheapest first, then pickup (`shippingChoices`); a cart with a
+  pickup-only line gets only pickup, one with nothing shipped none. Tax is per line after its share of the
+  discount (`spreadDiscount`, `orderTotals`), at the most specific region's rate for the address, or the
+  chosen pickup location's place, else the store's (`taxRateFor`); with Stripe Tax it is left to checkout.
+  The quote endpoint takes `destination` and `option` and answers `shipping`, `chosen` and `totals` too
+  (`cartTotals`).
 - **Templates**: turning the shop on the first time makes `single-product` and `archive-product`
   (`SHOP_TEMPLATES`, `ensureShopTemplates`, `src/lib/shop/templates.ts`) when no templates have those
   addresses; `npm run seed` does the same while it is on.

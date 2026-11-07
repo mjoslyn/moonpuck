@@ -33,6 +33,9 @@ A product without a price isn't for sale. The other settings under **Shop**:
 - **Pickup only**: collected, never posted.
 - **Taxed**: untick it for things you don't charge tax on.
 - **Most per order**: leave it empty for no limit.
+- **Members** (when your site has Members turned on): a percent off for each member level, and
+  **Members only**, with the levels that may buy it. The product's page says what members save and
+  that it is for members, with a link to sign in. The cart charges signed-in members their price.
 
 ## Sizes, colors and other options
 
@@ -81,3 +84,40 @@ Collections can show products with the **Product: image, name and price** card.
 in, and click **Save settings**. Turning it on the first time adds two templates under **Templates**:
 **Product** (a product's page) and **Shop** (the `/shop/` listing). Change them like any template.
 Turning the shop off deletes nothing; products are hidden until it is on again.
+
+While the shop is on, the same screen sets up what checkout will use. Checkout itself comes in the next
+part of the preview.
+
+**Payments**:
+
+- **Payments go through**: Stripe or Square, when both are connected under **Settings**, **Connections**.
+- **Minutes an unpaid order holds its stock**: 30 to 120 (60 if left empty).
+
+**Shipping**: click **Add a shipping zone**, name it, and add the places it covers (a country, a US
+state, or **Everywhere else**). Zones are checked in order: the first that names the buyer's country or
+state gives its rates, and **Everywhere else** is used only when no zone names it. Without it, other
+addresses can't be shipped to. Each zone's rates:
+
+- **Name**: what the buyer sees, such as Standard or Express.
+- **Price**: One price, By the order's subtotal, or By the order's weight. By subtotal or weight, add
+  bands, each with a **From**, an **Up to** (empty: no limit) and a **Price**. An order that falls in no
+  band isn't offered the rate.
+- **Free when the subtotal is at least**: leave empty for never.
+
+**Pickup**: click **Add a pickup location** for each place buyers can collect from:
+
+- **Name**, **Address** and **Hours**: shown to the buyer.
+- **Fee**: empty for free.
+- **Where it is, for tax**: the country or state whose tax rate applies.
+
+**Tax**:
+
+- **Tax is**: Worked out from the rates here, or Worked out by Stripe Tax (only when payments go through
+  Stripe; turn Stripe Tax on in Stripe first).
+- **Store's tax rate (%)**: used where no other rate applies.
+- **Rates for places**: a rate for a country or US state, replacing the store's. A state's rate wins
+  over its country's.
+- **Tax shipping too**: on or off.
+
+Each product's **Taxed** switch decides whether it is taxed. The shop adds the tax you set up; it
+doesn't register for or file tax for you.

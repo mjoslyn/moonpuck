@@ -12,6 +12,7 @@ import { downsize, mediaUrl } from '../../lib/media/image';
 import { CART_PATH, maxQuantity, priceRange, productOf, sellable, shopSettings, type Product } from '../../lib/shop/config';
 import { leftOf, type StockMap } from '../../lib/shop/stock';
 import { ARCHIVE_PATHS } from '../../lib/site';
+import { ACCOUNT_PATH, memberSettings } from '../../lib/members/config';
 
 /** Where prepare keeps the stock of the products on the page. */
 export const STOCK_KEY = 'shop-stock';
@@ -35,6 +36,30 @@ const currency = (env: Env) => shopSettings(env.ctx.settings.site).currency;
 function priceHtml(price: number, compareAt: number | null | undefined, cur: string): string {
   const was = compareAt && compareAt > price ? `<s class="c-price__was">${esc(formatMoney(compareAt, cur))}</s> ` : '';
   return `${was}<span class="c-price__now">${esc(formatMoney(price, cur))}</span>`;
+}
+
+/**
+ * What members get, under Add to cart's price: "Members save 10%" (by level when levels differ) and "Members only",
+ * with a sign-in link. The same for everyone, so the page stays cached; the cart charges a member their
+ * price. Nothing while Members is off.
+ */
+function memberNote(p: Product, env: Env): string {
+  const m = memberSettings(env.ctx.settings.site);
+  if (!m.enabled) return '';
+  const name = (id: string) => m.levels.find((l) => l.id === id)?.name ?? id;
+  const off = Object.entries(p.memberDiscounts ?? {}).filter(([l]) => m.levels.some((x) => x.id === l));
+  const parts: string[] = [];
+  if (off.length) {
+    const pcts = new Set(off.map(([, v]) => v));
+    parts.push(
+      pcts.size === 1 && off.length === m.levels.length
+        ? `Members save ${off[0][1]}%`
+        : off.map(([l, v]) => `${name(l)} members save ${v}%`).join(', '),
+    );
+  }
+  if (p.membersOnly) parts.push(p.levels?.length ? `For ${p.levels.map(name).join(' and ')} members only` : 'For members only');
+  if (!parts.length) return '';
+  return `<p class="c-price__members">${esc(parts.join('. '))}. <a href="${ACCOUNT_PATH}">Sign in</a></p>`;
 }
 
 /** The product's price: one price, or "From" the lowest of its variants' when they differ. */
@@ -94,6 +119,7 @@ const addToCart: Renderer = (b, env) => {
     `<form ${root(a, ['c-add-to-cart'])} id="${id}" data-add-to-cart data-product="${e.id}" data-title="${escAttr(e.title)}" data-currency="${escAttr(cur)}" data-variants="${jsonAttr(variants)}" data-label="${escAttr(label)}" data-cart-path="${CART_PATH}">` +
     (choices ? `<div class="c-add-to-cart__options">${choices}</div>` : '') +
     `<p class="c-price c-add-to-cart__price">${priceHtml(first.price!, first.compareAt, cur)}</p>` +
+    memberNote(p, env) +
     `<div class="c-add-to-cart__row">${qty}<button type="submit" class="c-shop-button c-add-to-cart__button"${soldOut ? ' disabled' : ''}>${esc(soldOut ? 'Sold out' : label)}</button></div>` +
     `<p class="c-add-to-cart__status" role="status" aria-live="polite"></p>` +
     `<noscript><p class="c-add-to-cart__status">The cart needs JavaScript, which is off in this browser.</p></noscript>` +

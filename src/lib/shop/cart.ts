@@ -6,7 +6,7 @@ import type { Db } from '../db/query';
 import { Loader, type LoaderScope } from '../data';
 import { downsize, mediaUrl } from '../media/image';
 import { permalink } from '../permalink';
-import { MAX_LINES, MAX_QUANTITY, maxQuantity, productOf, shopSettings, variantOf } from './config';
+import { MAX_LINES, MAX_QUANTITY, mayBuyProduct, maxQuantity, productOf, shopSettings, unitFor, variantOf } from './config';
 import { leftOf, loadStock } from './stock';
 
 /** A line of the cart as the browser keeps it. */
@@ -28,7 +28,15 @@ export interface QuoteLine extends CartLine {
   total: number;
   /** The most this line can take now. */
   max: number;
-  problem?: 'gone' | 'sold-out' | 'fewer';
+  /** The price before the buyer's member discount, when they have one. */
+  listUnit?: number;
+  /** For totals (src/lib/shop/totals.ts). */
+  ships: boolean;
+  pickupOnly: boolean;
+  taxable: boolean;
+  weight: number | null;
+  /** gone: no longer sold; sold-out; fewer: cut to what is left; members-only: not for this buyer. */
+  problem?: 'gone' | 'sold-out' | 'fewer' | 'members-only';
 }
 
 export interface Quote {
@@ -61,6 +69,8 @@ export function cleanCart(raw: unknown): CartLine[] {
  */
 export async function quoteCart(db: Db, raw: unknown, scope: LoaderScope, site: Record<string, any> | null | undefined): Promise<Quote> {
   const cart = cleanCart(raw);
+  // Editors see members-only products but pay as anyone does.
+  const member = scope.viewer?.member;
   const loader = new Loader(db, undefined, scope);
   const entries = new Map((await loader.entriesByIds(cart.map((l) => l.product))).filter((e) => e.type === 'product').map((e) => [e.id, e]));
   const stock = await loadStock(db, [...entries.keys()]);
@@ -75,12 +85,29 @@ export async function quoteCart(db: Db, raw: unknown, scope: LoaderScope, site: 
     const p = products.get(l.product);
     const v = p ? variantOf(p, l.variant) : undefined;
     const m = images[i] ? loader.media.get(images[i]) : undefined;
-    const base = { ...l, title: e?.title ?? '', label: v?.label ?? '', url: e ? permalink(e) : '', image: m ? mediaUrl(downsize(m, 'thumbnail').path) : null, sku: v?.sku ?? '', unit: v?.price ?? 0, total: 0, max: 0 };
+    const unit = p && v ? unitFor(p, v, member) : 0;
+    const base = {
+      ...l,
+      title: e?.title ?? '',
+      label: v?.label ?? '',
+      url: e ? permalink(e) : '',
+      image: m ? mediaUrl(downsize(m, 'thumbnail').path) : null,
+      sku: v?.sku ?? '',
+      unit,
+      ...(v && unit !== v.price ? { listUnit: v.price! } : {}),
+      total: 0,
+      max: 0,
+      ships: !!p?.ships,
+      pickupOnly: !!p?.pickupOnly,
+      taxable: !!p?.taxable,
+      weight: v?.weight ?? null,
+    };
     if (!e || !p || !v) return { ...base, quantity: 0, problem: 'gone' };
+    if (!mayBuyProduct(p, member)) return { ...base, quantity: 0, problem: 'members-only' };
     const max = maxQuantity(p, leftOf(p, stock.get(l.product), l.variant));
     if (!max) return { ...base, quantity: 0, problem: 'sold-out' };
     const quantity = Math.min(l.quantity, max);
-    return { ...base, quantity, max, total: quantity * v.price!, ...(quantity < l.quantity ? { problem: 'fewer' as const } : {}) };
+    return { ...base, quantity, max, total: quantity * unit, ...(quantity < l.quantity ? { problem: 'fewer' as const } : {}) };
   });
   return {
     lines,
