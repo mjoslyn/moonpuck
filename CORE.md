@@ -1261,8 +1261,12 @@ answer 404.
 - **Member pricing** (while Members is on; the product's Shop settings, Members): per level, a percent
   off every variant's price (`memberDiscounts`) or a price of their own (`memberPrices`, which a variant
   can set for itself, its `memberPrices`), and members only (`membersOnly`, of `levels`; none: any level).
+  A product category takes a percent off per level too (Content > Taxonomies, Details, Member pricing;
+  `terms.fields.memberDiscounts`, a reserved key, saved for the product type's main taxonomy), for its
+  products and those of the categories under it (`categoryDiscounts`, the largest for each level).
   `unitFor` and `mayBuyProduct` (`src/lib/shop/config.ts`) decide for an active member's level: the
-  variant's member price, else the product's, else the percent off, never above the price. Add to cart
+  variant's member price, else the product's, else the product's percent off, else its categories',
+  never above the price. Add to cart
   says what members save or pay and that a product is for members only, with a sign-in link, the
   same for everyone so the page stays cached; the quote charges a member their price (`listUnit` keeps the
   price before it) and gives others a members-only line no quantity (`members-only`), which the cart keeps
@@ -1284,7 +1288,9 @@ answer 404.
   chosen pickup location's place, else the store's (`taxRateFor`); with Stripe Tax it is left to checkout.
   The quote endpoint takes `destination` and `option` and answers `shipping`, `chosen` and `totals` too
   (`cartTotals`).
-- **Templates**: turning the shop on the first time makes `single-product` and `archive-product`
+- **Templates**: turning the shop on the first time makes `single-product` (the product's categories
+  over its name), `archive-product` (a Filters block by product category over the products) and
+  `taxonomy-product_category` (a category's name and description over its products)
   (`SHOP_TEMPLATES`, `ensureShopTemplates`, `src/lib/shop/templates.ts`) when no templates have those
   addresses; `npm run seed` does the same while it is on.
 

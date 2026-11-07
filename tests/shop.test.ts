@@ -144,3 +144,22 @@ describe('product pages', () => {
     await setSite({ shop: undefined });
   });
 });
+
+describe('product category pages', () => {
+  it('list the category\'s products under its name and description', async () => {
+    const db = siteDb();
+    const content = (items: unknown[]) => ({ root: { props: {} }, content: items });
+    const t = SHOP_TEMPLATES['taxonomy-product_category'];
+    await db.from('templates').insert({ kind: 'template', slug: 'taxonomy-product_category', title: t.title, content: content(t.content.filter((i) => i.type !== 'part')) });
+    const term = (await db.from('terms').insert({ taxonomy: 'product_category', name: 'Mugs', slug: 'mugs', description: 'Mugs for coffee.' }).select('id').single()).data!.id as number;
+    const mug = (await db.from('entries').insert({ type: 'product', slug: 'blue-mug', title: 'Blue mug', status: 'publish', fields: { shop: { price: 1200 } } }).select('id').single()).data!.id as number;
+    await db.from('entry_terms').insert({ entry_id: mug, term_id: term });
+    await setSite({ shop: { enabled: true } });
+    const page = await renderRequest(new URL('http://localhost/shop/category/mugs/'), db);
+    expect(page.status).toBe(200);
+    expect(page.html).toContain('Mugs for coffee.');
+    expect(page.html).toContain('Blue mug');
+    expect(page.html).toContain('$12.00');
+    await setSite({ shop: undefined });
+  });
+});

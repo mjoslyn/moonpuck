@@ -119,7 +119,8 @@ checkout, the Cart's checkout steps, the admin's orders, emails, discounts, sync
   confirmation once. Expired holds are released by the hourly run. A total under `MIN_CHARGE` is refused.
 - The Cart block gets Checkout: details, address or pickup, rate, discount code, totals, then Pay.
   The order page (`/cart/?order=<token>`) is personal: never cached, noindex.
-- Member prices (a percent off or a fixed price per level, variants with their own) and members-only products: built (product settings, Add to
+- Member prices (a percent off or a fixed price per level, variants with their own; a percent off per
+  level on a product category, for its products and those under it) and members-only products: built (product settings, Add to
   cart's note, the quote); checkout charges the quote's price.
 
 ### Admin

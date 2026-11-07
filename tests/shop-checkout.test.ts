@@ -182,3 +182,29 @@ describe('member pricing', () => {
     expect(anyone.subtotal).toBe(4000);
   });
 });
+
+describe('product categories', () => {
+  it('pass their member discounts to their products, the largest winning, after the product\'s own', async () => {
+    const db = siteDb();
+    const term = async (slug: string, fields: Record<string, unknown>, parent_id: number | null = null) =>
+      (await db.from('terms').insert({ taxonomy: 'product_category', name: slug, slug, parent_id, fields }).select('id').single()).data!.id as number;
+    const clothing = await term('clothing', { memberDiscounts: { gold: 10, silver: 5 } });
+    const hats = await term('hats', { memberDiscounts: { silver: 20 } }, clothing);
+    const product = async (slug: string, shop: Record<string, unknown>, terms: number[]) => {
+      const id = (await db.from('entries').insert({ type: 'product', slug, title: slug, status: 'publish', fields: { shop } }).select('id').single()).data!.id as number;
+      await db.from('entry_terms').insert(terms.map((term_id) => ({ entry_id: id, term_id })));
+      return id;
+    };
+    const cap = await product('cap', { price: 1000 }, [hats]);
+    const own = await product('own-cap', { price: 1000, memberDiscounts: { gold: 50 } }, [hats]);
+    const viewer = (level: string) => ({ id: 'u', email: 'a@b.c', name: 'A', editor: false, member: { level, status: 'active' } as any });
+    const lines = [cap, own].map((product) => ({ product, variant: 'default', quantity: 1 }));
+    const site = { shop: { enabled: true } };
+    const units = async (level: string) => (await quoteCart(db, lines, { published: true, viewer: viewer(level) }, site)).lines.map((l) => l.unit);
+    // Gold: the parent's 10% (the cap); its own 50% (own-cap).
+    expect(await units('gold')).toEqual([900, 500]);
+    // Silver: hats' 20% over clothing's 5%.
+    expect(await units('silver')).toEqual([800, 800]);
+    expect((await quoteCart(db, lines, { published: true }, site)).lines.map((l) => l.unit)).toEqual([1000, 1000]);
+  });
+});

@@ -224,7 +224,7 @@ export function productOf(fields: Record<string, any> | null | undefined): Produ
   };
 }
 
-function memberDiscountsOf(v: unknown): Record<string, number> | undefined {
+export function memberDiscountsOf(v: unknown): Record<string, number> | undefined {
   if (!v || typeof v !== 'object') return undefined;
   const out: Record<string, number> = {};
   for (const [k, raw] of Object.entries(v as Record<string, unknown>)) {
@@ -256,17 +256,38 @@ export const memberDiscount = (p: Product, member: Membership) => {
 
 /**
  * What one of a variant costs a buyer: for an active member, the variant's member price for their level,
- * else the product's, else its price less the level's percent off; for everyone else its price. Never
- * more than its price.
+ * else the product's, else its price less the level's percent off (the product's, else its categories',
+ * `fromCategories`); for everyone else its price. Never more than its price.
  */
-export const unitFor = (p: Product, v: ResolvedVariant, member: Membership) => {
+export const unitFor = (p: Product, v: ResolvedVariant, member: Membership, fromCategories?: Record<string, number>) => {
   const level = activeLevel(member);
   if (!level) return v.price!;
   const fixed = v.memberPrices?.[level] ?? p.memberPrices?.[level];
   if (fixed != null) return Math.min(fixed, v.price!);
-  const pct = p.memberDiscounts?.[level] || 0;
+  const pct = p.memberDiscounts?.[level] || fromCategories?.[level] || 0;
   return pct ? Math.round((v.price! * (100 - pct)) / 100) : v.price!;
 };
+
+/** The reserved term field a product category keeps its member discounts under (percent, by level). */
+export const CATEGORY_DISCOUNTS_KEY = 'memberDiscounts';
+
+/**
+ * The member discounts a product takes from its categories: each category's and those of the categories
+ * it sits under, the largest for each level.
+ */
+export function categoryDiscounts(termIds: number[] | undefined, terms: Map<number, { parent_id?: number | null; fields?: Record<string, any> | null }>): Record<string, number> | undefined {
+  const out: Record<string, number> = {};
+  const seen = new Set<number>();
+  for (const start of termIds ?? []) {
+    for (let id: number | null | undefined = start; id && !seen.has(id); id = terms.get(id)?.parent_id) {
+      seen.add(id);
+      const t = terms.get(id);
+      if (!t) break;
+      for (const [level, pct] of Object.entries(memberDiscountsOf(t.fields?.[CATEGORY_DISCOUNTS_KEY]) ?? {})) out[level] = Math.max(out[level] ?? 0, pct);
+    }
+  }
+  return Object.keys(out).length ? out : undefined;
+}
 
 /** Whether a buyer may buy a product: anyone, or for a members-only one an active member of its levels. */
 export const mayBuyProduct = (p: Product, member: Membership) => {

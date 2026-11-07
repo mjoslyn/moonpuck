@@ -70,6 +70,23 @@ you have in stock.
 
 ![The cart](../../../assets/guide/shop-cart.png)
 
+## Product categories
+
+Products come with **Product categories**, a taxonomy of their own: tick a product's categories in its
+settings, and manage them under **Content**, **Taxonomies**, **Product categories**. Categories can sit
+under other categories. Each has its own page at `/shop/category/<address>/`, listing its products,
+and the shop at `/shop/` has filters by category.
+
+When your site has Members turned on, a category can take a percent off for members:
+
+1. Click **Content**, then **Taxonomies**, then **Product categories**.
+2. Click **Details** beside the category.
+3. Under **Member pricing**, type the percent off for each member level.
+4. Click **Save**.
+
+The discount applies to every product in the category and in the categories under it. A product's own
+member pricing comes first; a product in several categories takes the largest discount.
+
 ## Blocks for the shop
 
 In the page editor, under **Shop**:
@@ -85,8 +102,9 @@ Collections can show products with the **Product: image, name and price** card.
 ## Turning the shop on
 
 **Settings**, **Shop** (admins): tick **Shop on**, choose the **Currency** and the unit **Weights** are
-in, and click **Save settings**. Turning it on the first time adds two templates under **Templates**:
-**Product** (a product's page) and **Shop** (the `/shop/` listing). Change them like any template.
+in, and click **Save settings**. Turning it on the first time adds three templates under **Templates**:
+**Product** (a product's page), **Shop** (the `/shop/` listing) and **Product category** (a category's
+page). Change them like any template.
 Turning the shop off deletes nothing; products are hidden until it is on again.
 
 While the shop is on, the same screen sets up what checkout will use. Checkout itself comes in the next

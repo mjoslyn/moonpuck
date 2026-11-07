@@ -25,6 +25,7 @@ import { isPageTickets, prepareTickets, prepareTicketsBlock } from './c/tickets'
 import { EVENT_BLOCKS, eventsOn } from '../lib/events/on';
 import { SHOP_BLOCKS, productOf, shopOn } from '../lib/shop/config';
 import { loadStock } from '../lib/shop/stock';
+import { memberSettings } from '../lib/members/config';
 import { CART_SCRIPT, STOCK_KEY } from './c/shop';
 import { LISTS_KEY } from './c/mailing';
 import { renderHooks } from './hooks';
@@ -324,6 +325,8 @@ async function prepareShop(ctx: RenderCtx, type: string, attrs: Record<string, a
   if (!stock.has(e.id)) for (const [id, counts] of await loadStock(ctx.loader.db, [e.id])) stock.set(id, counts);
   ctx.data.set(STOCK_KEY, stock);
   const images = (productOf(e.fields)?.variants ?? []).map((v) => Number(v.image)).filter((n) => n > 0);
+  // Its categories, for their member discounts (memberNote).
+  if (e.term_ids?.length && memberSettings(ctx.settings.site).enabled) await ctx.loader.allTerms();
   if (images.length) await ctx.loader.loadMedia(images);
 }
 

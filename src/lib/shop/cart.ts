@@ -6,7 +6,8 @@ import type { Db } from '../db/query';
 import { Loader, type LoaderScope } from '../data';
 import { downsize, mediaUrl } from '../media/image';
 import { permalink } from '../permalink';
-import { MAX_LINES, MAX_QUANTITY, mayBuyProduct, maxQuantity, productOf, shopSettings, unitFor, variantOf } from './config';
+import { MAX_LINES, MAX_QUANTITY, categoryDiscounts, mayBuyProduct, maxQuantity, productOf, shopSettings, unitFor, variantOf } from './config';
+import { categoryOf } from '../site';
 import { leftOf, loadStock } from './stock';
 
 /** A line of the cart as the browser keeps it. */
@@ -75,6 +76,9 @@ export async function quoteCart(db: Db, raw: unknown, scope: LoaderScope, site: 
   const entries = new Map((await loader.entriesByIds(cart.map((l) => l.product))).filter((e) => e.type === 'product').map((e) => [e.id, e]));
   const stock = await loadStock(db, [...entries.keys()]);
   const products = new Map([...entries].map(([id, e]) => [id, productOf(e.fields)]));
+  // The member discounts of the products' categories, read only for a member.
+  const categories = member ? await categoryTerms(db) : null;
+  const fromCategories = (id: number) => (categories ? categoryDiscounts(entries.get(id)?.term_ids?.filter((t) => categories.has(t)), categories) : undefined);
   const images = cart.map((l) => {
     const p = products.get(l.product);
     return (p && variantOf(p, l.variant)?.image) || entries.get(l.product)?.featured_media_id || 0;
@@ -85,7 +89,7 @@ export async function quoteCart(db: Db, raw: unknown, scope: LoaderScope, site: 
     const p = products.get(l.product);
     const v = p ? variantOf(p, l.variant) : undefined;
     const m = images[i] ? loader.media.get(images[i]) : undefined;
-    const unit = p && v ? unitFor(p, v, member) : 0;
+    const unit = p && v ? unitFor(p, v, member, fromCategories(l.product)) : 0;
     const base = {
       ...l,
       title: e?.title ?? '',
@@ -115,4 +119,12 @@ export async function quoteCart(db: Db, raw: unknown, scope: LoaderScope, site: 
     subtotal: lines.reduce((n, l) => n + l.total, 0),
     currency: shopSettings(site).currency,
   };
+}
+
+/** The products' category terms (the product type's main taxonomy), with their parents and fields. */
+async function categoryTerms(db: Db) {
+  const tax = categoryOf('product')?.[0];
+  if (!tax) return new Map();
+  const { data } = await db.from('terms').select('id, parent_id, fields').eq('taxonomy', tax);
+  return new Map((data ?? []).map((t: any) => [t.id as number, t]));
 }
