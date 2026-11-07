@@ -5,7 +5,7 @@ const FONTS =
 // The share card (public/og.png), also on every docs page (astro.config.mjs).
 const SHARE_ALT = 'Moonpuck, the open source website builder: Hand it the flyer. Get the page.';
 const description =
-  'Moonpuck is an open source website builder for small organisations, with Claude built in. Events, tickets, members and mailing lists come with it, on your own Cloudflare account.';
+  'Moonpuck is an open source website builder for small organisations, with Claude built in. Events, tickets, members, mailing lists and a shop come with it, on your own Cloudflare account.';
 ---
 <!doctype html>
 <html lang="en">
@@ -137,7 +137,7 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 <div style="flex: 1 1 520px; min-width: 0">
 <p class="mp-label" style="margin: 0 0 18px; color: #FFA5FF">The open source website builder for small organisations</p>
 <p class="mp-serif mp-lead" style="margin: 0; font-size: 34px; line-height: 1.22; color: #F7F0F5">Moonpuck is a visual editor with Claude built in. Drop in a PDF, a few photos and a link, and get a finished page in your house style, every block still yours to edit.</p>
-<p class="mp-serif mp-lead" style="margin: 26px 0 0; font-size: 34px; line-height: 1.22; color: #F7F0F5">Events, tickets, members and mailing lists come with it, running on your own Cloudflare account.</p>
+<p class="mp-serif mp-lead" style="margin: 26px 0 0; font-size: 34px; line-height: 1.22; color: #F7F0F5">Events, tickets, members, mailing lists and a shop come with it, running on your own Cloudflare account.</p>
 <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 40px">
 <a href="/docs/local-setup/" class="mp-pill" style="background: #F5D8EF; color: #120C1F">Get started</a>
 <a href="#compose" class="mp-pill" style="background: #1B2A6B; color: #DCD8FF">How Compose works</a>
@@ -217,6 +217,8 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 <div class="mp-card" style="background: #2F5BD6; color: #FFFFFF"><p class="mp-label" style="margin: 0; font-size: 12px">Events</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Tickets</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Paid or free, with waitlists, check-in, refunds and reminder emails.</p></div>
 <div class="mp-card" style="background: #FFA5FF"><p class="mp-label" style="margin: 0; font-size: 12px">People</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Members</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Levels, sign-ups, members-only pages and member prices.</p></div>
 <div class="mp-card" style="background: #FDF152"><p class="mp-label" style="margin: 0; font-size: 12px">People</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Mailing lists</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Campaigns, segments and a weekly digest of what's new.</p></div>
+<div class="mp-card" style="background: #FF542F"><p class="mp-label" style="margin: 0; font-size: 12px">Selling</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Shop</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Products with options and stock, a cart, member prices and members-only products.</p></div>
+<div class="mp-card" style="background: #2F5BD6; color: #FFFFFF"><p class="mp-label" style="margin: 0; font-size: 12px">Selling</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Shipping and tax</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Your own zones and rates, pickup locations, tax rates or Stripe Tax.</p></div>
 <div class="mp-card" style="background: #F5D8EF"><p class="mp-label" style="margin: 0; font-size: 12px">Forms</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Forms and payments</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Conditional fields, Stripe or Square, designed notification emails.</p></div>
 <div class="mp-card" style="background: #C5E975"><p class="mp-label" style="margin: 0; font-size: 12px">Insight</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Stats without cookies</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Views, visitors, clicks and campaigns. No banner needed.</p></div>
 <div class="mp-card" style="background: #FEA903"><p class="mp-label" style="margin: 0; font-size: 12px">Insight</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Search and SEO</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Live site search, search titles and share images, written for you.</p></div>
@@ -224,6 +226,8 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 <div class="mp-card" style="background: #FFA5FF"><p class="mp-label" style="margin: 0; font-size: 12px">Care</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Sync and backups</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Copy content between copies. Daily snapshots, and restore.</p></div>
 <div class="mp-card" style="background: #FDF152"><p class="mp-label" style="margin: 0; font-size: 12px">Care</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Redirects</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Moved pages redirect themselves. Missing addresses are logged.</p></div>
 <div class="mp-card" style="background: #F5D8EF"><p class="mp-label" style="margin: 0; font-size: 12px">Editing</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Media library</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Focal points per screen size, AVIF and WebP, alt text written for you.</p></div>
+<div class="mp-card" style="background: #C5E975"><p class="mp-label" style="margin: 0; font-size: 12px">Care</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Popups and consent</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Dialogs and bars from your own blocks, and a cookie banner that holds scripts until people agree.</p></div>
+<div class="mp-card" style="background: #FEA903"><p class="mp-label" style="margin: 0; font-size: 12px">Services</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Connections</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Paste a key for Stripe, Square, Mailgun or Claude. Webhooks are set up for you.</p></div>
 </div>
 </div>
 </section>
