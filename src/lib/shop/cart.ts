@@ -36,6 +36,8 @@ export interface QuoteLine extends CartLine {
   pickupOnly: boolean;
   taxable: boolean;
   weight: number | null;
+  /** Its stock is counted (an order holds it). */
+  track: boolean;
   /** gone: no longer sold; sold-out; fewer: cut to what is left; members-only: not for this buyer. */
   problem?: 'gone' | 'sold-out' | 'fewer' | 'members-only';
 }
@@ -105,6 +107,7 @@ export async function quoteCart(db: Db, raw: unknown, scope: LoaderScope, site: 
       pickupOnly: !!p?.pickupOnly,
       taxable: !!p?.taxable,
       weight: v?.weight ?? null,
+      track: !!p?.trackStock,
     };
     if (!e || !p || !v) return { ...base, quantity: 0, problem: 'gone' };
     if (!mayBuyProduct(p, member)) return { ...base, quantity: 0, problem: 'members-only' };

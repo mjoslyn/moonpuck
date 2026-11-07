@@ -13,6 +13,12 @@ import { CART_PATH, categoryDiscounts, maxQuantity, priceRange, productOf, sella
 import { leftOf, type StockMap } from '../../lib/shop/stock';
 import { ARCHIVE_PATHS } from '../../lib/site';
 import { ACCOUNT_PATH, memberSettings } from '../../lib/members/config';
+import { checkoutSettings } from '../../lib/shop/checkout-settings';
+import { COUNTRY_CODES, ELSEWHERE, placeName, US_STATES } from '../../lib/shop/places';
+import type { ShopOrder } from '../../lib/shop/orders';
+
+/** Where the server's hook keeps the order a cart page shows (?order=<token>; src/lib/shop/page-data.ts). */
+export const ORDER_KEY = 'shop-order';
 
 /** Where prepare keeps the stock of the products on the page. */
 export const STOCK_KEY = 'shop-stock';
@@ -142,17 +148,67 @@ const addToCart: Renderer = (b, env) => {
   );
 };
 
-/** The cart: filled in the visitor's browser from the cart it keeps and the server's prices. */
+/**
+ * What the checkout form offers (data-checkout): the countries the shipping zones cover (every one when a
+ * zone covers everywhere else), US states, and the country to begin on.
+ */
+function checkoutOffer(env: Env) {
+  const c = checkoutSettings(env.ctx.settings.site?.shop);
+  const places = c.zones.flatMap((z) => z.places);
+  const codes = places.includes(ELSEWHERE) ? COUNTRY_CODES : [...new Set(places.map((p) => p.split('-')[0]))];
+  const countries = codes.map((code): [string, string] => [code, placeName(code)]).sort((x, y) => x[1].localeCompare(y[1]));
+  const first = places.find((p) => p !== ELSEWHERE)?.split('-')[0];
+  return { countries, states: US_STATES.slice(), country: first ?? countries[0]?.[0] ?? '', pickup: c.pickup.length > 0 };
+}
+
+/** A buyer's order, as the cart's page shows it after checkout (paid, being confirmed, or not completed). */
+function orderView(o: ShopOrder, a: Record<string, any>): string {
+  const money = (n: number) => esc(formatMoney(n, o.currency));
+  const heading =
+    o.status === 'paid' || o.status === 'refunded'
+      ? `<h2 class="c-order__heading">Thank you, ${esc(o.name)}</h2><p>Your order <strong>${esc(o.code)}</strong> is confirmed. We've emailed a receipt to ${esc(o.email)}.</p>`
+      : o.status === 'pending'
+        ? `<h2 class="c-order__heading">Confirming your payment</h2><p>Order <strong>${esc(o.code)}</strong> is waiting for the payment to come through. This page shows it once it has; reload in a moment.</p>`
+        : `<h2 class="c-order__heading">This order wasn't completed</h2><p>Order <strong>${esc(o.code)}</strong> wasn't paid for, so nothing was charged. Your cart is as you left it.</p>`;
+  const rows = o.lines
+    .map((l) => `<tr><td class="c-cart__item">${esc(l.title)}${l.label ? `<small>${esc(l.label)}</small>` : ''}</td><td>${l.quantity}</td><td class="c-cart__total">${money(l.total)}</td></tr>`)
+    .join('');
+  const totals = [
+    o.discount ? ['Discount', `−${money(o.discount)}`] : null,
+    o.shipping ? [`${o.shipping.kind === 'pickup' ? 'Pickup' : 'Shipping'}: ${esc(o.shipping.name)}`, o.shipping_total ? money(o.shipping_total) : 'Free'] : null,
+    o.tax ? ['Tax', money(o.tax)] : null,
+    ['Total', `<strong>${money(o.total)}</strong>`],
+  ]
+    .filter((x): x is string[] => !!x)
+    .map(([k, v]) => `<p class="c-cart__subtotal"><span>${k}</span> <span>${v}</span></p>`)
+    .join('');
+  const where =
+    o.fulfilment === 'pickup' && o.shipping
+      ? `<div class="c-order__where"><h3>Pick up at ${esc(o.shipping.name)}</h3><p>${esc(o.shipping.address ?? '').replace(/\n/g, '<br>')}${o.shipping.hours ? `<br>${esc(o.shipping.hours)}` : ''}</p></div>`
+      : o.address
+        ? `<div class="c-order__where"><h3>Shipping to</h3><p>${[o.name, o.address.line1, o.address.line2, [o.address.city, [o.address.state, o.address.zip].filter(Boolean).join(' ')].filter(Boolean).join(', '), placeName(o.address.country)].filter(Boolean).map((x) => esc(String(x))).join('<br>')}</p></div>`
+        : '';
+  return (
+    `<div ${root(a, ['c-cart', 'c-order', `is-${o.status}`])} data-cart data-order="${escAttr(o.status)}">` +
+    heading +
+    `<table class="c-cart__table"><thead><tr><th scope="col">Item</th><th scope="col">Quantity</th><th scope="col">Total</th></tr></thead><tbody>${rows}</tbody></table>${totals}${where}` +
+    `</div>`
+  );
+}
+
+/** The cart: filled in the visitor's browser from the cart it keeps and the server's prices, with the checkout below it. */
 const cart: Renderer = (b, env) => {
   const a = b.attrs;
+  const order = env.ctx.data.get(ORDER_KEY) as ShopOrder | undefined;
+  if (order) return orderView(order, a);
   const shop = ARCHIVE_PATHS.product ?? '/';
   const empty = String(a.empty || 'Your cart is empty.');
   // The canvas runs no scripts: a sample of what visitors see.
   const sample = env.ctx.editor
-    ? `<div class="cms-editor-note">The cart: the products a visitor has added, their quantities and the subtotal. Sample lines below; checkout comes in the next part of the shop preview.</div><table class="c-cart__table"><tbody><tr><td class="c-cart__item">Sample product<br><small>Large / Blue</small></td><td>${esc(formatMoney(2000, currency(env)))}</td><td>2</td><td>${esc(formatMoney(4000, currency(env)))}</td></tr></tbody></table>`
+    ? `<div class="cms-editor-note">The cart: the products a visitor has added, their quantities and the subtotal, then the checkout (their details, shipping or pickup, tax and Pay). Sample lines below.</div><table class="c-cart__table"><tbody><tr><td class="c-cart__item">Sample product<br><small>Large / Blue</small></td><td>${esc(formatMoney(2000, currency(env)))}</td><td>2</td><td>${esc(formatMoney(4000, currency(env)))}</td></tr></tbody></table>`
     : '<p class="c-cart__loading">Loading your cart…</p>';
   return (
-    `<div ${root(a, ['c-cart'])} data-cart data-currency="${escAttr(currency(env))}" data-empty="${escAttr(empty)}" data-shop="${escAttr(shop)}">` +
+    `<div ${root(a, ['c-cart'])} data-cart data-currency="${escAttr(currency(env))}" data-empty="${escAttr(empty)}" data-shop="${escAttr(shop)}" data-checkout="${jsonAttr(checkoutOffer(env))}"${env.ctx.queried.url.searchParams.get('checkout') === 'cancelled' ? ' data-cancelled' : ''}>` +
     `<div class="c-cart__body" aria-live="polite">${sample}</div>` +
     `<noscript><p>The cart needs JavaScript, which is off in this browser.</p></noscript>` +
     `</div>`

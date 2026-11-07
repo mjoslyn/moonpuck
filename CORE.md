@@ -1224,8 +1224,8 @@ never subscribes anyone again); the settings are, with the others. Migration `*_
 
 An optional feature, on under Settings > Shop (`settings.site.shop`: `enabled`, `currency`, `weightUnit`;
 `shopSettings`, `shopOn`, `src/lib/shop/config.ts`), built in phases on a preview branch: phase 1 has
-products, options, variants, stock and the cart; checkout (payments, manual shipping rates and pickup,
-tax, discounts, orders) comes next. Off, nothing is deleted: the admin hides the core's product type and
+products, options, variants, stock and the cart; phase 2, checkout (payments, manual shipping rates and
+pickup, tax and orders), is built, with the admin's Orders screen and discounts next. Off, nothing is deleted: the admin hides the core's product type and
 product categories (`showsType`, `showsTaxonomy`, `src/lib/features.ts`), the site serves none of them
 (`resolve`, the loader's `off` types), the shop's blocks render nothing (`SHOP_BLOCKS`) and its endpoints
 answer 404.
@@ -1261,7 +1261,34 @@ answer 404.
   prices (`POST /api/shop/quote`, `quoteCart` in `src/lib/shop/cart.ts`: lines cleaned by `cleanCart`, at
   most 50 of up to 99 each; each priced as sold now, cut to what's left (`fewer`), `sold-out` or `gone`;
   the subtotal in the shop's currency). Both read as the visitor sees the site (`visibleTo`). `/cart/`
-  (`CART_PATH`) is a built-in page with a Cart block unless a page has that address.
+  (`CART_PATH`) is a built-in page with a Cart block unless a page has that address. Under the cart the
+  script builds the checkout (the Cart block's `data-checkout`: the countries the zones cover, US states,
+  the country to begin on): name, email and phone, the country and state (re-quoting the cart for them and
+  the option chosen: `destination`, `option`), the shipping and pickup options, the address for a shipped
+  order, the totals and Pay; what the buyer typed is kept for the visit (`sessionStorage`).
+- **Orders** (`src/lib/shop/orders.ts`, table `shop_orders`, migration `*_shop_orders.sql`; editors read,
+  the server writes): `POST /api/shop/checkout` (`startShopCheckout`) prices the cart again as the visitor
+  sees the site (a line with any problem answers `changed`), checks the option and address (`cleanAddress`:
+  a country code, a US state's code), works out the totals (`cartTotals`, Stripe Tax only while Stripe
+  takes the payment, `taxInForce`) and makes the order with `shop_order_create`, which inserts it only if
+  every counted line has that many left (on hand less unexpired holds and paid orders not yet taken off)
+  and the buyer has fewer than 5 unpaid orders in an hour by email and by address, in the one statement;
+  30 orders a minute in all. The order keeps a copy of its lines (`lines`: title, options, SKU, unit
+  price, quantity, total, discount and tax shares, `track`, `restocked`), the option chosen (`shipping`),
+  the address for a shipped one, the totals and `tax_by` (`site`, or `stripe`, whose tax is recorded when
+  paid). Then the provider's checkout with the lines, shipping and tax as items (Stripe Tax: automatic tax
+  with each product's code, shipping's and untaxed lines' own), or, with nothing to pay, paid at once. An
+  unpaid order holds its stock for Settings > Shop's minutes (plus two). `/api/shop/return` and the
+  payment webhooks (`shopWebhook`, beside the forms' and tickets') ask the provider; `markShopPaid` marks it
+  paid once (a cancelled or expired order paid anyway too, with a note), then `shop_take_stock` takes its
+  counted lines off `shop_stock` once (`stock_taken`) and the buyer's confirmation and the shop's copy
+  (`SHOP_NOTIFY_EMAIL`, else `FORMS_ADMIN_EMAIL`, else the config's `adminEmail`; email log kind `shop`) go
+  once (`emailed_at`). Refunds made at the provider update `refunded_amount` and a full one marks the order
+  refunded, without restocking. The hourly run expires holds (`expireShopHolds`). What's left
+  (`loadStock`) is on hand less what orders hold (`loadHeld`). `/cart/?order=<token>` shows the order (the
+  Cart block, loaded by a server hook, `src/lib/shop/page-data.ts`; never cached, noindex): paid, being
+  confirmed, or not completed; a paid one empties the buyer's cart. `/cart/?checkout=cancelled` after the
+  provider's Cancel.
 - **Member pricing** (while Members is on; the product's Shop settings, Members): per level, a percent
   off every variant's price (`memberDiscounts`) or a price of their own (`memberPrices`, which a variant
   can set for itself, its `memberPrices`), and members only (`membersOnly`, of `levels`; none: any level).
@@ -1533,7 +1560,7 @@ only add; one that switches block types or settings goes out with `npm run deplo
 - Bindings: `DB` (D1), `BUCKET` (R2), `IMAGES` (Cloudflare Images), `JOBS` (a queue: Compose turns, campaign
   sending runs and restores, each run once with up to 15 minutes, `src/lib/jobs.ts`),
   `CF_VERSION_METADATA` (the page cache's validators). The Cron Triggers: mailing every 5 minutes and at
-  06:20 UTC, snapshots at 07:00 UTC, ticket emails and the statistics' and email log's pruning hourly (`SCHEDULES`).
+  06:20 UTC, snapshots at 07:00 UTC, ticket emails, the shop's expired holds and the statistics' and email log's pruning hourly (`SCHEDULES`).
 - Variables and secrets reach the code as `process.env` (`nodejs_compat`); secrets are set with
   `npx wrangler secret put`. Code reads them with `env()` (`src/lib/env.ts`), which reads `.env` through
   `import.meta.env` under `astro dev` only: a build would write the build machine's `.env` values into

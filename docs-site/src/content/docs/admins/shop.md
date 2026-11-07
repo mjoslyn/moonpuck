@@ -1,13 +1,14 @@
 ---
 title: Selling things
-description: "Products with options such as size and color, stock, and the cart. A preview: checkout comes next."
+description: "Products with options such as size and color, stock, the cart and checkout. A preview."
 sidebar:
   order: 8
 ---
 
 :::note[Preview]
-The shop is being built. Products, options, stock and the cart work now; checkout (paying, shipping,
-tax and orders) comes next. Until then visitors can fill a cart but can't buy.
+The shop is being built. Products, options, stock, the cart and checkout (paying, shipping, pickup and
+tax) work now. A screen to manage orders and discount codes come next; until then each order is emailed
+to the site's admin address.
 :::
 
 If your site has a shop, products appear under **Content**, **Products**, and on your site at `/shop/`.
@@ -88,6 +89,25 @@ When your site has Members turned on, a category can take a percent off for memb
 The discount applies to every product in the category and in the categories under it. A product's own
 member pricing comes first; a product in several categories takes the largest discount.
 
+## Checkout
+
+Under the cart, visitors check out:
+
+1. They give their name, email and, if they like, a phone number.
+2. They choose how to get the order: one of your shipping rates for their country (and state, in the US),
+   or a pickup location. Only rates that fit their order are offered.
+3. For shipping, they give their address.
+4. They see the shipping, tax and total, and click **Pay**. Payment is on Stripe's or Square's own page.
+5. They come back to a page with their order, and get a receipt by email.
+
+Each order is emailed to the site's admin address too (or the address set as `SHOP_NOTIFY_EMAIL`).
+
+What someone is paying for is put aside while they pay, so two people can't buy the last one. If they
+don't pay within the time set under **Settings**, **Shop**, it goes back on sale. Stock comes off the
+count once an order is paid.
+
+An order with nothing to pay (everything free) is placed at once, without the payment page.
+
 ## Blocks for the shop
 
 In the page editor, under **Shop**:
@@ -108,8 +128,7 @@ in, and click **Save settings**. Turning it on the first time adds three templat
 page). Change them like any template.
 Turning the shop off deletes nothing; products are hidden until it is on again.
 
-While the shop is on, the same screen sets up what checkout will use. Checkout itself comes in the next
-part of the preview.
+While the shop is on, the same screen sets up checkout.
 
 **Payments**:
 

@@ -10,6 +10,7 @@ import { AUTOSAVE } from './lib/admin/revisions';
 import { env } from './lib/env';
 // Server-only work the page renderer calls (src/render/hooks.ts).
 import './lib/mailing/page-data';
+import './lib/shop/page-data';
 
 const PUBLIC_ADMIN = ['/admin/login/', '/admin/set-password/', '/api/auth/login', '/api/auth/logout'];
 const ADMIN_ONLY = ['/admin/settings', '/admin/email-log', '/api/admin/connections', '/api/admin/taxonomies', '/api/admin/types', '/admin/users', '/admin/members', '/api/admin/redirects', '/api/admin/settings', '/api/admin/sync', '/api/admin/users', '/api/admin/members', '/api/admin/mailing/contacts', '/api/admin/mailing/lists'];

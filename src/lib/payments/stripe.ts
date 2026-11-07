@@ -31,11 +31,19 @@ async function create(req: CheckoutRequest) {
   if (req.email) p.set('customer_email', req.email);
   // Stripe takes 30 minutes to 24 hours.
   if (req.expiresAt) p.set('expires_at', String(Math.floor(Math.min(Math.max(req.expiresAt.getTime(), Date.now() + 30 * 60_000 + 5_000), Date.now() + 24 * 3600_000 - 5_000) / 1000)));
+  if (req.taxCode) {
+    p.set('automatic_tax[enabled]', 'true');
+    p.set('billing_address_collection', 'required');
+  }
   req.items.forEach((it, i) => {
     p.set(`line_items[${i}][quantity]`, String(it.quantity));
     p.set(`line_items[${i}][price_data][currency]`, req.currency.toLowerCase());
     p.set(`line_items[${i}][price_data][unit_amount]`, String(it.unit));
     p.set(`line_items[${i}][price_data][product_data][name]`, it.name.slice(0, 250));
+    if (req.taxCode) {
+      p.set(`line_items[${i}][price_data][tax_behavior]`, 'exclusive');
+      p.set(`line_items[${i}][price_data][product_data][tax_code]`, it.taxCode ?? req.taxCode);
+    }
   });
   const s = await call('POST', '/checkout/sessions', p, req.idempotencyKey);
   return { ref: String(s.id), url: String(s.url) };
@@ -47,7 +55,7 @@ const id = (x: unknown) => (typeof x === 'string' ? x : (x as { id?: string } | 
 async function check({ ref }: { ref: string }): Promise<CheckoutState> {
   const s = await call('GET', `/checkout/sessions/${encodeURIComponent(ref)}?expand[]=payment_intent.latest_charge`);
   if (s.status === 'complete') {
-    return { status: s.payment_status === 'paid' ? 'paid' : 'processing', paymentId: id(s.payment_intent), amount: s.amount_total, refunded: s.payment_intent?.latest_charge?.amount_refunded ?? 0 };
+    return { status: s.payment_status === 'paid' ? 'paid' : 'processing', paymentId: id(s.payment_intent), amount: s.amount_total, refunded: s.payment_intent?.latest_charge?.amount_refunded ?? 0, tax: Number(s.total_details?.amount_tax) || 0 };
   }
   return { status: s.status === 'expired' ? 'cancelled' : 'pending' };
 }

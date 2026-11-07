@@ -76,6 +76,8 @@ export const POLICIES: Record<string, TablePolicy> = {
   not_found: { select: editors, insert: nobody, update: nobody, delete: editors },
   // Orders and waitlists change through the attendee list's actions, which write as the server.
   ticket_orders: readOnly(editors),
+  // Shop orders: editors read; the server writes (checkout, payment, the Orders screen's actions).
+  shop_orders: readOnly(editors),
   ticket_waitlist: readOnly(editors),
   mail_suppressions: readOnly(admins),
   mail_log: readOnly(admins),

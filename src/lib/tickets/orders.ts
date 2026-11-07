@@ -175,8 +175,8 @@ export async function soldCounts(db: Db, entryId: number, occurrence: string): P
 // ---- Checkout --------------------------------------------------------------------------------
 
 const CODE_LETTERS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const newCode = () => Array.from({ length: 8 }, (_, i) => (i === 4 ? '-' : '') + CODE_LETTERS[randomInt(CODE_LETTERS.length)]).join('');
-const newToken = () => randomBytes(24).toString('base64url');
+export const newCode = () => Array.from({ length: 8 }, (_, i) => (i === 4 ? '-' : '') + CODE_LETTERS[randomInt(CODE_LETTERS.length)]).join('');
+export const newToken = () => randomBytes(24).toString('base64url');
 
 async function siteTicketSettings(db: Db): Promise<TicketSettings> {
   const { data } = await db.from('settings').select('value').eq('key', 'site').maybeSingle();

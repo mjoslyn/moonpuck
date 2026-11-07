@@ -315,6 +315,8 @@ async function walk(items: PuckItem[], ctx: RenderCtx, state: WalkState) {
 async function prepareShop(ctx: RenderCtx, type: string, attrs: Record<string, any>) {
   ctx.headScripts ??= [];
   if (!ctx.headScripts.includes(CART_SCRIPT)) ctx.headScripts.push(CART_SCRIPT);
+  // A buyer's order on the cart's page (?order=<token>; such pages are never cached).
+  if (type === 'cart' && !ctx.editor && ctx.queried.url.searchParams.has('order')) await renderHooks.shopOrder?.(ctx);
   if (type !== 'product-price' && type !== 'add-to-cart') return;
   const named = Number(attrs.product) || 0;
   if (named) await ctx.loader.entriesByIds([named]);

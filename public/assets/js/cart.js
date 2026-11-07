@@ -5,6 +5,7 @@
 // page can be a minute old.
 (() => {
   const KEY = 'site.cart';
+  const CHECKOUT_KEY = 'site.checkout';
   const MAX = 99;
 
   const read = () => {
@@ -157,9 +158,32 @@
       .catch(() => {});
   }
 
-  // The cart.
-  const carts = [...document.querySelectorAll('[data-cart]')];
+  // The cart, and its checkout. A cart page showing an order (?order=) shows it as the server made it;
+  // once that order is paid, the cart it was bought from is emptied.
+  const orderPage = document.querySelector('[data-cart][data-order]');
+  if (orderPage && ['paid', 'refunded'].includes(orderPage.dataset.order)) {
+    try {
+      localStorage.removeItem(KEY);
+      sessionStorage.removeItem(CHECKOUT_KEY);
+    } catch {}
+  }
+  const carts = [...document.querySelectorAll('[data-cart]:not([data-order])')];
   let quoting = 0;
+  // What the buyer has entered at checkout, kept for this visit (so a re-priced cart keeps it).
+  const co = (() => {
+    try {
+      return JSON.parse(sessionStorage.getItem(CHECKOUT_KEY) || '{}') || {};
+    } catch {
+      return {};
+    }
+  })();
+  const keepCo = () => {
+    try {
+      sessionStorage.setItem(CHECKOUT_KEY, JSON.stringify(co));
+    } catch {}
+  };
+  let checkoutError = '';
+  let paying = false;
   const renderCart = async () => {
     if (!carts.length) return;
     const lines = read();
@@ -167,7 +191,14 @@
     let quote = null;
     if (lines.length) {
       try {
-        const r = await fetch('/api/shop/quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lines }), cache: 'no-store' });
+        const offer = offerOf(carts[0]);
+        if (!co.country && offer.country) co.country = offer.country;
+        const r = await fetch('/api/shop/quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lines, destination: co.country ? { country: co.country, state: co.state || '' } : null, option: co.option || null }),
+          cache: 'no-store',
+        });
         quote = r.ok ? await r.json() : null;
       } catch {}
       if (ticket !== quoting) return;
@@ -213,13 +244,149 @@
         ]);
       });
       const head = el('thead', {}, el('tr', {}, ['', 'Item', 'Price', 'Quantity', 'Total', ''].map((t) => el('th', { scope: 'col', textContent: t }))));
+      if (c.hasAttribute('data-cancelled')) body.append(el('p', { className: 'c-cart__notice', textContent: 'Checkout was cancelled: nothing was charged, and your cart is as you left it.' }));
       body.append(
         el('table', { className: 'c-cart__table' }, [head, el('tbody', {}, rows)]),
         el('p', { className: 'c-cart__subtotal' }, [el('span', { textContent: 'Subtotal' }), ' ', el('strong', { textContent: money(quote.subtotal, currency) })]),
-        el('p', { className: 'c-cart__next', textContent: 'Shipping and tax are added at checkout. Checkout is coming soon.' }),
+        checkoutForm(c, quote, currency, shown.some((l) => l.problem && l.problem !== 'fewer')),
       );
     }
   };
+  const offerOf = (c) => {
+    try {
+      return JSON.parse(c?.dataset.checkout || '{}') || {};
+    } catch {
+      return {};
+    }
+  };
+  const field = (label, input, hint) => el('label', { className: 'c-checkout__field' }, [el('span', { textContent: label }), input, hint ? el('small', { textContent: hint }) : null]);
+  const textInput = (key, props = {}) => {
+    const input = el('input', { type: 'text', value: co[key] || '', ...props });
+    input.addEventListener('input', () => {
+      co[key] = input.value;
+      keepCo();
+    });
+    return input;
+  };
+  const select = (key, options, onChange) => {
+    const s = el('select', {}, options.map(([v, label]) => el('option', { value: v, textContent: label })));
+    s.value = co[key] || '';
+    s.addEventListener('change', () => {
+      co[key] = s.value;
+      keepCo();
+      onChange?.();
+    });
+    return s;
+  };
+
+  // The checkout: the buyer's details, how the order reaches them (shipping to an address, or pickup),
+  // the totals as the server priced them, and Pay. The server prices it all again when it is sent.
+  const checkoutForm = (c, quote, currency, blocked) => {
+    const offer = offerOf(c);
+    const shipping = quote.shipping || { needs: 'none', options: [] };
+    const chosen = quote.chosen;
+    const totals = quote.totals || { total: quote.subtotal, tax: 0, shipping: 0, discount: 0 };
+    const form = el('form', { className: 'c-checkout', noValidate: true });
+    form.append(el('h2', { className: 'c-checkout__heading', textContent: 'Checkout' }));
+
+    const details = el('fieldset', { className: 'c-checkout__group' }, [el('legend', { textContent: 'Your details' })]);
+    details.append(
+      field('Name', textInput('name', { required: true, autocomplete: 'name' })),
+      field('Email', textInput('email', { type: 'email', required: true, autocomplete: 'email' })),
+      field('Phone (optional)', textInput('phone', { type: 'tel', autocomplete: 'tel' })),
+    );
+    form.append(details);
+
+    if (shipping.needs !== 'none') {
+      const how = el('fieldset', { className: 'c-checkout__group' }, [el('legend', { textContent: 'Getting your order' })]);
+      if (shipping.needs === 'any' && (offer.countries || []).length) {
+        const row = el('div', { className: 'c-checkout__row' }, [field('Country', select('country', offer.countries, () => ((co.state = ''), renderCart())))]);
+        if (co.country === 'US') row.append(field('State', select('state', [['', 'Choose…'], ...(offer.states || [])], renderCart)));
+        how.append(row);
+      }
+      if (shipping.problem === 'no-pickup') how.append(el('p', { className: 'c-cart__problem', textContent: "Something in your cart can only be collected, and there's nowhere to collect it from yet." }));
+      else if (shipping.problem === 'no-rates') how.append(el('p', { className: 'c-cart__problem', textContent: "We don't ship there." + (offer.pickup ? ' You can pick up your order instead.' : '') }));
+      else if (chosen?.kind === 'ship' && co.country === 'US' && !co.state) how.append(el('p', { className: 'c-checkout__hint', textContent: 'Choose your state.' }));
+      const name = `ship-${Math.random().toString(36).slice(2, 8)}`;
+      for (const o of shipping.options) {
+        const radio = el('input', { type: 'radio', name, value: o.id, checked: chosen?.id === o.id });
+        radio.addEventListener('change', () => {
+          co.option = o.id;
+          keepCo();
+          renderCart();
+        });
+        const where = o.kind === 'pickup' ? [o.address, o.hours].filter(Boolean).join(' · ') : '';
+        how.append(el('label', { className: 'c-checkout__option' }, [radio, el('span', {}, [el('strong', { textContent: o.name }), where ? el('small', { textContent: where }) : null]), el('span', { className: 'c-checkout__price', textContent: o.price ? money(o.price, currency) : 'Free' })]));
+      }
+      if (chosen?.kind === 'ship') {
+        how.append(
+          field('Address', textInput('line1', { required: true, autocomplete: 'address-line1' })),
+          field('Apartment, suite… (optional)', textInput('line2', { autocomplete: 'address-line2' })),
+          el('div', { className: 'c-checkout__row' }, [
+            field('City', textInput('city', { required: true, autocomplete: 'address-level2' })),
+            co.country !== 'US' ? field('State or region (optional)', textInput('region', { autocomplete: 'address-level1' })) : null,
+            field(co.country === 'US' ? 'ZIP code' : 'Postal code', textInput('zip', { required: true, autocomplete: 'postal-code' })),
+          ]),
+        );
+      }
+      form.append(how);
+    }
+
+    const sum = el('div', { className: 'c-checkout__totals' });
+    const line = (label, value, strong) => sum.append(el('p', { className: 'c-cart__subtotal' }, [el('span', { textContent: label }), ' ', strong ? el('strong', { textContent: value }) : el('span', { textContent: value })]));
+    if (totals.discount) line('Discount', `−${money(totals.discount, currency)}`);
+    if (chosen) line(chosen.kind === 'pickup' ? 'Pickup' : 'Shipping', totals.shipping ? money(totals.shipping, currency) : 'Free');
+    if (totals.tax === null) line('Tax', 'Worked out at payment');
+    else if (totals.tax) line('Tax', money(totals.tax, currency));
+    line('Total', money(totals.total, currency), true);
+    form.append(sum);
+
+    const status = el('p', { className: 'c-checkout__error', role: 'alert', textContent: checkoutError });
+    const pay = el('button', { type: 'submit', className: 'c-shop-button c-checkout__pay', textContent: paying ? 'One moment…' : totals.total > 0 ? `Pay ${money(totals.total, currency)}` : 'Place order' });
+    const ready = !blocked && (shipping.needs === 'none' || (chosen && !shipping.problem));
+    pay.disabled = paying || !ready;
+    form.append(status, pay);
+    if (blocked) form.append(el('p', { className: 'c-checkout__hint', textContent: 'Take out what can’t be bought to check out.' }));
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      checkoutError = '';
+      const missing = [...form.querySelectorAll('input[required]')].find((i) => !i.value.trim());
+      if (missing) {
+        status.textContent = 'Fill in the boxes marked as needed.';
+        missing.focus();
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(co.email || '')) {
+        status.textContent = 'Check your email address.';
+        return;
+      }
+      paying = true;
+      pay.disabled = true;
+      pay.textContent = 'One moment…';
+      const address = chosen?.kind === 'ship' ? { line1: co.line1, line2: co.line2, city: co.city, state: co.country === 'US' ? co.state : co.region, zip: co.zip, country: co.country } : null;
+      try {
+        const r = await fetch('/api/shop/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lines: read(), name: co.name, email: co.email, phone: co.phone, option: co.option, address }),
+          cache: 'no-store',
+        });
+        const answer = await r.json().catch(() => null);
+        if (answer?.redirect) {
+          location.href = answer.redirect;
+          return;
+        }
+        checkoutError = answer?.message || 'The checkout could not start. Try again.';
+      } catch {
+        checkoutError = 'The checkout could not start. Check your connection and try again.';
+      }
+      paying = false;
+      renderCart();
+    });
+    return form;
+  };
+
   const setQuantity = (line, n) => {
     const lines = read()
       .map((l) => (l.product === line.product && l.variant === line.variant ? { ...l, quantity: Math.min(MAX, Math.max(0, n)) } : l))

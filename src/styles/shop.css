@@ -153,6 +153,11 @@
   display: block;
   color: var(--color-muted);
 }
+.c-checkout .c-cart__problem {
+  margin: 0;
+  color: var(--color-accent);
+  font-weight: 600;
+}
 .c-cart__item .c-cart__problem {
   color: var(--color-accent);
   font-weight: 600;
@@ -215,6 +220,115 @@
 }
 
 /* The cart link */
+/* The checkout under the cart (cart.js) and an order's page (?order=). */
+.c-checkout {
+  display: grid;
+  gap: 1.5rem;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid color-mix(in srgb, var(--color-text) 15%, transparent);
+}
+.c-checkout__heading,
+.c-order__heading {
+  margin: 0;
+}
+.c-checkout__group {
+  display: grid;
+  gap: 0.875rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.c-checkout__group legend {
+  margin-bottom: 0.75rem;
+  padding: 0;
+  font-weight: 600;
+}
+.c-checkout__row {
+  display: grid;
+  gap: 0.875rem;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+}
+.c-checkout__field {
+  display: grid;
+  gap: 0.25rem;
+  font-size: var(--text-small);
+}
+.c-checkout__field input,
+.c-checkout__field select {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--form-border, color-mix(in srgb, var(--color-text) 35%, transparent));
+  border-radius: var(--form-radius, 2px);
+  background: var(--form-input-bg, #fff);
+  color: var(--form-input-text, #000);
+  font: inherit;
+  font-size: 1rem;
+}
+.c-checkout__field small,
+.c-checkout__hint {
+  color: var(--color-muted);
+  font-size: var(--text-small);
+  margin: 0;
+}
+.c-checkout__option {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.75rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--color-text) 20%, transparent);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.c-checkout__option:has(input:checked) {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+.c-checkout__option input {
+  margin-top: 0.25rem;
+}
+.c-checkout__option span {
+  display: grid;
+  gap: 0.125rem;
+}
+.c-checkout__option small {
+  color: var(--color-muted);
+  font-size: var(--text-small);
+}
+.c-checkout__price {
+  font-weight: 600;
+}
+.c-checkout__totals .c-cart__subtotal {
+  margin: 0.25rem 0;
+}
+.c-checkout__error {
+  margin: 0;
+  color: var(--form-error, #b42318);
+}
+.c-checkout__error:empty {
+  display: none;
+}
+.c-checkout__pay {
+  justify-self: start;
+}
+.c-checkout__pay:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.c-order__where {
+  margin-top: 1.5rem;
+}
+.c-order__where h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+}
+.c-order__where p {
+  margin: 0;
+}
+
 .c-cart-link {
   display: inline-flex;
   align-items: center;

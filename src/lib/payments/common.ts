@@ -11,8 +11,11 @@ export interface CheckoutRequest {
   reference: string;
   /** Unique to this checkout, so a retried request makes one (ids repeat between copies of the site). */
   idempotencyKey: string;
-  /** Price of one in minor units. */
-  items: { name: string; unit: number; quantity: number }[];
+  /** Price of one in minor units; `taxCode` (Stripe Tax) for one taxed otherwise than the checkout's. */
+  items: { name: string; unit: number; quantity: number; taxCode?: string }[];
+  /** Stripe Tax: tax worked out by Stripe on top of the items (exclusive), from the buyer's billing
+   *  address, with this code for items without their own. Stripe only. */
+  taxCode?: string;
   currency: string;
   description?: string;
   email?: string;
@@ -42,6 +45,8 @@ export interface CheckoutState {
   amount?: number;
   /** How much of it has been refunded. */
   refunded?: number;
+  /** The tax the provider added to it (Stripe Tax). */
+  tax?: number;
 }
 
 /** A refund as the provider answered it: made (`succeeded`), on its way (`pending`) or not made (`failed`). */

@@ -1,12 +1,14 @@
 ---
 title: Shop (preview)
-description: Products with options, variants and stock, a cart kept in the browser, and the server's quote.
+description: Products with options, variants and stock, a cart kept in the browser, the server's quote, checkout and orders.
 sidebar:
   order: 12
 ---
 
-The shop is optional and is being built in phases. Phase 1, here now: products, options and variants,
-stock, the shop's blocks and the cart. Checkout (payments, shipping, tax, discounts, orders) is next.
+The shop is optional and is being built in phases. Phase 1: products, options and variants, stock, the
+shop's blocks and the cart. Phase 2 so far: checkout settings, shipping, pickup, tax, member pricing,
+checkout and orders. Next: the Orders screen, order emails in the email builder, discounts, and orders and
+stock in sync and backups.
 
 Turn it on under **Settings > Shop** (admins). It brings the `product` type under Content, product pages,
 the shop at `/shop/`, product categories, the cart at `/cart/` and the shop blocks.
@@ -62,3 +64,29 @@ answer 404 while the shop is off.
 Turning the shop on the first time makes `single-product` and `archive-product` if they aren't there
 (`src/lib/shop/templates.ts`); `npm run seed` does the same while the shop is on. The cart is a built-in
 page at `/cart/` unless a page has that address.
+
+## Checkout and orders
+
+Under the Cart block, `cart.js` builds the checkout: the buyer's details, their country and state, the
+shipping and pickup options from `POST /api/shop/quote` (sent with `destination` and `option`, it answers
+`shipping`, `chosen` and `totals` too: `src/lib/shop/totals.ts`), the address for a shipped order, the
+totals and Pay.
+
+`POST /api/shop/checkout` (`startShopCheckout`, `src/lib/shop/orders.ts`) prices the cart again, checks
+the option and address, and makes the order in `shop_orders` with `shop_order_create`
+(`src/lib/db/functions.ts`): one statement that inserts it only if every line whose stock is counted has
+that many left and the buyer is within their share of unpaid orders, so two checkouts can't both take the
+last one. Then the provider's hosted checkout (`src/lib/payments`), or paid at once when there's nothing
+to pay.
+
+| Step | Where |
+| --- | --- |
+| The buyer comes back | `GET /api/shop/return?order=<token>`: the payment asked of the provider |
+| The provider's webhook | `/api/payments/<provider>`, `shopWebhook` |
+| Paid | `markShopPaid`: once; `shop_take_stock` takes the counted lines off `shop_stock`; the emails |
+| Not paid in time | the hourly run, `expireShopHolds` |
+| The order's page | `/cart/?order=<token>`, never cached |
+
+What's left of a variant (`loadStock`, `src/lib/shop/stock.ts`) is on hand less what orders hold:
+unexpired holds and paid orders whose stock isn't taken off yet.
+

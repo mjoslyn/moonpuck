@@ -11,6 +11,7 @@ import { serviceClient } from './db/site';
 export const MAIL_KINDS = {
   form: 'Form notification',
   ticket: 'Ticket',
+  shop: 'Shop order',
   account: 'Account',
   admin: 'Notice to admins',
   other: 'Other',
