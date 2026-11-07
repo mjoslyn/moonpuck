@@ -8,6 +8,10 @@ file is the plan for the rest, with the decisions already made.
 
 - Shipping: manual rates and pickup now; a carrier API may come later, so rates come through one
   interface a carrier can plug into.
+- Tax: the shop's own rates (one rate, optionally per state) always work, with either provider. With
+  Stripe, the admin can switch on Stripe Tax instead for exact local rates (Stripe works the tax out at
+  checkout; it charges about 0.5% a sale, and the store must still register where it owes tax). Square's
+  payment links have no automatic tax, so a Square shop uses the shop's own rates.
 - Variants are in the first release (done in phase 1).
 - Discounts are in the first usable release (phase 2).
 - Restocking on a refund or cancel is the admin's choice each time; nothing restocks on its own.
@@ -35,7 +39,8 @@ with the server's quote (`/api/shop/quote`) and availability (`/api/shop/availab
   by order subtotal bands, by weight bands, free over an amount). The buyer picks from the rates that
   fit their address and cart.
 - Pickup locations: name, address, hours note and a fee (often none). No shipping address asked.
-- Tax: one rate, optionally per state, on taxable lines, and on shipping if chosen.
+- Tax: **Tax rates set here** (the default) or, with Stripe as the provider, **Stripe Tax** (see Tax
+  below). Each product's **Taxed** switch decides which lines are taxed either way.
 - Order emails (confirmation, shipped, refunded, the admin's copy).
 
 ### Shipping rates
@@ -44,6 +49,44 @@ with the server's quote (`/api/shop/quote`) and availability (`/api/shop/availab
   (Shippo, EasyPost, USPS) can be a second later, its key under Connections, without changing checkout.
 - A cart with a pickup-only item offers only pickup; a cart with nothing shipped asks no address.
 - Each order keeps the chosen rate's name, price and source.
+
+### Shipping zones and rates
+
+- Settings > Shop > Shipping (`settings.site.shop.shipping`): zones, each a name and the places it
+  covers (countries, or US states within the US), checked in order, the first that covers the address
+  wins; a "Rest of the world" zone is optional (without one, other addresses can't be shipped to, and
+  checkout says so).
+- Each zone's rates: a name ("Standard", "Express"), a price, and optionally a rule: by order subtotal
+  bands, by total weight bands (the products' weights, in the shop's weight unit; a product without a
+  weight counts as 0), or free over a subtotal. A rate whose rule doesn't fit the cart isn't offered.
+- The rates are a `ShippingSource` (`manual`); checkout asks every source on (`quote(cart, address)`)
+  and lists their rates together, cheapest first. A source that fails or times out is left out with a
+  note in the server's log, never stopping checkout while another source answers.
+- Only lines marked **shipped** count toward weight and need an address; a cart with nothing shipped
+  (services, downloads) skips the address and shipping.
+
+### Pickup
+
+- Pickup locations (`settings.site.shop.pickup`): name, address, hours note and a fee (often none),
+  offered beside the rates whatever the address. Choosing one asks no shipping address.
+- A product marked **pickup only** limits a cart holding it to the pickup locations; if there are none,
+  checkout says the item can't be ordered online.
+- The order keeps the location's name and address, and the confirmation email shows them with the hours.
+
+### Tax
+
+- **Tax rates set here**: one rate for the store and optionally a rate per US state (or per country),
+  replacing the store's rate where the address (or the pickup location) is in it; **Tax on shipping**
+  on or off. Tax is worked out per line after its share of the discount (`taxFor`, rounded per line, in
+  the currency's minor unit), so part refunds give back the right tax.
+- **Stripe Tax** (offered only while Stripe is the provider and its key is set): the checkout is made
+  with automatic tax on, the address collected by Stripe's checkout, and each product's tax code
+  (Settings > Shop's default, `txcd_99999999` general goods, overridable per product in its Shop settings).
+  The cart shows "Tax: worked out at checkout"; the order takes the tax Stripe charged from the paid
+  session (`total_details.amount_tax`), and refunds take Stripe's refunded tax. Switching the provider to
+  Square turns it off, back to the rates set here.
+- Prices are tax-exclusive in this release; tax-inclusive prices (VAT) are left out.
+- The settings screen says plainly that the shop doesn't register for or file tax.
 
 ### Discounts
 
@@ -116,7 +159,10 @@ the guide's "Selling things" with new screenshots.
 - Stock screen: every product and variant with on-hand counts to edit, and a low-stock mark.
 - Low-stock alerts by email.
 - Digital downloads: a signed, limited link to a media file after payment.
-- A carrier API as a second shipping source.
+- A carrier API as a second shipping source: Shippo or EasyPost (one key under Settings > Connections,
+  checked on save), live rates for USPS, UPS and FedEx from the store's address, the cart's shipped
+  lines' weights and a default box size (Settings > Shop), offered beside the manual rates or instead of
+  them; optionally buying the label from the order screen, which fills in the tracking number.
 
 ## Left out
 
