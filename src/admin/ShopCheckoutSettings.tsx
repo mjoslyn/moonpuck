@@ -100,7 +100,7 @@ export default function ShopCheckoutSettings({ value, currency, weightUnit, prov
               <textarea className={inputClass} rows={3} value={p.address} onChange={(e) => setPickup(p.id, { address: e.target.value })} />
             </Row>
             <Text title="Hours (shown to the buyer)" value={p.hours} placeholder="Mon to Fri, 10am to 5pm" onChange={(hours) => setPickup(p.id, { hours })} />
-            <PriceInput title="Fee (empty: free)" optional value={p.fee || undefined} onChange={(fee) => setPickup(p.id, { fee: fee ?? 0 })} />
+            <PriceInput part title="Fee (empty: free)" optional value={p.fee || undefined} onChange={(fee) => setPickup(p.id, { fee: fee ?? 0 })} />
             <PlaceSelect title="Where it is, for tax (empty: the store's rate)" value={p.place} onChange={(place) => setPickup(p.id, { place })} />
             <button type="button" className={remove} onClick={() => set({ pickup: c.pickup.filter((x) => x.id !== p.id) })}>
               Delete pickup location
@@ -134,7 +134,8 @@ export default function ShopCheckoutSettings({ value, currency, weightUnit, prov
           <PercentInput title="Store's tax rate (%)" value={c.tax.rate} onChange={(rate) => setTax({ rate })} />
           <span className="mb-1 block text-xs font-medium text-admin-muted">Rates for places (replace the store's rate where the address or pickup location is in them; a state's over its country's)</span>
           {c.tax.regions.map((r, i) => (
-            <div key={`${r.place}-${i}`} className="mb-2 flex items-end gap-2">
+            <div key={`${i}-${c.tax.regions.length}`} className="mb-2">
+            <div className="flex items-end gap-2">
               <div className="flex-1">
                 <PlaceSelect title="Place" value={r.place} onChange={(place) => setTax({ regions: c.tax.regions.map((x, j) => (j === i ? { ...x, place } : x)) })} />
               </div>
@@ -144,6 +145,10 @@ export default function ShopCheckoutSettings({ value, currency, weightUnit, prov
               <button type="button" className={`${remove} mb-4`} onClick={() => setTax({ regions: c.tax.regions.filter((_, j) => j !== i) })}>
                 Remove
               </button>
+            </div>
+            {/* What saving would drop (cleanTax), said here rather than lost. */}
+            {!r.place && <p className="-mt-2 mb-2 text-xs text-[#b3261e]">Choose a place: a rate without one isn't saved.</p>}
+            {r.place && c.tax.regions.findIndex((x) => x.place === r.place) < i && <p className="-mt-2 mb-2 text-xs text-[#b3261e]">{placeName(r.place)} already has a rate above: this one isn't saved.</p>}
             </div>
           ))}
           <button type="button" className={`${small} mb-3`} onClick={() => setTax({ regions: [...c.tax.regions, { place: firstFree(c.tax.regions.map((r) => r.place)), rate: 0 }] })}>
@@ -241,14 +246,15 @@ function RateEditor({ rate, money, weightUnit, onChange, onRemove }: { rate: Shi
           onChange={(rule) => onChange({ rule: (rule as ShippingRate['rule']) ?? 'flat', bands: rate.bands.length ? rate.bands : [{ min: 0, max: null, price: rate.price }] })}
         />
         {rate.rule === 'flat' ? (
-          <PriceInput title="Price (empty: free)" optional value={rate.price || undefined} onChange={(price) => onChange({ price: price ?? 0 })} />
+          <PriceInput part title="Price (empty: free)" optional value={rate.price || undefined} onChange={(price) => onChange({ price: price ?? 0 })} />
         ) : (
           <>
             <p className="mb-2 text-xs text-admin-muted">
               Each band from (inclusive) up to (not inclusive); an empty up to has no limit. An order in no band isn't offered this rate.
             </p>
+            {/* Keyed by position and count: removing a row remounts the rest, so their inputs show their own values. */}
             {rate.bands.map((b, i) => (
-              <div key={i} className="flex items-end gap-2">
+              <div key={`${i}-${rate.bands.length}`} className="flex items-end gap-2">
                 {weight ? (
                   <>
                     <Num title="From" min={0} value={b.min} onChange={(min) => setBand(i, { min: min ?? 0 })} />
@@ -256,11 +262,11 @@ function RateEditor({ rate, money, weightUnit, onChange, onRemove }: { rate: Shi
                   </>
                 ) : (
                   <>
-                    <PriceInput title="From" optional value={b.min || undefined} onChange={(min) => setBand(i, { min: min ?? 0 })} />
-                    <PriceInput title="Up to" optional value={b.max ?? undefined} onChange={(max) => setBand(i, { max: max ?? null })} />
+                    <PriceInput part title="From" optional value={b.min || undefined} onChange={(min) => setBand(i, { min: min ?? 0 })} />
+                    <PriceInput part title="Up to" optional value={b.max ?? undefined} onChange={(max) => setBand(i, { max: max ?? null })} />
                   </>
                 )}
-                <PriceInput title="Price" optional value={b.price || undefined} onChange={(price) => setBand(i, { price: price ?? 0 })} />
+                <PriceInput part title="Price" optional value={b.price || undefined} onChange={(price) => setBand(i, { price: price ?? 0 })} />
                 <button type="button" className={`${remove} mb-4`} onClick={() => onChange({ bands: rate.bands.filter((_, j) => j !== i) })}>
                   Remove
                 </button>
@@ -271,7 +277,7 @@ function RateEditor({ rate, money, weightUnit, onChange, onRemove }: { rate: Shi
             </button>
           </>
         )}
-        <PriceInput title="Free when the subtotal is at least (empty: never)" optional value={rate.freeOver ?? undefined} onChange={(freeOver) => onChange({ freeOver: freeOver ?? null })} />
+        <PriceInput part title="Free when the subtotal is at least (empty: never)" optional value={rate.freeOver ?? undefined} onChange={(freeOver) => onChange({ freeOver: freeOver ?? null })} />
         <button type="button" className={remove} onClick={onRemove}>
           Delete rate
         </button>

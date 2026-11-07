@@ -1269,14 +1269,14 @@ answer 404.
   never above the price. Add to cart
   says what members save or pay and that a product is for members only, with a sign-in link, the
   same for everyone so the page stays cached; the quote charges a member their price (`listUnit` keeps the
-  price before it) and gives others a members-only line no quantity (`members-only`), which the cart keeps
-  for when they sign in.
+  price before it) and gives others a members-only line no quantity (`members-only`), which the cart shows
+  once and takes out, as it does a sold-out one.
 - **Checkout settings** (Settings > Shop, under `settings.site.shop`; `checkoutSettings`,
   `checkoutSettingsFrom`, `src/lib/shop/checkout-settings.ts`, `src/admin/ShopCheckoutSettings.tsx`; cleaned
   on save, only what isn't the default kept): the payment provider, the minutes an unpaid order holds its
   stock (`hold`, 30-120, default 60), shipping zones (`zones`: name, places, rates), pickup locations
   (`pickup`: name, address, hours, fee, place for tax) and tax (`tax`: `mode` rates or Stripe Tax, the
-  store's `rate` and per-place `regions` in percent, `onShipping`, Stripe's `taxCode`). Places
+  store's `rate` and per-place `regions` in percent, `onShipping`, Stripe's `taxCode`; Stripe Tax only while payments go through Stripe, `taxInForce`, else the rates). Places
   (`src/lib/shop/places.ts`) are ISO countries, US states as `US-NY`, and `*` for everywhere else.
 - **Totals** (`src/lib/shop/totals.ts`, safe in the browser): a zone is the first, in order, with a place
   covering the address, a `*` zone only when none names it (`zoneFor`); a rate is flat or by subtotal or

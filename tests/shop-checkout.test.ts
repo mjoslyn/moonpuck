@@ -1,7 +1,7 @@
 // The shop's checkout settings (zones, rates, pickup, tax), the totals engine and member pricing.
 import { describe, expect, it } from 'vitest';
 import { siteDb } from '../src/lib/db/site';
-import { checkoutSettings, checkoutSettingsFrom } from '../src/lib/shop/checkout-settings';
+import { checkoutSettings, checkoutSettingsFrom, taxInForce } from '../src/lib/shop/checkout-settings';
 import { cleanPlace, covers } from '../src/lib/shop/places';
 import { cartTotals, orderTotals, ratePrice, shippingChoices, spreadDiscount, taxRateFor, zoneFor, type CartFacts, type ShippingSource } from '../src/lib/shop/totals';
 import { mayBuyProduct, productOf, unitFor, variantOf } from '../src/lib/shop/config';
@@ -46,6 +46,15 @@ describe('checkout settings', () => {
     expect(checkoutSettingsFrom({ hold: 500, provider: 'paypal' })).toEqual({ hold: 120 });
     // Ids made where missing, never two the same.
     expect(checkoutSettings({ zones: [{ name: 'A' }, { id: 'z1' }] }).zones.map((z) => z.id)).toEqual(['z1', 'z1-2']);
+  });
+});
+
+describe('Stripe Tax', () => {
+  it('is in force only while payments go through Stripe', () => {
+    const tax = checkoutSettings({ tax: { mode: 'stripe', rate: 6 } }).tax;
+    expect(taxInForce(tax, 'stripe').mode).toBe('stripe');
+    expect(taxInForce(tax, 'square')).toMatchObject({ mode: 'rates', rate: 6 });
+    expect(taxInForce(tax, undefined).mode).toBe('rates');
   });
 });
 
@@ -128,7 +137,7 @@ describe('tax and totals', () => {
 
 describe('member pricing', () => {
   const gold = { level: 'gold', status: 'active' };
-  const p = productOf({ shop: { price: 2000, memberDiscounts: { gold: 15, silver: '0', 'bad level!': 5 }, membersOnly: true, levels: ['gold'] } })!;
+  const p = productOf({ shop: { price: 2000, memberDiscounts: { gold: 15, silver: '0', bronze: 'lots' }, membersOnly: true, levels: ['gold'] } })!;
 
   it('takes a level\'s discount off for active members only', () => {
     expect(p.memberDiscounts).toEqual({ gold: 15 });

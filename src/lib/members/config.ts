@@ -2,6 +2,20 @@
 // they may see and what a ticket costs them. Safe in the browser; members-only entries are left out by
 // the site's loader (visibleTo in src/lib/data.ts).
 
+/**
+ * Amounts by member level id (member prices, percent discounts), cleaned: each level id cut to 40
+ * characters, each amount kept when `amount` makes one of it. Undefined when none are left.
+ */
+export function byLevel(v: unknown, amount: (raw: unknown) => number | null): Record<string, number> | undefined {
+  if (!v || typeof v !== 'object') return undefined;
+  const out: Record<string, number> = {};
+  for (const [k, raw] of Object.entries(v as Record<string, unknown>)) {
+    const n = amount(raw);
+    if (k && n != null) out[k.slice(0, 40)] = n;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 /** A membership level (settings.site.members.levels). */
 export interface MemberLevel {
   id: string;

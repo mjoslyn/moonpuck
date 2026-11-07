@@ -170,11 +170,8 @@
         return;
       }
       // Keep what the server allows: lines no longer sold go, quantities fit what's left.
-      // A members-only line stays as it was, for when the visitor signs in.
-      const had = (l) => lines.find((x) => x.product === l.product && x.variant === l.variant)?.quantity ?? 1;
-      const kept = quote.lines
-        .filter((l) => l.problem !== 'gone' && (l.quantity > 0 || l.problem === 'members-only'))
-        .map((l) => ({ product: l.product, variant: l.variant, quantity: l.problem === 'members-only' ? had(l) : l.quantity }));
+      // Lines that can't be had now (sold out, members only) leave the stored cart, so its count is what can be bought; this render still shows why.
+      const kept = quote.lines.filter((l) => l.problem !== 'gone' && l.quantity > 0).map((l) => ({ product: l.product, variant: l.variant, quantity: l.quantity }));
       if (JSON.stringify(kept) !== JSON.stringify(lines)) {
         try {
           localStorage.setItem(KEY, JSON.stringify(kept));

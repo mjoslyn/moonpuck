@@ -4,6 +4,7 @@
 // weight and image. Its stock is kept apart (table shop_stock, per variant), so saving a product never
 // overwrites a count. Prices are in minor units (cents). Safe in the browser.
 import { checkoutSettingsFrom, type CheckoutSettings } from './checkout-settings';
+import { byLevel, isActive, type MemberRow } from '../members/config';
 
 /** The shop's blocks: offered in the editor, and shown on the site, only while the shop is on. */
 export const SHOP_BLOCKS = ['product-price', 'add-to-cart', 'cart', 'cart-link'];
@@ -224,29 +225,19 @@ export function productOf(fields: Record<string, any> | null | undefined): Produ
   };
 }
 
-export function memberDiscountsOf(v: unknown): Record<string, number> | undefined {
-  if (!v || typeof v !== 'object') return undefined;
-  const out: Record<string, number> = {};
-  for (const [k, raw] of Object.entries(v as Record<string, unknown>)) {
+/** Percent off by level: above 0, at most 100, to two decimals. */
+export const memberDiscountsOf = (v: unknown) =>
+  byLevel(v, (raw) => {
     const pct = Number(raw);
-    if (/^[\w-]{1,40}$/.test(k) && Number.isFinite(pct) && pct > 0) out[k] = Math.min(100, Math.round(pct * 100) / 100);
-  }
-  return Object.keys(out).length ? out : undefined;
-}
+    return Number.isFinite(pct) && pct > 0 ? Math.min(100, Math.round(pct * 100) / 100) : null;
+  });
 
-function memberPricesOf(v: unknown): Record<string, number> | undefined {
-  if (!v || typeof v !== 'object') return undefined;
-  const out: Record<string, number> = {};
-  for (const [k, raw] of Object.entries(v as Record<string, unknown>)) {
-    const c = cents(raw);
-    if (/^[\w-]{1,40}$/.test(k) && c != null) out[k] = c;
-  }
-  return Object.keys(out).length ? out : undefined;
-}
+/** Prices by level, in cents. */
+const memberPricesOf = (v: unknown) => byLevel(v, cents);
 
 /** The member level a buyer counts as (an active member's), else null. Takes a Viewer's `member`. */
 type Membership = { level: string; status: string; expires_on?: string | null } | null | undefined;
-const activeLevel = (m: Membership): string | null => (m && m.status === 'active' && (!m.expires_on || m.expires_on >= new Date().toISOString().slice(0, 10)) ? m.level : null);
+const activeLevel = (m: Membership): string | null => (isActive(m as MemberRow | null | undefined) ? m!.level : null);
 
 /** The percent off a buyer's level takes on a product (0 for everyone else). */
 export const memberDiscount = (p: Product, member: Membership) => {

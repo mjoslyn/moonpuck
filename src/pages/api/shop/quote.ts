@@ -8,7 +8,8 @@ import { siteViewer } from '../../../lib/members/viewer';
 import { featuresOf, offTypes } from '../../../lib/features';
 import { shopOn } from '../../../lib/shop/config';
 import { quoteCart } from '../../../lib/shop/cart';
-import { checkoutSettings } from '../../../lib/shop/checkout-settings';
+import { checkoutSettings, taxInForce } from '../../../lib/shop/checkout-settings';
+import { pickProvider } from '../../../lib/payments';
 import { cleanPlace } from '../../../lib/shop/places';
 import { cartTotals } from '../../../lib/shop/totals';
 
@@ -24,6 +25,7 @@ export const POST: APIRoute = async ({ request }) => {
   const state = String(body?.destination?.state ?? '').toUpperCase();
   const destination = country && country !== '*' ? { country, state: country === 'US' && cleanPlace(`US-${state}`) ? state : undefined } : null;
   const option = typeof body?.option === 'string' ? body.option.slice(0, 120) : null;
-  const totals = await cartTotals(quote, checkoutSettings(siteRow?.value?.shop), { destination, option });
+  const settings = checkoutSettings(siteRow?.value?.shop);
+  const totals = await cartTotals(quote, { ...settings, tax: taxInForce(settings.tax, pickProvider(settings.provider)) }, { destination, option });
   return Response.json({ ...quote, ...totals }, { headers: { 'Cache-Control': 'private, no-store' } });
 };

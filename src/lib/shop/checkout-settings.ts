@@ -185,6 +185,12 @@ export function checkoutSettings(shop: Record<string, any> | null | undefined): 
   };
 }
 
+/**
+ * The tax settings in force: Stripe Tax only while payments go through Stripe (`provider`, the one
+ * pickProvider resolves to), else the rates set here.
+ */
+export const taxInForce = (tax: TaxSettings, provider: string | null | undefined): TaxSettings => (tax.mode === 'stripe' && provider !== 'stripe' ? { ...tax, mode: 'rates' } : tax);
+
 /** The checkout settings as saved: only what differs from the defaults. */
 export function checkoutSettingsFrom(raw: Record<string, any> | null | undefined): Partial<CheckoutSettings> {
   const c = checkoutSettings(raw);
