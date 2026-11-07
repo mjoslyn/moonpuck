@@ -14,11 +14,12 @@ import { Fragment, useEffect, useRef, useState, type MouseEvent, type ReactNode 
 import { SAVES_AS_IT_GOES, SETTINGS_GROUPS, sectionOf, settingsPath } from '../lib/admin/settings-sections';
 import { FieldsForm } from './entry-fields';
 import { SITE_EDITOR } from '../lib/site/editor';
-import { ARCHIVE_PATHS, CONTENT_TYPES, PAGELESS_TYPES, SEARCHABLE_TYPES, TYPE_BASES, site as config, taxonomiesOf, taxonomyLabel, typeDef } from '../lib/site';
+import { ARCHIVE_PATHS, CONTENT_TYPES, PAGELESS_TYPES, SEARCHABLE_TYPES, TYPE_BASES, codeFeatured, site as config, taxonomiesOf, taxonomyLabel, typeDef } from '../lib/site';
 import { NO_CONTENT_WARNING, chosenTemplate, defaultTaxonomyTemplates, defaultTemplates, templateLabel, type TemplateInfo, type TemplateMap } from '../lib/templates';
 import { FieldGroup, MediaPicker, Row, Select, Text, Toggle, inputClass } from './fields';
 import { NETWORKS } from '../lib/social/icons';
 import Redirects, { type NotFound } from '../admin/Redirects';
+import TypesEditor from '../admin/TypesEditor';
 import Sync from '../admin/Sync';
 import Connections from '../admin/Connections';
 import BackupsTab from '../admin/Backups';
@@ -34,13 +35,16 @@ import { featuresOf, showsTaxonomy, showsType, type Features } from '../lib/feat
 import type { TicketSettings } from '../lib/tickets/config';
 import type { Redirect } from '../lib/redirects';
 import { MENU_FIELDS } from '../lib/navigation';
+import { SNIPPET_MAX, SNIPPET_PLACES, type CodeSnippets } from '../lib/snippets';
+import { consentPopup, type Popup, type StatsSettings } from '../lib/popups';
+import PopupsSettings from '../admin/PopupsSettings';
 import type { TaxonomyMeta } from '../lib/page-meta';
 import { ADMIN_THEME_DEFAULTS, ADMIN_THEME_FIELDS, adminThemeVars, contrast, type AdminTheme } from '../lib/admin-theme';
 
 interface Props {
   /** The section the address names. */
   section: string;
-  site: { name?: string; description?: string; front_page_id?: number | null; not_found_page_id?: number | null; timezone?: string; search_types?: string[]; social?: { network: string; url: string }[]; share_image?: number; share_image_url?: string; templates?: TemplateMap; taxonomy_templates?: Record<string, string>; taxonomy_pages_off?: string[]; taxonomy_meta?: Record<string, TaxonomyMeta>; listing_meta?: Record<string, TaxonomyMeta>; listings_off?: string[]; icons?: Record<string, string>; icon_media_id?: number | null; icon_preview?: string; admin_theme?: AdminTheme; tickets?: TicketSettings; members?: Partial<MemberSettings>; mailing?: MailingSettings; events?: { enabled?: boolean }; shop?: Partial<ShopSettings>; a11y?: { block_publish?: boolean } };
+  site: { name?: string; description?: string; front_page_id?: number | null; not_found_page_id?: number | null; timezone?: string; search_types?: string[]; social?: { network: string; url: string }[]; share_image?: number; share_image_url?: string; templates?: TemplateMap; taxonomy_templates?: Record<string, string>; taxonomy_pages_off?: string[]; taxonomy_meta?: Record<string, TaxonomyMeta>; listing_meta?: Record<string, TaxonomyMeta>; listings_off?: string[]; featured_types?: string[]; icons?: Record<string, string>; icon_media_id?: number | null; icon_preview?: string; admin_theme?: AdminTheme; tickets?: TicketSettings; members?: Partial<MemberSettings>; mailing?: MailingSettings; events?: { enabled?: boolean }; shop?: Partial<ShopSettings>; a11y?: { block_publish?: boolean }; snippets?: CodeSnippets; popups?: Popup[]; stats?: StatsSettings; mail_log?: { enabled?: boolean; days?: number } };
   options: Record<string, any>;
   pages: { id: number; title: string }[];
   templates: TemplateInfo[];
@@ -51,6 +55,8 @@ interface Props {
   /** Mailgun's keys (for Mailing) and the mailing lists. */
   mailgun: MailgunInfo;
   mailLists: MailList[];
+  /** The site's template parts (a popup's content). */
+  parts: { slug: string; title: string }[];
 }
 
 /** The template pickers' value for "Off" (no listing page, no term pages). */
@@ -59,7 +65,7 @@ const OFF = '__off__';
 /** Every IANA timezone the browser knows. */
 const TIMEZONES: string[] = (Intl as any).supportedValuesOf?.('timeZone') ?? [config.timezone];
 
-export default function SiteSettings({ section, site: initialSite, options: initialOptions, pages, templates, redirects, notFound, ticketProviders, mailgun, mailLists }: Props) {
+export default function SiteSettings({ section, site: initialSite, options: initialOptions, pages, templates, redirects, notFound, ticketProviders, mailgun, mailLists, parts }: Props) {
   const [site, setSite] = useState(initialSite);
   const [options, setOptions] = useState(initialOptions);
   const [status, setStatus] = useState('');
@@ -143,7 +149,9 @@ export default function SiteSettings({ section, site: initialSite, options: init
       label: 'Types',
       panel: (
         <>
+          <TypesEditor features={featuresOf(site)} />
           <TypeTemplates features={featuresOf(site)} value={site.templates ?? {}} off={site.listings_off ?? []} templates={templates} meta={site.listing_meta ?? {}} onChange={(m) => setSite((s) => ({ ...s, templates: m }))} onListings={(off) => setSite((s) => ({ ...s, listings_off: off }))} onMeta={(m) => setSite((s) => ({ ...s, listing_meta: Object.keys(m).length ? m : undefined }))} />
+          <FeaturedTypes features={featuresOf(site)} value={site.featured_types ?? []} onChange={(v) => setSite((s) => ({ ...s, featured_types: v.length ? v : undefined }))} />
           <TaxonomyTemplatesPanel features={featuresOf(site)} value={site.taxonomy_templates ?? {}} off={site.taxonomy_pages_off ?? []} templates={templates} meta={site.taxonomy_meta ?? {}} onChange={(m) => setSite((s) => ({ ...s, taxonomy_templates: Object.keys(m).length ? m : undefined }))} onPages={(off) => setSite((s) => ({ ...s, taxonomy_pages_off: off.length ? off : undefined }))} onMeta={(m) => setSite((s) => ({ ...s, taxonomy_meta: Object.keys(m).length ? m : undefined }))} />
         </>
       ),
@@ -210,14 +218,14 @@ export default function SiteSettings({ section, site: initialSite, options: init
         <button type="button" className="mb-4 rounded-sm border border-dashed border-admin-ink/25 px-3 py-1.5 text-xs text-admin-muted hover:border-admin-ink/50" onClick={() => setSite({ ...site, social: [...(site.social ?? []), { network: 'facebook', url: '' }] })}>
           Add link
         </button>
-        <MediaPicker title="Site icon (favicon)" url={site.icon_preview ?? site.icons?.['192']} onSelect={(m) => setSite({ ...site, icon_media_id: m.id ?? m.mediaId ?? null, icon_preview: m.url })} />
+        <MediaPicker title="Site icon (favicon)" url={site.icon_preview ?? site.icons?.['192']} mediaId={site.icon_media_id} onSelect={(m) => setSite({ ...site, icon_media_id: m.id ?? m.mediaId ?? null, icon_preview: m.url })} />
         <p className="-mt-2 mb-3 text-xs text-admin-muted">A square image at least 512px wide works best (it's cropped square around its focal point). Shown in browser tabs, on phone home screens and in the site header; made into the icon files when you save.</p>
         {(site.icon_media_id || site.icons?.['192']) && (
           <button type="button" className="mb-4 block text-xs text-[#b3261e]" onClick={() => setSite({ ...site, icon_media_id: null, icon_preview: undefined, icons: undefined })}>
             Remove site icon
           </button>
         )}
-        <MediaPicker title="Default share image" url={site.share_image_url} onSelect={(m) => setSite({ ...site, share_image: m.id ?? m.mediaId ?? undefined, share_image_url: m.url })} />
+        <MediaPicker title="Default share image" url={site.share_image_url} mediaId={site.share_image} onSelect={(m) => setSite({ ...site, share_image: m.id ?? m.mediaId ?? undefined, share_image_url: m.url })} />
         <p className="-mt-2 mb-3 text-xs text-admin-muted">Shown when a page without its own image is shared.</p>
         {!!site.share_image && (
           <button type="button" className="mb-3 block text-xs text-[#b3261e]" onClick={() => setSite({ ...site, share_image: undefined, share_image_url: undefined })}>
@@ -283,6 +291,86 @@ export default function SiteSettings({ section, site: initialSite, options: init
       label: 'Shop',
       on: shopOn(site),
       panel: <ShopSettingsPanel value={site.shop ?? {}} onChange={(shop) => setSite((s) => ({ ...s, shop }))} />,
+    },
+    {
+      id: 'popups',
+      label: 'Popups',
+      panel: <PopupsSettings value={site.popups ?? []} parts={parts} onChange={(popups) => setSite((s) => ({ ...s, popups }))} />,
+    },
+    {
+      id: 'stats',
+      label: 'Stats',
+      panel: (
+        <>
+          <Toggle title="Recognise returning visitors with a cookie" value={site.stats?.cookies} onChange={(on) => setSite((s) => ({ ...s, stats: on ? { cookies: true } : undefined }))} />
+          <p className="mb-3 text-xs text-admin-muted">
+            Off, Stats counts each visitor once a day without any cookie, so the same person on three days counts three times. On, it keeps a random id in a cookie for 13 months, so Stats counts unique visitors over any range and shows how many came back.
+          </p>
+          {site.stats?.cookies && (
+            <p className={`rounded px-3 py-2 text-xs ${consentPopup(site.popups) ? 'bg-admin-soft text-admin-muted' : 'bg-[#c4592a]/10 text-[#c4592a]'}`}>
+              {consentPopup(site.popups)
+                ? 'The cookie is set only for visitors who accept cookies in the consent banner (Settings > Popups). Others are still counted once a day.'
+                : 'No cookie consent banner is on, so every visitor gets the cookie. In the EU and UK the law asks for consent first: add a cookie consent banner under Settings > Popups.'}
+            </p>
+          )}
+        </>
+      ),
+    },
+    {
+      id: 'email-log',
+      label: 'Email log',
+      panel: (
+        <>
+          <Toggle title="Keep a log of the emails the site sends" value={site.mail_log?.enabled} onChange={(on) => setSite((s) => ({ ...s, mail_log: { ...s.mail_log, enabled: on } }))} />
+          <p className="mb-3 text-xs text-admin-muted">
+            Form notifications, ticket emails, account emails and notices to admins, each with who it went to, its subject, whether it was sent and what it said. Emails with a sign-in, password, invitation or confirmation link are kept without what they said, so nobody reading the log can use the link. Mailing Lists' emails aren't kept here. Turning the log off deletes what it kept within the hour.
+          </p>
+          {site.mail_log?.enabled && (
+            <>
+              <Row title="Keep emails for (days)">
+                <input type="number" min={1} max={365} className={inputClass} value={site.mail_log?.days ?? 30} onChange={(e) => setSite((s) => ({ ...s, mail_log: { ...s.mail_log, days: Number(e.target.value) || undefined } }))} />
+              </Row>
+              <a className="text-sm text-admin-accent underline" href="/admin/email-log/">Open the email log</a>
+            </>
+          )}
+        </>
+      ),
+    },
+    {
+      id: 'code',
+      label: 'Code snippets',
+      panel: (
+        <>
+          <p className="mb-3 text-xs text-admin-muted">
+            Code put on every page of the site exactly as written, such as an analytics, chat or advertising service's tag or a site verification tag. It runs for every visitor, so paste only code from a service you trust. Previews leave it out.
+          </p>
+          {SNIPPET_PLACES.map((p) => (
+            <label key={p.key} className="mb-4 block">
+              <span className="block text-sm font-semibold">{p.label}</span>
+              <span className="mb-1 block text-xs text-admin-muted">{p.help}</span>
+              <textarea
+                className={`${inputClass} font-mono text-xs`}
+                rows={6}
+                spellCheck={false}
+                maxLength={SNIPPET_MAX}
+                value={site.snippets?.[p.key] ?? ''}
+                onChange={(e) => setSite((s) => ({ ...s, snippets: { ...s.snippets, [p.key]: e.target.value } }))}
+              />
+              <span className="mt-1 flex items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={!!site.snippets?.consent?.[p.key]}
+                  onChange={(e) => setSite((s) => ({ ...s, snippets: { ...s.snippets, consent: { ...s.snippets?.consent, [p.key]: e.target.checked } } }))}
+                />
+                Only after visitors accept cookies
+              </span>
+            </label>
+          ))}
+          {Object.values(site.snippets?.consent ?? {}).some(Boolean) && !consentPopup(site.popups) && (
+            <p className="rounded bg-[#c4592a]/10 px-3 py-2 text-xs text-[#c4592a]">No cookie consent banner is on (Settings &gt; Popups), so nobody can accept: snippets marked to wait for it won't run.</p>
+          )}
+        </>
+      ),
     },
     {
       id: 'accessibility',
@@ -387,7 +475,7 @@ export default function SiteSettings({ section, site: initialSite, options: init
           </div>
         </div>
         {tabs.map((t) => (
-          <section key={t.id} aria-label={t.label} hidden={t.id !== current.id} className={['redirects', 'sync', 'backups'].includes(t.id) ? 'max-w-5xl' : t.id === 'site' || t.id === 'types' || t.id === 'tickets' || t.id === 'connections' ? 'max-w-3xl' : 'max-w-md'}>
+          <section key={t.id} aria-label={t.label} hidden={t.id !== current.id} className={['redirects', 'sync', 'backups'].includes(t.id) ? 'max-w-5xl' : t.id === 'site' || t.id === 'types' || t.id === 'tickets' || t.id === 'connections' || t.id === 'code' || t.id === 'popups' ? 'max-w-3xl' : 'max-w-md'}>
             {t.panel}
           </section>
         ))}
@@ -452,7 +540,7 @@ function TypeTemplates({ features, value, off, templates, meta, onChange, onList
   };
   return (
     <>
-      <p className="mb-4 text-xs text-admin-muted">The template for each type's pages and for its listing page; choose Off to turn a listing page off. A template chosen on an entry itself (in its settings) comes first. Under each type, its taxonomies (set in the site config; each gets a picker in an entry's settings).</p>
+      <p className="mb-4 text-xs text-admin-muted">The template for each type's pages and for its listing page; choose Off to turn a listing page off. A template chosen on an entry itself (in its settings) comes first. Under each type, its taxonomies (each gets a picker in an entry's settings; add more under Content &gt; Taxonomies).</p>
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-xs text-admin-muted">
@@ -539,7 +627,7 @@ function PageDefaults({ kind, name, label, path, value, onChange }: { kind: 'tax
       ) : (
         <p className="mb-3 text-xs text-admin-muted">For the {label.toLowerCase()} listing at {path}. The image is its share image and shows in a Featured image block on it (outside a collection).{name === 'event' ? ' The calendar views (month, day, past) keep their own titles and get the image and noindex.' : ''}</p>
       )}
-      <MediaPicker title="Featured image" url={value.image_url} onSelect={(m) => onChange({ ...value, image: m.id ?? m.mediaId ?? undefined, image_url: m.url })} />
+      <MediaPicker title="Featured image" url={value.image_url} mediaId={value.image} onSelect={(m) => onChange({ ...value, image: m.id ?? m.mediaId ?? undefined, image_url: m.url })} />
       {!!value.image && (
         <button type="button" className="-mt-2 mb-2 text-xs text-[#b3261e]" onClick={() => onChange({ ...value, image: undefined, image_url: undefined })}>
           Remove featured image
@@ -568,6 +656,31 @@ function PageDefaults({ kind, name, label, path, value, onChange }: { kind: 'tax
 }
 
 /** Settings > Types: the template for each taxonomy's term pages (a term can choose its own), and their default image and SEO. */
+/** The types whose entries can be marked Featured (settings.site.featured_types): a Featured switch in their
+ *  settings, which the Collection and Map blocks can list alone. Types whose code has one keep theirs. */
+function FeaturedTypes({ features, value, onChange }: { features: Features; value: string[]; onChange: (v: string[]) => void }) {
+  const types = CONTENT_TYPES.filter((t) => t.type !== 'global' && showsType(t.type, features));
+  return (
+    <section className="mt-8 border-t border-admin-ink/10 pt-6">
+      <h3 className="text-sm font-semibold">Featured</h3>
+      <p className="mt-1 mb-3 text-xs text-admin-muted">Tick a type to give its entries a Featured switch in their settings. A Collection block can then show featured entries only, and the content list can show and mark them.</p>
+      <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+        {types.map((t) =>
+          codeFeatured(t.type) ? (
+            <label key={t.type} className="flex items-center gap-1.5 text-admin-muted" title="Set by the site's code">
+              <input type="checkbox" checked disabled /> {t.label}
+            </label>
+          ) : (
+            <label key={t.type} className="flex items-center gap-1.5">
+              <input type="checkbox" checked={value.includes(t.type)} onChange={(e) => onChange(e.target.checked ? [...value, t.type] : value.filter((x) => x !== t.type))} /> {t.label}
+            </label>
+          ),
+        )}
+      </div>
+    </section>
+  );
+}
+
 function TaxonomyTemplatesPanel({ features, value, off, templates, meta, onChange, onPages, onMeta }: { features: Features; value: Record<string, string>; off: string[]; templates: TemplateInfo[]; meta: Record<string, TaxonomyMeta>; onChange: (m: Record<string, string>) => void; onPages: (off: string[]) => void; onMeta: (m: Record<string, TaxonomyMeta>) => void }) {
   const have = new Set(templates.map((t) => t.slug));
   const taxonomies = config.taxonomies.filter((t) => t.base && showsTaxonomy(t.name, features));
@@ -638,7 +751,7 @@ function AdminThemePanel({ value, onChange }: { value: AdminTheme; onChange: (t:
   return (
     <>
       <p className="mb-3 text-xs text-admin-muted">The logo and colors of these admin screens and the page editor, for everyone who signs in. They change here as you pick them; Save keeps them.</p>
-      <MediaPicker title="Logo" fit="contain" url={value.logo_url} onSelect={(m) => onChange({ ...value, logo: m.id ?? m.mediaId ?? undefined, logo_url: m.url })} />
+      <MediaPicker title="Logo" fit="contain" url={value.logo_url} mediaId={value.logo} onSelect={(m) => onChange({ ...value, logo: m.id ?? m.mediaId ?? undefined, logo_url: m.url })} />
       <p className="-mt-2 mb-3 text-xs text-admin-muted">In the menu bar, in place of the site name, up to 32px tall. Choose one that reads on the menu bar's color.</p>
       {!!value.logo && (
         <>

@@ -14,6 +14,7 @@ import { ProductForm } from './ProductForm';
 import { accessOf } from '../lib/members/config';
 import { itemsText } from '../lib/seo';
 import { NO_CONTENT_WARNING, templateLabel, type TemplateInfo } from '../lib/templates';
+import { moveItem } from '../lib/admin/move-item';
 
 /** A type's fields, from the site config. */
 export const fieldsFor = (type: string): FieldDef[] => siteFields(type);
@@ -230,7 +231,7 @@ export function EntryField({ title, entryType, create, value, onChange }: { titl
   );
 }
 
-/** An ordered list of entry references (mega menu featured cards). */
+/** An ordered list of entry references (a collection's hand-picked entries, mega menu featured cards). */
 export function EntriesField({ title, types, value, onChange }: { title: string; types: string[]; value: unknown; onChange: (v: number[]) => void }) {
   const ids: number[] = Array.isArray(value) ? value.map(Number) : [];
   const [titles, setTitles] = useState<Record<number, string>>({});
@@ -250,7 +251,11 @@ export function EntriesField({ title, types, value, onChange }: { title: string;
         {ids.map((id, i) => (
           <li key={id} className="flex items-center gap-2 rounded bg-admin-soft px-2 py-1 text-sm">
             <span className="truncate">{titles[id] ?? `#${id}`}</span>
-            <button type="button" className="ml-auto text-xs text-[#c4592a]" onClick={() => onChange(ids.filter((_, j) => j !== i))}>Remove</button>
+            <span className="ml-auto flex shrink-0 items-center gap-1">
+              <button type="button" disabled={i === 0} className="rounded px-1 text-xs text-admin-muted hover:text-admin-ink disabled:opacity-30" title="Move up" aria-label={`Move ${titles[id] ?? `#${id}`} up`} onClick={() => onChange(moveItem(ids, i, -1))}>↑</button>
+              <button type="button" disabled={i === ids.length - 1} className="rounded px-1 text-xs text-admin-muted hover:text-admin-ink disabled:opacity-30" title="Move down" aria-label={`Move ${titles[id] ?? `#${id}`} down`} onClick={() => onChange(moveItem(ids, i, 1))}>↓</button>
+              <button type="button" className="text-xs text-[#c4592a]" onClick={() => onChange(ids.filter((_, j) => j !== i))}>Remove</button>
+            </span>
           </li>
         ))}
       </ul>
@@ -393,7 +398,7 @@ export function EntryForm({ type, id, value, onChange, templates, pageItems }: {
         <textarea className={inputClass} rows={3} value={value.excerpt} onChange={(e) => set({ excerpt: e.target.value })} />
       </Row>
       <ExcerptWriter type={type} title={value.title} pageItems={pageItems} onWrite={(excerpt) => set({ excerpt })} />
-      <MediaPicker title="Featured image" url={value.featured_image ?? undefined} onSelect={(m) => set({ featured_image: m.url, featured_media_id: m.id })} />
+      <MediaPicker title="Featured image" url={value.featured_image ?? undefined} mediaId={(value as any).featured_media_id} onSelect={(m) => set({ featured_image: m.url, featured_media_id: m.id })} />
       {taxonomiesOf(type).map((tax) => (
         <EntryTermsField key={tax} taxonomy={tax} value={value.terms?.[tax] ?? []} onChange={(ids) => set({ terms: { ...(value.terms ?? {}), [tax]: ids } })} />
       ))}
@@ -439,9 +444,9 @@ export function EntryForm({ type, id, value, onChange, templates, pageItems }: {
         </details>
       )}
       {type === 'event' && (
-        <details open={!!value.fields?.tickets?.types?.length} className="mt-4 border-t border-admin-ink/10 pt-3">
+        <details open className="mt-4 border-t border-admin-ink/10 pt-3">
           <summary className="mb-2 cursor-pointer text-xs font-semibold tracking-wider text-admin-muted uppercase">Tickets</summary>
-          <TicketsForm fields={value.fields} onChange={(fields) => set({ fields })} />
+          <EventTicketPicker ticket={Number(value.fields?.ticket) || 0} title={value.title} />
         </details>
       )}
       {type === 'product' && shopIsOn && (
@@ -458,6 +463,79 @@ export function EntryForm({ type, id, value, onChange, templates, pageItems }: {
         </details>
       )}
     </div>
+  );
+}
+
+/**
+ * The ticket an event sells (fields.ticket; tickets are their own records, People > Tickets): pick one,
+ * make one named after the event, or none. Saved at once (POST /api/admin/ticket-setup), not with the
+ * event, whose saves keep the stored ticket (keepTickets).
+ */
+function EventTicketPicker({ ticket, title }: { ticket: number; title: string }) {
+  const [entryId, setEntryId] = useState<string | null>(null);
+  const [current, setCurrent] = useState(ticket);
+  const [tickets, setTickets] = useState<{ id: number; title: string }[] | null>(null);
+  const [status, setStatus] = useState('');
+  // Making a ticket: its name, asked first (null: not making one).
+  const [naming, setNaming] = useState<string | null>(null);
+  useEffect(() => setEntryId(location.pathname.match(/\/admin\/edit\/(\d+)/)?.[1] ?? null), []);
+  useEffect(() => {
+    browserClient().from('entries').select('id, title').eq('type', 'ticket').order('title').then(({ data }) => setTickets((data ?? []) as { id: number; title: string }[]));
+  }, []);
+  if (!entryId) return <p className="text-xs text-admin-muted">Save the event to sell tickets.</p>;
+  const post = async (body: Record<string, unknown>) => {
+    setStatus('Saving…');
+    const res = await fetch('/api/admin/ticket-setup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: Number(entryId), ...body }) });
+    if (!res.ok) {
+      setStatus(`Not saved: ${await res.text()}`);
+      return null;
+    }
+    setStatus('Saved.');
+    return res.json();
+  };
+  const make = async () => {
+    const made = await post({ action: 'create', name: naming || title || 'Tickets' });
+    if (!made?.id) return;
+    setTickets([...(tickets ?? []), { id: made.id, title: made.title }]);
+    setCurrent(made.id);
+    setNaming(null);
+    window.open(`/admin/tickets/${made.id}/?view=setup`, '_blank', 'noopener');
+  };
+  const choose = async (v: string) => {
+    if (v === 'new') return setNaming(`${title || 'Event'} tickets`);
+    setNaming(null);
+    const id = Number(v) || 0;
+    if ((await post(id ? { action: 'attach', ticket: id } : { action: 'detach' })) !== null) setCurrent(id);
+  };
+  return (
+    <>
+      <Row title="Sells">
+        <select className={inputClass} value={naming !== null ? 'new' : current || ''} disabled={!tickets} onChange={(e) => choose(e.target.value)}>
+          <option value="">No tickets</option>
+          {(tickets ?? []).map((k) => (
+            <option key={k.id} value={k.id}>{k.title || 'Tickets'}</option>
+          ))}
+          <option value="new">New ticket for this event…</option>
+        </select>
+      </Row>
+      {naming !== null && (
+        <Row title="New ticket's name">
+          <div className="flex gap-2">
+            <input className={inputClass} value={naming} autoFocus onChange={(e) => setNaming(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), make())} />
+            <button type="button" className="rounded-sm border border-admin-ink/20 px-2 py-1 text-xs font-semibold hover:border-admin-ink/50" onClick={make}>Make</button>
+            <button type="button" className="text-xs text-admin-muted hover:text-admin-ink" onClick={() => setNaming(null)}>Cancel</button>
+          </div>
+        </Row>
+      )}
+      <p className="mb-2 text-xs text-admin-muted">
+        Tickets are set up under People &gt; Tickets, and any number of events can sell the same one from one pool. {status}
+      </p>
+      {current > 0 && (
+        <a className="inline-block rounded-sm border border-admin-ink/20 px-2 py-1 text-xs font-semibold hover:border-admin-ink/50" href={`/admin/tickets/${current}/?view=setup`} target="_blank" rel="noopener">
+          Manage ticket
+        </a>
+      )}
+    </>
   );
 }
 
@@ -732,5 +810,59 @@ export function TagsField({ value, onChange }: { value: string[]; onChange: (v: 
         </ul>
       )}
     </div>
+  );
+}
+
+/**
+ * The Tickets block's ticket (attrs.ticket): any ticket (People > Tickets), or none (the page's own
+ * event's). A block from before tickets were their own records names an event (attrs.event); it shows
+ * that event's ticket until a ticket is chosen.
+ */
+export function TicketsBlockPicker({ ticket, event, onChange }: { ticket: number; event: number; onChange: (patch: { ticket?: number; event?: undefined; date?: undefined }) => void }) {
+  const [tickets, setTickets] = useState<{ id: number; title: string; events: number }[] | null>(null);
+  const [eventTitle, setEventTitle] = useState('');
+  useEffect(() => {
+    const db = browserClient();
+    Promise.all([
+      db.from('entries').select('id, title').eq('type', 'ticket').neq('status', 'trash').order('title'),
+      db.from('entries').select('id, fields').eq('type', 'event').neq('status', 'trash'),
+    ]).then(([{ data: ts }, { data: evs }]) => {
+      const count = new Map<number, number>();
+      for (const e of (evs ?? []) as { fields: Record<string, any> | null }[]) {
+        const t = Number(e.fields?.ticket) || 0;
+        if (t) count.set(t, (count.get(t) ?? 0) + 1);
+      }
+      setTickets(((ts ?? []) as { id: number; title: string }[]).map((t) => ({ ...t, events: count.get(t.id) ?? 0 })));
+    });
+  }, []);
+  useEffect(() => {
+    if (!event || ticket) return;
+    browserClient().from('entries').select('title').eq('id', event).maybeSingle().then(({ data }) => setEventTitle((data as { title?: string } | null)?.title ?? ''));
+  }, [event, ticket]);
+  const known = !ticket || !tickets || tickets.some((t) => t.id === ticket);
+  return (
+    <>
+      <Row title="Ticket">
+        <select
+          className={inputClass}
+          value={ticket || ''}
+          disabled={!tickets}
+          onChange={(e) => onChange({ ticket: Number(e.target.value) || undefined, event: undefined, date: undefined })}
+        >
+          <option value="">{event && !ticket ? `${eventTitle || 'The event chosen before'}'s ticket` : "The page's event's ticket"}</option>
+          {!known && <option value={ticket}>(a ticket that isn't there)</option>}
+          {(tickets ?? []).map((t) => (
+            <option key={t.id} value={t.id}>
+              {(t.title || 'Tickets') + (t.events ? ` (${t.events} event${t.events === 1 ? '' : 's'})` : ' (no events)')}
+            </option>
+          ))}
+        </select>
+      </Row>
+      {ticket > 0 && (
+        <a className="mb-3 inline-block rounded-sm border border-admin-ink/20 px-2 py-1 text-xs font-semibold hover:border-admin-ink/50" href={`/admin/tickets/${ticket}/?view=setup`} target="_blank" rel="noopener">
+          Manage ticket
+        </a>
+      )}
+    </>
   );
 }

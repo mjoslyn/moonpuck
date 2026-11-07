@@ -21,7 +21,7 @@ import type { Overrides } from '../lib/content/linked-patterns';
 import { applyFilters, filterSpec, findFilters } from './c/filters';
 import { prepareMap } from './c/map';
 import { prepareNavigation } from './c/navigation';
-import { prepareTickets, prepareTicketsBlock } from './c/tickets';
+import { isPageTickets, prepareTickets, prepareTicketsBlock } from './c/tickets';
 import { EVENT_BLOCKS, eventsOn } from '../lib/events/on';
 import { SHOP_BLOCKS, productOf, shopOn } from '../lib/shop/config';
 import { loadStock } from '../lib/shop/stock';
@@ -74,6 +74,8 @@ async function queryArgs(attrs: Record<string, any>, ctx: RenderCtx, page: numbe
     exclude: q.exclude?.length ? await known(q.exclude) : undefined,
     terms: include.length ? {} : terms,
     upcoming: !include.length && types.length === 1 && types[0] === 'event' && q.upcoming === true,
+    // Featured entries only (fields.featured: Settings > Types, or a field of the site's own).
+    featuredOnly: !include.length && q.featuredOnly === true,
   };
 }
 
@@ -155,6 +157,8 @@ async function walk(items: PuckItem[], ctx: RenderCtx, state: WalkState) {
         const e = ctx.queried.entry;
         const area = areaName(attrs.area);
         if (e) await loadDoc(ctx, area === MAIN_AREA ? `content:${e.id}` : `content:${e.id}:${area}`, async () => areaItems(e.content, area) as PuckItem[], state);
+        // An event's tickets go under its content when no other block shows them (ticketsAfterContent).
+        if (e?.type === 'event' && area === MAIN_AREA) await prepareTickets(ctx);
         break;
       }
       case 'image':
@@ -271,12 +275,13 @@ async function walk(items: PuckItem[], ctx: RenderCtx, state: WalkState) {
       case 'tickets': {
         // The Event details block leaves its event's tickets to this one.
         const target = await prepareTicketsBlock(ctx, props.id, attrs);
-        if (target?.own) ctx.data.set('tickets-block', true);
+        if (isPageTickets(ctx, target)) ctx.data.set('tickets-block', true);
         break;
       }
       case 'event-details': {
         const e = ctx.queried.entry;
         if (!e) break;
+        ctx.data.set('event-details', true);
         await prepareTickets(ctx);
         const venue = Number(e.fields?.venue) || 0;
         if (venue) await ctx.loader.entriesByIds([venue]);

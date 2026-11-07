@@ -167,6 +167,14 @@ export const SCHEMA: Record<string, TableSchema> = {
     defaults: {"description":"","public":true,"sort":0},
     touch: false,
   },
+  mail_log: {
+    pk: ["id"],
+    columns: {"id":"int8","created_at":"timestamptz","kind":"text","to_addresses":"text","from_address":"text","reply_to":"text","subject":"text","html":"text","text":"text","withheld":"bool","status":"text","via":"text","error":"text"},
+    generated: [],
+    fks: [],
+    defaults: {"kind":"other","to_addresses":"","from_address":"","subject":"","withheld":false,"status":"sent","via":""},
+    touch: false,
+  },
   mail_segments: {
     pk: ["id"],
     columns: {"id":"int8","name":"text","description":"text","rules":"jsonb","created_at":"timestamptz","updated_at":"timestamptz"},
@@ -270,6 +278,22 @@ export const SCHEMA: Record<string, TableSchema> = {
     fks: [],
     defaults: {"hint":""},
     touch: true,
+  },
+  site_stat_visitors: {
+    pk: ["day","hash"],
+    columns: {"day":"date","hash":"text","cookie":"bool"},
+    generated: [],
+    fks: [],
+    defaults: {"cookie":false},
+    touch: false,
+  },
+  site_stats: {
+    pk: ["day","kind","path","target"],
+    columns: {"day":"date","kind":"text","path":"text","target":"text","hits":"int8"},
+    generated: [],
+    fks: [],
+    defaults: {"path":"","target":"","hits":0},
+    touch: false,
   },
   sync_nonces: {
     pk: ["nonce"],

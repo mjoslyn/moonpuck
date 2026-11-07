@@ -1,4 +1,4 @@
-# cfpuck-cms: the core (Astro + Puck on Cloudflare)
+# moonpuck: the core (Astro + Puck on Cloudflare)
 
 A CMS for small business and organisation sites: Astro SSR on a Cloudflare Worker, content in D1 and files in R2, a Puck visual editor,
 and Compose (pages written with Claude from documents, images and links). The code is split into the
@@ -46,7 +46,8 @@ Everything that differs between sites lives in `src/site/`:
   `logoField`, default `card`, `order`) and taxonomies (label, URL `base`, the type a term page `lists`,
   its terms' own `fields`; `category` and `tag` are required; `event`, `venue` and `event_category`
   come with the core's Events feature, extended with `events`, see Events; `product` and `product_category`
-  with its Shop, extended with `shop`, see Shop). Core code reads it only through `src/lib/site` (`CONTENT_TYPES`,
+  with its Shop, extended with `shop`, see Shop; admins add taxonomies and
+  types of their own, see Collections and tags). Core code reads it only through `src/lib/site` (`CONTENT_TYPES`,
   `COMPOSABLE_TYPES`, `LISTABLE_TYPES`, `RECORD_TYPES`, `PAGELESS_TYPES`, `TYPE_BASES`,
   `ARCHIVE_PATHS`, `TAXONOMY_BASES`, `fieldsFor`, `categoryOf`, `termPageType`, `SITE_TZ`): the
   editor's Details, Compose's fields and prompt, permalinks, URL routing (archives, term pages,
@@ -109,9 +110,13 @@ block's ratio for Image; else its main point), written as `--focal`, `--focal-ta
 on the block; the stylesheet picks one as `--focal-at` (tablet up to 1024px, phone up to 599px), which
 the image's `object-position` reads (`screenFocal`, `src/render/c/content.ts`). Galleries hold
 image blocks (`gallery`) or embed and video blocks (`video-gallery`) and show them as a grid, masonry
-columns or a slider (`display`; a scroll-snap row, buttons and autoplay from
+columns or a slider (`display`; a scroll-snap row, buttons, dots and autoplay from
 `public/assets/js/gallery-slider.js`); media picked in the panel arrive as `attrs.add` and become
-child blocks in `resolveGallery` (`config.tsx`).
+child blocks in `resolveGallery` (`config.tsx`). Their look (Style): `radius` (`GALLERY_RADII`), each
+item's caption (`itemCaptions`: below, over the image, hidden) and `hover` (zoom, lift); a slider's:
+`arrows` (round, square, plain, none), `arrowPosition` (over, outside, below), `arrowBg` and `arrowColor`
+(palette tokens, hex, rgb or hsl only), `dots`, `peek` (part of the next item shows) and the autoplay's
+`interval` (2 to 20 seconds); classes `has-*` and custom properties `--gallery-*` (`galleryOf`).
 Props are clean values: styles as CSS with design tokens (`var(--color-*)`, `var(--space-*)`,
 `var(--text-*)`), layouts as `{ type: flow|constrained|row|stack|grid }`.
 
@@ -143,8 +148,8 @@ ordinary, undoable edit. Blocks inside a linked pattern, and the linked pattern 
 ## Collections and tags
 
 A `collection` lists entries with its settings on the block itself (`src/puck/CollectionPanel.tsx`):
-what to show (latest of some types, filtered by category and tags; hand-picked `query.include`; or the
-page's own listing), display (grid with desktop/tablet/phone columns, list, slider), card design
+what to show (latest of some types, filtered by category and tags, and featured only where a type has
+Featured, `query.featuredOnly`; hand-picked `query.include`, shown in the order listed (`EntriesField`, ↑ and ↓ to move one, `moveItem`); or the page's own listing), display (grid with desktop/tablet/phone columns, list, slider), card design
 (the site's `cards`, `src/lib/content/card-presets.ts`; choosing one replaces the item template via
 `resolveCollection` in `config.tsx`; "custom" keeps the blocks), pagination (numbers, previous/next,
 load more: `public/assets/js/collection-more.js` fetches the next page URL and appends that
@@ -167,8 +172,22 @@ too; a typed address another of those types has is refused on save, and so is pu
 Tags are terms of the `tag` taxonomy on any type: edited in each entry's settings (created on save,
 `setEntryTags`), filterable in collections (`query.taxQuery.tag`), listed at `/tag/<slug>/`.
 
+Admins make taxonomies too, each for any number of types, and add types to the config's own (Content >
+Taxonomies: **Add a taxonomy** and each tab's settings; `/api/admin/taxonomies`,
+`src/lib/site/taxonomy-settings.ts`): `settings.site.taxonomies` (`{ name, label, singular?, base?, flat?,
+types }`, the name made from the label and kept; no `base`, no term pages; a base can't be a route of the
+site's or another type's or taxonomy's, `baseProblem`) and `settings.site.taxonomy_types` (types added to a
+config taxonomy; those the config gives it stay; tags are on every type). `applyTypeSettings` in
+`src/lib/site` joins them to the config's (`site.taxonomies` and `TAXONOMY_BASES` changed in place;
+`taxonomiesOf`, `typesOfTaxonomy`, `isFlat`): a live binding like `SITE_TZ`, applied by the server with the
+timezone (`refreshSiteTimezone`, at most once a minute per instance) and handed to the browser as
+`window.__siteTypes`. So core code reads taxonomies through those functions at the time of use, never
+copied at module load. Deleting a made taxonomy deletes its terms. A taxonomy on several types has term
+pages listing them all (`termPageType`).
+
 Content > Taxonomies (`src/admin/Terms.astro`, `/api/admin/terms`) manages every taxonomy's terms, a
-tab each: terms nested under their parents (tags stay flat), with name, address and template to change,
+tab each, with the types it is used on: terms nested under their parents (tags, and made taxonomies set
+flat, stay flat), with name, address and template to change,
 how many entries use each, its page, Details and Delete. **Details** (`src/admin/TermDetails.tsx`; GET
 and PUT `/api/admin/terms`) edits a term's description, featured image (`fields.image`), the taxonomy's
 own fields (its `fields` in the site config, under their keys in `terms.fields`) and SEO (`fields.seo`,
@@ -231,12 +250,32 @@ with names.
 
 ## Types in Settings
 
-Settings > Types sets, per type, the template for its entries and its listing page
+**The types editor** (Settings > Types, top; `src/admin/TypesEditor.tsx`, POST `/api/admin/types`, admins
+only, saved at once): every content type with its address, listing page and fields. Types the site's code
+defines (its config, and the core's features') open read-only, with a note that they are changed in
+`src/site/config.ts`. Admins add their own (`settings.site.types`, `MadeType` in
+`src/lib/site/type-settings.ts`): names, pages or data only (`record`), the address its pages start with
+(`base`), a listing page (`archive`), what one is for Compose (`describe`), listing order, and its fields
+(text, longer text, formatted text, web address, email, number, yes or no, image, a choice from a list; each
+may let Compose fill it). The code wins: a made type with a name the code (or the core: `RESERVED_TYPES`)
+uses is left out, as are field keys the core keeps (`RESERVED_FIELD_KEYS`). A made type's name comes from its
+singular name and stays; a changed address or listing page leaves a redirect from the old; it can be deleted
+only once no entry is of it. `applyTypeSettings` joins made types to `site.types` (before globals) and
+refills the lists derived from it in place (`CONTENT_TYPES`, `COMPOSABLE_TYPES`, `LISTABLE_TYPES`,
+`RECORD_TYPES`, `PAGELESS_TYPES`, `SEARCHABLE_TYPES`, `TYPE_BASES`, `ARCHIVE_PATHS`; `deriveTypes`), so code
+reads them at the time of use. Their taxonomies are chosen under Content > Taxonomies.
+
+Settings > Types also sets, per type, the template for its entries and its listing page
 (`settings.site.templates`, `src/lib/templates.ts`), and turns listing pages off
 (`settings.site.listings_off`; the address then serves a page with that address, if any, or 404; for
 events the calendar views go too). An entry's own template (its settings) comes before its type's.
 Templates without a Page content block are marked, and choosing one warns that the entry's content
-won't show.
+won't show. **Featured** (`settings.site.featured_types`, `featuredTypesFrom`): the types ticked get a
+Featured switch in their entries' settings (`fields.featured`, added by `fieldsFor` as `FEATURED_FIELD`, a
+live binding applied with the taxonomies, `applyTypeSettings`); a type whose config has a `featured` field
+keeps its own (`codeFeatured`). For those types (`featuredOn`) the Collection block offers **Featured only**
+(`query.featuredOnly`, the loader's `featuredOnly`) and the content list shows a star, a Featured only filter
+and bulk Mark featured / Unmark featured (in unpublished changes kept aside too).
 A template can have several Page content blocks, each naming a content area (`attrs.area`; `main`, the
 default, is the entry's content). Other areas (`sidebar`, `intro`...) are filled in per entry and stored
 as slots on its content's root (`root.props["area-<name>"]`, `src/lib/content/areas.ts`); the editor
@@ -426,6 +465,85 @@ term fires a cancelable `c-search:term` on the form.
   span. **Site title** (`site-title`): the site's icon and name from Settings, with optional text
   before the name.
 
+## Statistics
+
+**Stats** (`/admin/stats/`, editors; `src/lib/stats.ts`, `src/pages/admin/stats/index.astro`): page
+views, visitors, links clicked and referring sites over the last 7, 30, 90 or 365 days or dates chosen
+(`?from=&to=`, up to `STATS_MAX_DAYS`, 731, ending today at the latest; `statsRange`), a bar a day (a
+week past 90 days); every page (up to 2,000) with its views and the clicks on links in it, sorted by
+either (`?sort=clicks`); the top 100 links and 15 referrers (`stats_summary`, an editors' function). Each
+table downloads as CSV (`GET /api/admin/stats.csv?table=daily|pages|links|referrers` with the screen's
+range and sort; `statsCsv`, formulas guarded). Pages are cached
+for everyone, so `public/assets/js/stats.js` (on every page but previews and Not found) reports the view
+and each link followed (`click` and middle-click; not `#` links) with `sendBeacon` to `POST /api/stats`,
+which counts them by day in the site's time zone (`stat_hit`, table `site_stats`: `day`, `kind` view,
+visitor, click or referrer, `path`, `target`, `hits`; migration `*_site_stats.sql`). No cookies, storage or
+addresses: a visitor is counted once a day by a hash of the day, `AUTH_SECRET`, their address and browser
+(`site_stat_visitors`, emptied after the day by the hourly run, `pruneStats`). A link is kept as its path
+on the site, or host and path elsewhere, `mailto:`/`tel:` as written, without query or fragment
+(`statTarget`); a referrer as its host (`referrerHost`). Machines (`scannerAgent`) and signed-in editors
+aren't counted; addresses that aren't pages (`/admin`, `/api`, `/media`...) are refused (`statPath`). **Campaigns**: a view whose address has `utm_campaign`
+or `utm_source` (with `utm_medium`) counts under kind `campaign`, target `campaign|source|medium`
+(`campaignKey`; migration `*_site_stats_campaigns.sql`), listed and exported with the others. **Make a
+campaign link**, a button beside that table's heading opening a dialog (`src/admin/CampaignLink.tsx`; `campaignLink`
+in `src/lib/campaign-link.ts`; what was typed stays while the page is open), adds a campaign's name, source and optional medium to a page on the site (a path or the link picker; the
+home page when empty; other sites refused), lower case with hyphens for spaces and no `|` (`campaignPart`),
+on `SITE_URL` (else the request's address), replacing any utm values the address had and keeping its other
+query values and anchor; the names already counted are suggested, and the link is copied or opened. **The Stats
+cookie** (Settings > Stats, `settings.site.stats.cookies`): stats.js keeps a random id in `site_vid` (13
+months) and sends it; the visitor is kept under its hash (`cookieHash`, `site_stat_visitors.cookie`, kept
+as long as the counts; migration `*_site_stats_cookie.sql`), so Visitors counts each once over the range
+and the screen shows return visits (`cookieVisitors` in `stats_summary`). While a consent banner is on
+(see Popups) the cookie is set only after the visitor accepts; without one Settings warns. A
+day holds at most `STATS_DAY_ROWS` (5,000) rows, past which only rows it has are counted, so made-up
+addresses can't fill the table. Counts older than `STATS_KEEP_DAYS` (400) go hourly. Not synced or backed
+up. The screen's introduction says how visitors are counted: without cookies, or with the Stats cookie
+and whether a consent banner gates it (a warning when none does).
+
+## Popups and cookie consent
+
+Settings > Popups (admins; `settings.site.popups`, `src/lib/popups.ts`, `src/admin/PopupsSettings.tsx`):
+each popup shows a template part (made with it, edited in the visual editor; **Edit content**) as a dialog,
+a bar along the bottom or top, or a corner box; on load, after a delay, at a scroll depth or on exit
+intent; on every page, once a visit or once every N days (the browser's storage); on all pages, only some
+or all but some (`/path/`, `/prefix/*`; `popupsFor`). `renderRequest` prepares and renders the popups for
+the address with the page (`src/render/popups.ts`: `.c-popup`, `hidden`, settings in `data-popup`; not on
+previews) and `public/assets/js/popups.js` shows them (focus kept in a dialog, Escape and × close, links to
+`#close-popup`). One popup can be the **cookie consent banner** (`consent`, `consentPopup`): its content holds the
+Accept and Reject buttons, ordinary Button blocks linking to `#accept-cookies` and `#reject-cookies`, and the
+policy link (`CONSENT_STARTER`, edited like any content); a banner whose content has no Accept link gets
+Accept and Reject added, styled alike (`hasOwnConsentButtons`, `data-consent-choice`). It shows on every page until the visitor chooses (cookie
+`site_consent`: `all` or `necessary`, six months); links to `#cookie-settings` open it again, and
+`#accept-cookies` / `#reject-cookies` choose. Its × (`data-consent-choice="necessary"`) and Escape count as Reject
+(Escape on a banner that isn't a dialog only while focus is in it, so Escape elsewhere, such as closing a menu,
+never answers for the visitor); a click outside it doesn't close it. While it waits, no other popup shows. Accepting runs the
+code snippets kept for consent and fires `c-consent` (the Stats cookie starts); rejecting fires
+`c-consent-reject` (the Stats cookie is removed).
+
+## Code snippets
+
+Settings > Code snippets (admins; `settings.site.snippets`, `src/lib/snippets.ts`): markup put on every
+page as written (analytics, chat, verification tags): `head` at the end of `<head>`, `bodyStart` right
+after `<body>`, `footer` before `</body>` (`renderRequest`, after texturize, so it is never changed). Not on
+previews. Up to `SNIPPET_MAX` (20,000) characters each. A place ticked **Only after visitors accept
+cookies** (`snippets.consent`) is kept in a `<template data-consent-snippet>` that popups.js puts in place,
+its scripts run in order, once the visitor accepts in the consent banner (`snippetAt`). Synced with the other settings.
+
+## Email log
+
+Settings > Email log (admins; `settings.site.mail_log` { enabled, days }, `src/lib/mail-log.ts`, migration
+`*_mail_log.sql`): while it is on, `sendMail` (`src/lib/forms/mail.ts`) keeps each email the site sends in
+`mail_log`, sent, failed (with the error) or not sent (no mail set up): its kind (`Mail.kind`: form, ticket,
+account, admin, other), recipients, sender, reply-to, subject, how it went out and its HTML and text. An
+email marked `secret` (account emails: password links, invitations, address confirmations, `sendLink` in
+`src/lib/auth/mail.ts`) is kept without its body (`withheld`), so nobody reading the log can use its link.
+Mailing Lists' emails (`kind: 'mailing'`: subscription confirmations, campaigns, its notices to admins) are
+never kept. Logging never stops an email (`logMail` doesn't throw). Whether it is on is read at most once a
+minute per instance. The hourly run deletes entries past the days (default 30, up to 365), and all of them
+while the log is off (`pruneMailLog`). The log (`/admin/email-log/`, admins only, `readOnly(admins)` in the
+policies) lists them newest first, by kind and status, searchable by address or subject, 50 a page; one
+email shows its body in a sandboxed frame and its plain text. Not synced or backed up.
+
 ## Compose with Claude
 
 `/admin/compose/` and the Compose panel in the page editor (docked beside the canvas; pin keeps it
@@ -468,7 +586,10 @@ marked so in its row, so it is never claimed later; a job marked failed while it
 conversation or outcome.
 One turn at a time per conversation (409 otherwise) and two per person (429). Only the latest message
 carries its selected block's JSON, and a block over 60,000 characters is refused (400) rather than cut.
-Text materials count toward the budget of what is sent in full (`MATERIAL_BUDGET.text`).
+Text materials count toward the budget of what is sent in full (`MATERIAL_BUDGET.text`). A message takes
+up to 10 documents, 40 images and videos, 20 links and 20,000 characters (`MESSAGE_LIMITS`,
+`takeMaterials` in `src/lib/compose/limits.ts`); what is left out past them is named in a note in the
+conversation.
 
 ## How rendering works
 
@@ -528,7 +649,12 @@ a PDF without the sandbox (Chrome's viewer refuses a sandboxed one; nosniff keep
 OpenDocument files as downloads, everything else sandboxed. `media.filesize` (bytes) is kept for
 documents, videos and new images. The library shows documents with their type and size; their details
 panel previews a PDF and has title and caption (no alt text or focal points). Every file's details have
-**Copy link** (its full address). Links reach documents through the **File** block (`file`: the
+**Copy link** (its full address). A video's details show a player, its title and caption. The file
+choosers (`MediaPicker`, `src/puck/fields.tsx`: images, and videos with `only="video"`; the File block's)
+show the file with **Choose**/**Replace** and **Edit**, which opens it in the media library in a new tab
+(`/admin/media/?id=<id>`, `mediaLibraryUrl`; the id the setting keeps, else found from its `/media/`
+address). The **Video** block (`video`) picks its file (`src`, `mediaId`) and poster image (`poster`,
+`posterId`) from the library, or takes a video file's address. Links reach documents through the **File** block (`file`: the
 document's name, type and size and a Download button; or any address, the media library opening on
 documents, `MediaModal only="document"`) and the link picker.
 
@@ -742,38 +868,68 @@ one the newest 1,100 occurrences are kept. Saving an event rewrites the `start`/
 
 ## Tickets
 
-While Events is on, an event sells tickets or takes free registrations when it has ticket types (its
-settings, Tickets: `fields.tickets`, `src/puck/TicketsForm.tsx`; read with `ticketsOf`, whose `enabled`
-is derived from the types, `src/lib/tickets/config.ts`; there is no switch of its own):
+While Events is on, events sell tickets or take free registrations through **tickets**, records of their
+own: entries of the hidden `ticket` type (`TICKET_TYPE`, `src/lib/events/types.ts`; no page, not in the
+content lists) whose `fields.tickets` holds the setup (read with `ticketsOf`, whose `enabled` is derived
+from the ticket types, `src/lib/tickets/config.ts`). An event sells the ticket it is attached to
+(`fields.ticket`, `ticketOf`; `ticket` and `tickets` are reserved field keys), and any number of events can
+attach to one, all selling from its one pool, like a pass. The ticket holds the orders, waitlist, emails
+and attendee list (`ticket_orders.entry_id` and the others are the ticket's id). Tickets are made and set
+up under People > Tickets (`src/pages/admin/tickets/`): **New ticket** on the list, and on a ticket's page
+**Ticket types and settings** (`?view=setup`, the default for a ticket without types;
+`src/admin/TicketSetup.tsx` around `src/puck/TicketsForm.tsx`) with its name, the events attached
+(Attach, Detach) and Delete for one without orders. An event's settings pick its ticket, or make one under a name asked
+for there (`EventTicketPicker`, `src/puck/entry-fields.tsx`), saved at once. A new ticket's name is made unique
+(`freeTicketName`: "Christmas Stroll 2"). All of it through POST
+`/api/admin/ticket-setup` (`src/lib/tickets/setup.ts`: `createTicket`, `saveTicketSetup`, `attachEvent`,
+`deleteTicket`; attaching writes the event's fields and any changes kept aside, keeping `updated_at`), which
+clears the page cache. The entries API keeps the stored `ticket` whenever it writes an event's fields
+(`keepTickets`), so an editor's save, a publish of changes kept aside or a restored version never changes
+it; a duplicated event sells nothing until attached. Detaching leaves the ticket and its orders. Dates
+(`ticketSpan`, `src/lib/tickets/span.ts`): a ticket for one event takes its dates, and for one recurring
+event sells each date separately (`occurrence`); a ticket for several events is one pool for all their
+dates, from the first start (reminders) to the last end (sales close). Migration
+`*_tickets_own_records.sql` made a ticket of every event's own tickets (named after it) and attached the
+events that shared them. The setup:
 ticket types (name, description, price in cents, capacity, most per order, (an empty capacity is no
-limit; 0 is none left, sold out) sales window as local times
-in the event's timezone, hidden for past ones), the event's capacity (per date for a recurring event),
-most per order, phone (off, optional, required), address (off, for paid orders, always), the event's own
+limit; 0 is none left, sold out; both capacities are an **Unlimited** box, ticked unless a number is set, with the number shown once it is unticked, `CapacityField`; the type's row shows its count while it is closed, and a 0 is flagged) sales window as local times
+in the event's timezone, hidden for past ones), the ticket's capacity (per date for one recurring event),
+most per order, phone (off, optional, required), address (off, for paid orders, always), the ticket's own
 questions (asked once per order) and a waitlist (`off`, `auto`, `manual`). Settings > Tickets
 (`settings.site.tickets`, `ticketSettings`, `src/admin/TicketSettings.tsx`): the payment provider (Stripe
 or Square, offered only when both have keys (Settings > Connections or the environment), `providerStatus`; with one, it is used;
 with neither, only free tickets, and the payment settings are hidden), currency, how long an unpaid order holds its
 tickets (30-120 minutes), and the emails with the reminder's and follow-up's timing.
 
-- Rendering: `src/render/c/tickets.ts`. The Event details block shows the form below the content and a
-  Tickets box in its sidebar, unless the page has a `tickets` block for its event. The `tickets` block
-  goes on any page or template: it shows the event it names (`attrs.event`, and `attrs.date` for one
-  date of a recurring event, else its next; with the event's name and date over the form), else the
-  page's own event (`prepareTicketsBlock`); a page can have several. An event that doesn't sell tickets
-  (Tickets off, or no ticket types) shows nothing. In the editor the block shows the full form: with no
+- Rendering: `src/render/c/tickets.ts`. On an event's page, its ticket (`loadPageTicket`, `targetFor`:
+  the ticket, its attached events as the page's loader sees them, and the date). The Event details block
+  shows the form below the content and a Tickets box in its sidebar, unless the page has a `tickets` block
+  for its ticket. On an event's page
+  with neither block (a template with only a Page content block), the form goes under the Page content
+  block of its main area (`ticketsAfterContent`), so an event that sells tickets always shows them. The `tickets` block
+  goes on any page or template: it shows the ticket it names (`attrs.ticket`, picked in its settings,
+  `TicketsBlockPicker`; `attrs.date` for one date of a ticket for one recurring event, else its next; with
+  its event's name and date over the form, or for a ticket of several events its name and theirs, published
+  ones only), else the page's own event's (`prepareTicketsBlock`, `namedTicket`); a page can have several.
+  Blocks from before tickets were their own records name an event (`attrs.event`) and show its ticket
+  until a ticket is chosen. An event that doesn't sell
+  tickets (no ticket, or one without ticket types) shows nothing. In the editor the block shows the full form: with no
   event that sells tickets, sample ticket types and a note saying why, when the block is part of what is
   being edited (the page's own content, or a template being edited; a template's block on such an
   event's page shows nothing, as on the site). The form posts the page it is on (`page`): the order and a
   waitlist place keep it (`ticket_orders.page`, `ticket_waitlist.page`), and the buyer is sent back
-  there, to the section's anchor (`ticketsAt`: `#tickets` on the event's own page, else
-  `#tickets-<event id>`); emails' `{order_link}` goes there too (a waitlist's: the tickets where they
+  there, to the section's anchor (`ticketsAt`: `#tickets` on an attached event's own page, else
+  `#tickets-<ticket id>`); the form posts the ticket's id as `event`; emails' `{order_link}` goes there too (a waitlist's: the tickets where they
   joined). `prepareTickets` loads what's taken (`ticket_sold`) and, with `?order=<token>`, the buyer's
-  order (`ticket_order_status`; both read with the site's key), shown in its event's section.
-  `?tickets=<reason>&event=<id>` shows a checkout's outcome in that event's section.
+  order (`ticket_order_status`; both read with the site's key), shown in its ticket's section: a paid order's
+  confirmation takes the form's place, with **Order more tickets** linking to the form without the order, and
+  one being confirmed shows only its note; an expired, cancelled or refunded order keeps the form below.
+  `?tickets=<reason>&event=<ticket id>` shows a checkout's outcome in that ticket's section.
   Pages with either are never cached. `public/assets/js/tickets.js` adds the total, the address only
   for paid orders, and what's left now (`GET /api/tickets/availability`). Checkout, the waitlist and
-  availability load the event as its page does (`visibleTo` with the viewer, `siteViewer`), so
-  members-only events are only for those members.
+  availability load the ticket with its events as their pages do (`loadEvent`, `attachedEvents`: `visibleTo`
+  with the viewer, `siteViewer`; a ticket with no event the viewer may see is refused), so members-only
+  events are only for those members. Orders and emails call it after its one event, else by its name.
 - Orders (`ticket_orders`, editors read, the site writes with the service key; `src/lib/tickets/orders.ts`):
   `POST /api/tickets/checkout` checks the order and holds its tickets in `ticket_order_create`, which takes
   counts paid orders and unexpired holds against the capacities in the same statement that inserts the
@@ -797,11 +953,13 @@ tickets (30-120 minutes), and the emails with the reminder's and follow-up's tim
   not paid for in an hour per address (`ticket_orders.ip`, IPv6 as its /64) and per email, and unpaid
   held tickets (with free ones from the last hour) per address at twice the most per order; a refused
   order goes back with `?tickets=limit`.
-- Attendee list (`/admin/tickets/`, `/admin/tickets/<id>/[?date=]`; actions `POST /api/admin/tickets`,
-  `GET /api/admin/tickets/attendees.csv`): check-in, resend, cancel (unpaid, free or fully refunded),
+- Attendee list (`/admin/tickets/`, a ticket's page `/admin/tickets/<ticket id>/[?date=][&on=<event id>]`;
+  an event's id there leads to its ticket's; actions `POST /api/admin/tickets`,
+  `GET /api/admin/tickets/attendees.csv`, with the page each order was bought on): orders by the event they
+  were bought at (`on`, for a ticket of several events), check-in, resend, cancel (unpaid, free or fully refunded),
   refund (admins; part or all, at the provider; all of it frees the tickets), the waitlist with Notify.
   Its writes don't clear the page cache.
-- Waitlist (`ticket_waitlist`, one place per email per event and date; `POST /api/tickets/waitlist`):
+- Waitlist (`ticket_waitlist`, one place per email per ticket and date; `POST /api/tickets/waitlist`):
   joining again keeps the place as it is (name, phone, status and turn), only a place still waiting takes
   the new quantity and page, and the answer is the same either way:
   shown when every type on sale is sold out. `notifyWaitlist` emails people in order as far as the free
@@ -811,14 +969,14 @@ tickets (30-120 minutes), and the emails with the reminder's and follow-up's tim
   waitlist, and the admin's copy of each order (`notify`). Each is a subject, an email builder design
   and an optional plain text (`TicketEmail`), with ticket merge tags (`MERGE_TAGS`) and an Order details
   block (`ORDER_DETAILS`: the summary table, date, venue, code, tickets, total, answers, the buyer's
-  contact), and the Payment block (a paid order's payment; nothing for free orders). Sent: the event's own (table `ticket_emails`, its attendee list > Emails,
-  `src/admin/TicketEmails.tsx`; kept out of the event's fields so editor saves can't overwrite it), else
+  contact), and the Payment block (a paid order's payment; nothing for free orders). Sent: the ticket's own (table `ticket_emails`, its page > Emails,
+  `src/admin/TicketEmails.tsx`), else
   the site's, else the default template for that kind (`ticket:<kind>`, see Forms), else `DEFAULT_EMAILS` (`emailToSend`). `src/lib/tickets/email.ts` renders them with the
   forms' renderer (`renderEmail`); the builder's kit is `src/admin/ticket-email.ts`, its preview a sample
   order rendered in the browser. The Worker runs `sendDueTicketEmails` hourly (`src/worker.ts`,
   deployed site only): reminders, follow-ups, expired holds, auto waitlists. Links use `SITE_URL`, else
   the request's address.
-- Orders, waitlists and events' own emails aren't synced or backed up: they stay on the copy where they were made.
+- Orders, waitlists and tickets' own emails aren't synced or backed up: they stay on the copy where they were made. Tickets (the records) sync and back up as entries, with the events.
 
 ## Members
 
@@ -1107,14 +1265,18 @@ answer 404.
 ## Editor
 
 `/admin/` (a session, see Accounts; `profiles.role`: editor, admin, or viewer = no access). The admin bar's **?**
-opens the site guide for editors and admins (`docs-site/src/content/docs/guide/`, published with the
-docs; `helpUrl`, `src/lib/help.ts`; `HELP_URL` points it elsewhere, such as a site's own guide). Editors manage content,
+opens the Editor guide for editors and the Admin guide for admins (`docs-site/src/content/docs/editors/` and
+`admins/`, published with the docs at moonpuck.com; `helpUrl`, `src/lib/help.ts`; `HELP_URL` points it
+elsewhere, such as a site's own guide, and `ADMIN_HELP_URL` points admins' somewhere else again). Editors manage content,
 templates, media, forms and compose; site settings and users (`/admin/users/`: roles, invitations, Resend invitation for those invited who haven't set a password, signed in by a link or not, `src/lib/admin/invite.ts`; Delete, not your own account: the profile and any membership go, what they made stays with its author left empty) are
 for admins, as is the redirects API (`ADMIN_ONLY` in `src/middleware.ts`; settings writes are admin-only in the policies,
 `src/lib/db/policies.ts`; the users API checks the role itself too, since making accounts is the server's). Editors are trusted with the
 site's markup: the HTML block (and an Embed block's HTML) is put on the page as written, at the admin's
 own address, so a script in it runs as whoever views the page, an admin included. `src/puck/Editor.tsx` renders blocks through the same string renderer inside Puck
-(`BlockView.tsx` parses HTML to React; slots become the block's inner wrapper element). The left rail
+(`BlockView.tsx` parses HTML to React; slots become the block's inner wrapper element). Above the selected
+block's settings, a trail of buttons leads back to it (`src/puck/FieldsTrail.tsx`, the `fields` override;
+`ancestorsOf` in `src/lib/puck/trail.ts`): **Page** (the page's own settings), then every block it sits
+inside, in place of Puck's breadcrumbs, which show only the nearest parent. The left rail
 has Blocks (and Patterns), Outline and an accessibility check (`A11yPanel.tsx`). Problems a person has to judge
 (warnings, and text over an image, which is always a problem since its contrast can't be measured) can be
 marked as checked with a note; the marks live in the document's root props (`a11y`), save on their own as
@@ -1171,11 +1333,21 @@ The admin bar (`src/layouts/Admin.astro`, its items from `adminNav` in `src/lib/
 dropdown (each type shown, its list at `/admin/?type=<type>`, then Taxonomies, then Templates in a section
 of its own, `section`; the content list has no tabs of its own for the types), a **Compose** dropdown
 (each type with a page, at `/admin/compose/?type=<type>`; then Form and, while Mailing is on, Campaign;
-then Template, Template part and Pattern), Media, a **Forms** dropdown (Forms, Submissions) and a **People** dropdown (Users and Members
+then Template, Template part and Pattern), Media, Stats, a **Forms** dropdown (Forms, Submissions) and a **People** dropdown (Users and Members
 for admins, Mailing Lists and Tickets, each while its feature is on; a group of one shows as its link),
 then a gear for Settings (admins), **?**, View site and the account menu. Below 1024px it all sits behind
 one menu button, the groups as headings. The dropdowns are `details[data-menu]`: one open at a time, closed
 by a click elsewhere or Escape.
+
+**The admin's home** (`/admin/` with no list asked for: `src/pages/admin/index.astro` rewrites to
+`src/pages/admin/home.astro`; the content lists stay at `/admin/?type=<type>`): **What would you like to
+make?** with one box (`src/admin/ComposeHome.tsx`): a kind (each type with a page shown, then Form,
+Campaign while Mailing is on, Template, Template part, Pattern), a name for the kinds that take one, and the
+brief. A type opens Compose for a page (`/admin/compose/?type=`) with the brief kept as `new:<type>`
+(`keepStart`), which `Composer` sends at once, or only puts in its box (**Add documents, images or links
+first**, `send: false`); the other kinds are made as on Compose's start page (`make`) and open in their
+editors. Below it, the entries edited lately and Compose's latest page conversations. The admin bar's site
+name links here; no menu item is marked on it (`navActive`).
 
 **Compose's start page** (`/admin/compose/new/?kind=form|campaign|template|part|pattern`,
 `src/admin/ComposeStart.tsx`), laid out as Compose for a page with the latest of the kind beside it: a
@@ -1188,13 +1360,16 @@ builder's and campaign editor's Compose dialogs, or the editor's panel, whose co
 
 **Settings** (admins; `src/puck/SiteSettings.tsx`, page `src/pages/admin/settings/[...section].astro`): a side
 menu of sections in groups (`SETTINGS_GROUPS`, `src/lib/admin/settings-sections.ts`): Site (General, Menu,
-Social, Search, Types, the site's own options), Features (Events, Tickets, Members, Mailing Lists, Shop,
-marked On or Off), Services (Connections), Admin (Accessibility, Appearance) and Upkeep (Redirects, Sync,
+Social, Search, Types, the site's own options, Popups, Stats, Code snippets), Features (Events, Tickets, Members, Mailing Lists, Shop,
+marked On or Off), Services (Connections), Admin (Accessibility, Appearance) and Upkeep (Redirects, Email log, Sync,
 Backups); a Section dropdown on phones. Each section has its own address, `/admin/settings/<section>/`
 (General `/admin/settings/`; `sectionOf`, `settingsPath`); the screen moves between them in place, so
 unsaved changes carry over, and an old `#<section>` link (and `admin`, now `appearance`) forwards to it.
 One **Save settings**, beside the section's title while there are unsaved changes, saves every section's
 form; Connections, Redirects, Sync and Backups save as they go (`SAVES_AS_IT_GOES`).
+
+Every admin page (`src/layouts/AdminTheme.astro`) stops the scroll wheel changing a focused number field, which
+would otherwise set it (from empty, to its minimum) as the page scrolls.
 
 Admin colors and logo (Settings > Appearance, `settings.site.admin_theme`, `src/lib/admin-theme.ts`): accent,
 text, menu bar and background, and a logo for the menu bar in place of the site name (or beside it,
@@ -1322,7 +1497,7 @@ only add; one that switches block types or settings goes out with `npm run deplo
 - Bindings: `DB` (D1), `BUCKET` (R2), `IMAGES` (Cloudflare Images), `JOBS` (a queue: Compose turns, campaign
   sending runs and restores, each run once with up to 15 minutes, `src/lib/jobs.ts`),
   `CF_VERSION_METADATA` (the page cache's validators). The Cron Triggers: mailing every 5 minutes and at
-  06:20 UTC, snapshots at 07:00 UTC, ticket emails hourly (`SCHEDULES`).
+  06:20 UTC, snapshots at 07:00 UTC, ticket emails and the statistics' and email log's pruning hourly (`SCHEDULES`).
 - Variables and secrets reach the code as `process.env` (`nodejs_compat`); secrets are set with
   `npx wrangler secret put`. Code reads them with `env()` (`src/lib/env.ts`), which reads `.env` through
   `import.meta.env` under `astro dev` only: a build would write the build machine's `.env` values into
@@ -1461,6 +1636,8 @@ a content migration or a SQL migration (`db/migrations/`) that edits the JSON. C
 ## Checking changes
 
 - `npm run check` and `npm test` pass; a fix comes with a test that fails without it.
+- The docs match the change, in the same commit: this file for what the code does, and the Editor and
+  Admin guides (`docs-site/src/content/docs/editors/`, `admins/`) for what editors and admins see.
 - Render the affected pages before and after and diff the HTML for unintended changes (ignore
   cache-busting `?v=` values and shuffled collections); look at screenshots (desktop and phone) of
   intended ones. Lazy-loaded images need the page scrolled before a full-page screenshot.

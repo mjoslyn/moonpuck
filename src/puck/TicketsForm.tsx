@@ -1,6 +1,7 @@
-// An event's tickets, in its settings (fields.tickets; src/lib/tickets/config.ts): on or off, the
-// ticket types with prices, capacities and sales windows, what buyers are asked (phone, address, the
-// event's own questions) and the waitlist. Its emails are on its attendee list (Emails).
+// A ticket's setup (fields.tickets of a ticket record; src/lib/tickets/config.ts), edited on its page in the
+// Tickets admin (src/admin/TicketSetup.tsx): the ticket types with prices, capacities and sales windows,
+// what buyers are asked (phone, address, the ticket's own questions) and the waitlist. Its emails are on the
+// same page (Emails).
 import { useEffect, useRef, useState } from 'react';
 import { Num, Row, Select, Text, Toggle, inputClass } from './fields';
 import { TICKETS_KEY, newId, parsePrice, type EventTickets, type TicketQuestion, type TicketType } from '../lib/tickets/config';
@@ -11,6 +12,37 @@ import { useMemberSettings } from './member-settings';
 const small = 'rounded-sm border border-admin-ink/20 px-2 py-1 text-xs font-semibold hover:border-admin-ink/50';
 
 /** A price typed as dollars and cents, kept as cents. */
+/**
+ * A capacity: Unlimited (null), ticked unless a number is set, or a count shown only once it is unticked
+ * (0: none left, sold out). Unticked with the box left empty, it is still stored as unlimited.
+ */
+function CapacityField({ title, value, onChange, soldOut }: { title: string; value: number | null | undefined; onChange: (v: number | null) => void; soldOut: string }) {
+  const [limited, setLimited] = useState(value != null);
+  useEffect(() => {
+    if (value != null) setLimited(true);
+  }, [value]);
+  return (
+    <div className="mb-3">
+      <span className="mb-1 block text-xs font-medium text-admin-muted">{title}</span>
+      <Toggle
+        title="Unlimited"
+        value={!limited}
+        onChange={(unlimited) => {
+          setLimited(!unlimited);
+          if (unlimited) onChange(null);
+        }}
+      />
+      {limited && (
+        <>
+          <Num title="Number available" value={value ?? undefined} min={0} onChange={(v) => onChange(v ?? null)} />
+          {value == null && <p className="-mt-2 mb-3 text-xs text-admin-muted">Enter how many. Left empty, it stays unlimited.</p>}
+          {value === 0 && <p className="-mt-2 mb-3 text-xs text-[#b45309]">0: {soldOut}</p>}
+        </>
+      )}
+    </div>
+  );
+}
+
 export function PriceInput({ value, onChange, title = 'Price (empty or 0: free)', optional }: { value: number | undefined; onChange: (cents: number | undefined) => void; title?: string; optional?: boolean }) {
   const [text, setText] = useState(value ? (value / 100).toFixed(2) : optional && value === 0 ? '0.00' : '');
   const bad = text.trim() !== '' && parsePrice(text) == null;
@@ -118,30 +150,22 @@ function MemberPricing({ type, levels, onChange }: { type: TicketType; levels: M
   );
 }
 
-export function TicketsForm({ fields, onChange }: { fields: Record<string, any>; onChange: (fields: Record<string, any>) => void }) {
+export function TicketsForm({ ticketId, fields, onChange }: { ticketId: number; fields: Record<string, any>; onChange: (fields: Record<string, any>) => void }) {
   const members = useMemberSettings();
   const t: EventTickets = { types: [], ...(fields[TICKETS_KEY] ?? {}) };
-  // `enabled` isn't stored any more: an event sells tickets while it has ticket types.
+  // `enabled` isn't stored: a ticket sells while it has ticket types.
   const { enabled: _enabled, ...stored } = t;
   const set = (patch: Partial<EventTickets>) => onChange({ ...fields, [TICKETS_KEY]: { ...stored, ...patch } });
-  // The attendee list, for an event that has been saved (/admin/edit/<id>/).
-  const [entryId, setEntryId] = useState<string | null>(null);
-  useEffect(() => setEntryId(location.pathname.match(/\/admin\/edit\/(\d+)/)?.[1] ?? null), []);
 
   return (
     <>
-      {/* The event sells tickets (or takes registrations) while it has ticket types. */}
+      {/* The ticket sells (or takes registrations) while it has ticket types. */}
       {!t.types.length && <p className="mb-2 text-xs text-admin-muted">Add a ticket type to sell tickets or take registrations (a price of 0 is free).</p>}
-      {entryId && t.types.length > 0 && (
-        <p className="mb-3 text-xs">
-          <a className="text-admin-accent underline" href={`/admin/tickets/${entryId}/`} target="_blank" rel="noopener">Attendee list and orders</a>
-        </p>
-      )}
       {t.types.length > 0 && <Text title="Heading" value={t.heading} placeholder="Tickets" onChange={(heading) => set({ heading: heading || undefined })} />}
       {t.types.length > 0 && <span className="mb-1 block text-xs font-medium text-admin-muted">Ticket types</span>}
       <List<TicketType>
         items={t.types}
-        label={(x) => `${x.name || 'Ticket'}${x.hidden ? ' (not offered)' : ''}`}
+        label={(x) => `${x.name || 'Ticket'}${x.hidden ? ' (not offered)' : x.capacity === 0 ? ' (0 available: sold out)' : x.capacity != null ? ` (${x.capacity} available)` : ''}`}
         onChange={(types) => set({ types })}
         render={(x, setType) => (
           <>
@@ -151,7 +175,7 @@ export function TicketsForm({ fields, onChange }: { fields: Record<string, any>;
             </Row>
             <PriceInput value={x.price} onChange={(price) => setType({ price: price ?? 0 })} />
             {members?.enabled && members.levels.length > 0 && <MemberPricing type={x} levels={members.levels} onChange={setType} />}
-            <Num title="How many (empty: no limit of its own; 0: sold out)" value={x.capacity ?? undefined} min={0} onChange={(capacity) => setType({ capacity: capacity ?? null })} />
+            <CapacityField title="How many of this type" value={x.capacity} soldOut="none left, so this ticket type shows as sold out." onChange={(capacity) => setType({ capacity })} />
             <Num title="Most in one order" value={x.maxPerOrder ?? undefined} min={1} onChange={(maxPerOrder) => setType({ maxPerOrder: maxPerOrder ?? null })} />
             <DateTime title="On sale from (empty: now)" value={x.salesStart} onChange={(salesStart) => setType({ salesStart })} />
             <DateTime title="On sale until (empty: until the event ends)" value={x.salesEnd} onChange={(salesEnd) => setType({ salesEnd })} />
@@ -164,8 +188,8 @@ export function TicketsForm({ fields, onChange }: { fields: Record<string, any>;
       </button>
       {t.types.length > 0 && (
         <>
-          <p className="-mt-1 mb-3 text-xs text-admin-muted">Times are in the event's timezone. A recurring event sells tickets for each date separately.</p>
-          <Num title="Capacity: tickets of all types together (empty: no limit; 0: sold out)" value={t.capacity ?? undefined} min={0} onChange={(capacity) => set({ capacity: capacity ?? null })} />
+          <p className="-mt-1 mb-3 text-xs text-admin-muted">Times are in the event's timezone. A ticket for one recurring event sells each date separately; a ticket for several events is one pool for all of them.</p>
+          <CapacityField title="Capacity: tickets of all types together" value={t.capacity} soldOut="none left, so every ticket type shows as sold out." onChange={(capacity) => set({ capacity })} />
           <Num title="Most tickets in one order (default 10)" value={t.maxPerOrder ?? undefined} min={1} onChange={(maxPerOrder) => set({ maxPerOrder: maxPerOrder ?? null })} />
           <Select title="Waitlist when sold out" value={t.waitlist} options={[['off', 'Off'], ['auto', 'On: email people as tickets free up'], ['manual', 'On: notify people from the attendee list']]} onChange={(v) => set({ waitlist: (v as EventTickets['waitlist']) ?? 'off' })} />
 
@@ -199,13 +223,9 @@ export function TicketsForm({ fields, onChange }: { fields: Record<string, any>;
           <span className="mt-4 mb-1 block text-xs font-semibold tracking-wider text-admin-muted uppercase">Emails</span>
           <p className="mb-3 text-xs text-admin-muted">
             Buyers get the emails designed under Settings &gt; Tickets.{' '}
-            {entryId ? (
-              <a className="text-admin-accent underline" href={`/admin/tickets/${entryId}/?view=emails`} target="_blank" rel="noopener">
-                Give this event its own
-              </a>
-            ) : (
-              'Save the event to give it its own.'
-            )}
+            <a className="text-admin-accent underline" href={`/admin/tickets/${ticketId}/?view=emails`}>
+              Give this ticket its own
+            </a>
           </p>
         </>
       )}

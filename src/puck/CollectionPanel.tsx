@@ -9,12 +9,11 @@ import { featuresOf, showsType } from '../lib/features';
 import { Group, Space, StyleControls } from './panels';
 import { browserClient } from '../lib/db/browser';
 import { CARD_PRESETS } from '../lib/content/card-presets';
-import { LISTABLE_TYPES, taxonomiesOf, taxonomyLabel, typeDef } from '../lib/site';
+import { LISTABLE_TYPES, featuredOn, taxonomiesOf, taxonomyLabel, typeDef } from '../lib/site';
 
 type SetFn = (patch: Attrs) => void;
 
-const TYPES: [string, string][] = [...LISTABLE_TYPES, 'page'].map((t) => [t, typeDef(t)?.label ?? t]);
-const PICKABLE = TYPES.map(([t]) => t);
+const typeChoices = (): [string, string][] => [...LISTABLE_TYPES, 'page'].map((t) => [t, typeDef(t)?.label ?? t]);
 
 const ORDERS: [string, string, Attrs][] = [
   ['newest', 'Newest first', { orderBy: 'date', order: 'desc' }],
@@ -115,12 +114,12 @@ export function CollectionPanel({ a, set }: { a: Attrs; set: SetFn }) {
           }}
         />
         {source === 'page' && <Hint>Lists what the page is showing: an archive, a category or tag, or search results.</Hint>}
-        {source === 'picked' && <EntriesField title="Entries, in order" types={PICKABLE.filter(shown)} value={q.include} onChange={(ids) => setQ({ include: ids })} />}
+        {source === 'picked' && <EntriesField title="Entries, in order" types={typeChoices().map(([t]) => t).filter(shown)} value={q.include} onChange={(ids) => setQ({ include: ids })} />}
         {source === 'latest' && (
           <>
             <Field title="Content types">
               <div className="flex flex-wrap gap-x-3 gap-y-1">
-                {TYPES.filter(([t]) => shown(t)).map(([t, l]) => (
+                {typeChoices().filter(([t]) => shown(t)).map(([t, l]) => (
                   <label key={t} className="flex items-center gap-1.5 text-sm">
                     <input
                       type="checkbox"
@@ -140,6 +139,7 @@ export function CollectionPanel({ a, set }: { a: Attrs; set: SetFn }) {
             ))}
             <TermPicker title="Tagged with (any of)" taxonomies={['tag']} value={tax.tag ?? []} onChange={(ids) => setTax('tag', ids)} />
             {types.length === 1 && types[0] === 'event' && <Toggle title="Upcoming events only (soonest first)" value={q.upcoming} onChange={(v) => setQ({ upcoming: v || undefined })} />}
+            {(q.featuredOnly || types.some(featuredOn)) && <Toggle title="Featured only" value={q.featuredOnly} onChange={(v) => setQ({ featuredOnly: v || undefined })} />}
             <Select title="Order" value={orderKey(q)} options={ORDERS.map(([k, l]) => [k, l])} onChange={(v) => setQ({ ...(ORDERS.find(([k]) => k === (v ?? 'newest'))![2]) })} />
             <div className="grid grid-cols-2 gap-2">
               <Text title="How many" value={q.perPage} placeholder="10" onChange={(v) => setQ({ perPage: Number(v) || undefined })} />

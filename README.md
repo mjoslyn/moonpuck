@@ -1,4 +1,4 @@
-# cfpuck-cms
+# moonpuck
 
 A CMS for small business and organisation sites: Astro rendering on a
 Cloudflare Worker, content in D1 and files in R2, the Puck visual editor, and Compose, which writes pages with Claude from
@@ -7,8 +7,8 @@ the documents, images and links an editor adds.
 The core is everything outside `src/site/`. `src/site/` is an example site called Example Town, with
 its own content types, taxonomies, card designs, colors and theme. A real site is a copy of this
 repository that replaces `src/site/` and keeps this one as its `upstream`. `CORE.md` documents the
-code; `docs-site/` is the same documentation as a site, published to
-https://mjoslyn.github.io/cfpuck-cms/.
+code; `docs-site/` is the project's website, https://moonpuck.com/: its home page and the same
+documentation as a site.
 
 What you get:
 
@@ -44,7 +44,7 @@ Wrangler (Cloudflare's CLI) is a dev dependency, so `npx wrangler` needs no inst
 1. **Install**
 
    ```
-   git clone https://github.com/mjoslyn/cfpuck-cms.git my-site
+   git clone https://github.com/mjoslyn/moonpuck.git my-site
    cd my-site
    npm install
    ```

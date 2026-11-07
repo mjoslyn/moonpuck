@@ -57,6 +57,8 @@ export interface ContentType {
   card?: string;
   /** Default order when listing or searching this type: newest first ("date", default) or by name ("title"). */
   order?: 'date' | 'title';
+  /** Made by an admin (Settings > Types), not the site's code. */
+  made?: boolean;
 }
 
 export interface Taxonomy {
@@ -72,6 +74,10 @@ export interface Taxonomy {
   /** Its terms' own fields (stored in terms.fields under `key`), edited in each term's details and shown
    *  by the Field block on term pages. `template`, `image` and `seo` are reserved. */
   fields?: FieldDef[];
+  /** Its terms in a flat list, like tags, rather than nested (tags always are). */
+  flat?: boolean;
+  /** Made by an admin (Content > Taxonomies), not the site's code. */
+  made?: boolean;
 }
 
 /** Compose's house style: the colors its sections use, as CSS values. Each defaults to a role token. */

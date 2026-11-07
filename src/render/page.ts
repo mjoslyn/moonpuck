@@ -1,6 +1,9 @@
 // Request -> full HTML document:
 // resolve the queried object, pick a template via the template hierarchy, render blocks,
 // then texturize the result (get_the_block_template_html) and wrap it in the page shell.
+import { snippetAt, type CodeSnippets } from '../lib/snippets';
+import { consentPopup, popupsFor, type Popup } from '../lib/popups';
+import { popupItem, renderPopup } from './popups';
 import { VENDOR_CSS } from './vendor';
 import type { Db } from '../lib/db/query';
 import { Loader } from '../lib/data';
@@ -57,7 +60,7 @@ async function guess404(url: URL, loader: Loader): Promise<string | null> {
   const settings = await loader.settings();
   // Types with pages to go to: a feature's have none while it is off (Settings > Events, Settings > Shop).
   const off = offTypes(featuresOf(settings.site));
-  const types = (typed ? [typed] : [...ROOT_TYPES, ...Object.keys(TYPE_BASES)]).filter((t) => !PAGELESS_TYPES.has(t) && !off.includes(t));
+  const types = (typed ? [typed] : [...rootTypes(), ...Object.keys(TYPE_BASES)]).filter((t) => !PAGELESS_TYPES.has(t) && !off.includes(t));
   if (!types.length) return null;
   const { data } = await loader.db
     .from('entries')
@@ -73,12 +76,13 @@ async function guess404(url: URL, loader: Loader): Promise<string | null> {
 }
 
 /** Listing pages by path ("/directory/" -> member). */
-const ARCHIVES: Record<string, string> = Object.fromEntries(Object.entries(ARCHIVE_PATHS).map(([type, path]) => [path, type]));
-const BASE_TYPES = Object.fromEntries(Object.entries(TYPE_BASES).map(([type, base]) => [base, type]));
+// Read at the time of use (admins add types and taxonomies: applyTypeSettings).
+const archives = (): Record<string, string> => Object.fromEntries(Object.entries(ARCHIVE_PATHS).map(([type, path]) => [path, type]));
+const baseTypes = (): Record<string, string> => Object.fromEntries(Object.entries(TYPE_BASES).map(([type, base]) => [base, type]));
 /** Types served at the site root (/<slug>/): public types without a URL base, pages first. */
-const ROOT_TYPES = site.types.filter((t) => !t.base && !PAGELESS_TYPES.has(t.type)).map((t) => t.type);
+const rootTypes = () => site.types.filter((t) => !t.base && !PAGELESS_TYPES.has(t.type)).map((t) => t.type);
 /** Term pages, longest base first ("directory/category" before "category"). */
-const TAXONOMY_ROUTES = Object.entries(TAXONOMY_BASES)
+const taxonomyRoutes = () => Object.entries(TAXONOMY_BASES)
   .map(([taxonomy, b]) => ({ taxonomy, base: b.split('/').filter(Boolean) }))
   .sort((a, b) => b.base.length - a.base.length);
 const EVENTS_BASE = (ARCHIVE_PATHS.event ?? '/events/').split('/').filter(Boolean)[0];
@@ -108,7 +112,7 @@ export async function resolve(url: URL, loader: Loader): Promise<Queried> {
   // Search results: /search/?q=<terms>.
   if (parts.length === 1 && parts[0] === 'search') return { ...base, kind: 'search', search: (url.searchParams.get('q') ?? '').trim().slice(0, 200) };
   // Listing pages that are on (Settings > Types); a page may take the address of one that is off.
-  const archive = ARCHIVES[`/${parts.join('/')}/`];
+  const archive = archives()[`/${parts.join('/')}/`];
   if (archive && listingOn(settings.site, archive) && !off.includes(archive)) return { ...base, kind: 'archive', postType: archive };
   // Calendar views: /events/past/, /events/month/[Y-m/], /events/today/, /events/day/Y-m-d/.
   if (parts[0] === EVENTS_BASE && ['past', 'month', 'today', 'day'].includes(parts[1]) && listingOn(settings.site, 'event') && events) {
@@ -116,16 +120,16 @@ export async function resolve(url: URL, loader: Loader): Promise<Queried> {
   }
   // Term pages (/directory/category/<slug>/, /tag/<slug>/...): the entries with the term.
   // A taxonomy whose pages are off: its addresses are treated like any other (a page there, or Not found).
-  const route = TAXONOMY_ROUTES.find((r) => parts.length === r.base.length + 1 && r.base.every((seg, i) => parts[i] === seg) && termPagesOn(settings.site, r.taxonomy) && !off.includes(termPageType(r.taxonomy)));
+  const route = taxonomyRoutes().find((r) => parts.length === r.base.length + 1 && r.base.every((seg, i) => parts[i] === seg) && termPagesOn(settings.site, r.taxonomy) && !off.includes(termPageType(r.taxonomy)));
   if (route) {
     const term = await loader.termBySlug(route.taxonomy, parts[parts.length - 1]);
     return term ? { ...base, kind: 'taxonomy', term, postType: termPageType(route.taxonomy) } : base;
   }
   // Records (venues) have no page of their own: their URLs serve the front page.
   if (parts.length <= 2 && [...RECORD_TYPES].some((t) => TYPE_BASES[t] === parts[0])) return resolve(new URL('/', url), loader).then((q) => ({ ...q, url }));
-  if (off.includes(BASE_TYPES[parts[0]])) return base;
-  if (parts.length === 2 && BASE_TYPES[parts[0]]) {
-    const entry = (await loader.entry(BASE_TYPES[parts[0]], parts[1])) ?? (await loader.lockedEntry([BASE_TYPES[parts[0]]], parts[1]));
+  if (off.includes(baseTypes()[parts[0]])) return base;
+  if (parts.length === 2 && baseTypes()[parts[0]]) {
+    const entry = (await loader.entry(baseTypes()[parts[0]], parts[1])) ?? (await loader.lockedEntry([baseTypes()[parts[0]]], parts[1]));
     // A recurring series has no page of its own; send visitors to the next occurrence.
     const occurrences = entry && recurrenceOf(entry) ? expandEntry(entry, defaultHorizon(loader.now)) : null;
     if (occurrences?.length) {
@@ -147,7 +151,7 @@ export async function resolve(url: URL, loader: Loader): Promise<Queried> {
     return { ...base, kind: 'singular', entry: occ };
   }
   const slug = parts[parts.length - 1];
-  const entry = (await loader.entry(ROOT_TYPES, slug)) ?? (await loader.lockedEntry(ROOT_TYPES, slug));
+  const entry = (await loader.entry(rootTypes(), slug)) ?? (await loader.lockedEntry(rootTypes(), slug));
   if (entry) return { ...base, kind: 'singular', entry };
   // The members' account page, unless a page has its address.
   if (`/${parts.join('/')}/` === ACCOUNT_PATH && memberSettings(settings.site).enabled) return { ...base, kind: 'singular', entry: accountPage() };
@@ -325,6 +329,9 @@ export async function renderRequest(url: URL, db: Db, form?: FormResult, preview
     }
   }
   await prepare(template ?? [], ctx);
+  // Popups shown here (Settings > Popups; the consent banner on every page), prepared with the page.
+  const popups: Popup[] = preview ? [] : [...new Set([consentPopup(settings.site?.popups), ...popupsFor(settings.site?.popups, url.pathname)].filter((p): p is Popup => !!p))];
+  if (popups.length) await prepare(popups.map(popupItem), ctx);
   // A list (or a picked entry) left out members-only entries: a member's view of the page differs (while
   // Members is off nobody is one, and the page stays shared).
   if (loader.hidMembersOnly && memberSettings(settings.site).enabled) ctx.personal = true;
@@ -335,10 +342,14 @@ export async function renderRequest(url: URL, db: Db, form?: FormResult, preview
   }
 
   // Block themes run the main loop on singular requests, which drives image loading attributes.
-  const body = await modernizeImages(optimizeImages(texturize(renderItems(template ?? [], { ctx, post: queried.entry ?? null, query: null, parentLayout: null })), queried.kind === 'singular'), db);
+  const env = { ctx, post: queried.entry ?? null, query: null, parentLayout: null };
+  const popupHtml = popups.map((p) => renderPopup(p, env)).join('');
+  const body = await modernizeImages(optimizeImages(texturize(renderItems(template ?? [], env) + popupHtml), queried.kind === 'singular'), db);
   const css = [...new Set(ctx.css)].join('');
   const pre = vendorCss(ctx).map((b) => `<link rel="stylesheet" id="${b}-css" href="${VENDOR_CSS[b]}" media="all" />\n`).join('');
   const site = settings.site ?? {};
+  // Settings > Code snippets (src/lib/snippets.ts), as written; not on previews.
+  const snippets: CodeSnippets = preview ? {} : (site.snippets ?? {});
   const icons = site.icons ?? {};
 
   // Footer scripts: those the blocks added, arranged (and added to) by the site; then the editor bar
@@ -348,6 +359,13 @@ export async function renderRequest(url: URL, db: Db, form?: FormResult, preview
   if (body.includes('c-search-form') || body.includes('data-live-search')) scripts.push('<script src="/assets/js/search.js" defer></script>');
   // A visit from a tracked email link reports the visitor's first interaction (Mailing on).
   if (mailingOn(site) && !preview) scripts.push('<script src="/assets/js/mail-seen.js" defer></script>');
+  // Site statistics: the page's view and the links followed from it (src/lib/stats.ts); not on previews
+  // or pages not found.
+  // Popups, and snippets that wait for consent (src/lib/popups.ts).
+  if (popupHtml || Object.values(snippets.consent ?? {}).some(Boolean)) scripts.push('<script src="/assets/js/popups.js" defer></script>');
+  const stats = (settings.site?.stats ?? {}) as { cookies?: boolean };
+  const banner = !!consentPopup(settings.site?.popups);
+  if (!preview && queried.kind !== '404' && !queried.notFound) scripts.push(`<script src="/assets/js/stats.js"${stats.cookies ? ' data-cookie="1"' : ''}${banner ? ' data-consent="1"' : ''} defer></script>`);
 
   // A calendar view names itself ("Events for October 2026"), unless its listing has a search title of its own.
   const title = ctx.data.get('calendar') && !ownTitle(queried, site) ? `${esc((ctx.data.get('calendar') as { title: string }).title)} &#8211; ${site.name ?? ''}` : documentTitle(queried, site);
@@ -362,13 +380,13 @@ ${meta}${pre}<style id='core-block-supports-inline-css'>
 ${css}
 </style>
 ${(ctx.headScripts ?? []).map((s) => `${s}\n`).join('')}<link rel='stylesheet' id='site-css' href='${siteCss}' media='all' />
-${SITE_RENDER.head ? `${SITE_RENDER.head(ctx)}\n` : ''}${icons['32'] ? `<link rel="icon" href="${icons['32']}" sizes="32x32" />\n` : ''}${icons['192'] ? `<link rel="icon" href="${icons['192']}" sizes="192x192" />\n` : ''}${icons['180'] ? `<link rel="apple-touch-icon" href="${icons['180']}" />\n` : ''}</head>
+${SITE_RENDER.head ? `${SITE_RENDER.head(ctx)}\n` : ''}${icons['32'] ? `<link rel="icon" href="${icons['32']}" sizes="32x32" />\n` : ''}${icons['192'] ? `<link rel="icon" href="${icons['192']}" sizes="192x192" />\n` : ''}${icons['180'] ? `<link rel="apple-touch-icon" href="${icons['180']}" />\n` : ''}${snippetAt(snippets, 'head')}</head>
 
 <body class="${bodyClasses(queried)}"${editTargets(queried, templateSlug, !!preview)}>
-<a class="c-skip-link c-sr-only" href="#content">Skip to content</a>
+${snippetAt(snippets, 'bodyStart')}<a class="c-skip-link c-sr-only" href="#content">Skip to content</a>
 <div class="c-page">${body.replace(/<main(?![^>]*\sid=)/, '<main id="content"')}</div>
 ${scripts.join('\n')}
-</body>
+${snippetAt(snippets, 'footer')}</body>
 </html>
 `;
   return { status: queried.kind === '404' || queried.notFound ? 404 : 200, html, personal: !!ctx.personal, locked: !!queried.entry?.locked };

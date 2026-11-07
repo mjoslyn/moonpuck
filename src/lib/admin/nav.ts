@@ -51,18 +51,21 @@ export function adminNav(o: { isAdmin: boolean; ticketsOn: boolean; mailOn: bool
       ],
     },
     { href: '/admin/media/', label: 'Media' },
+    { href: '/admin/stats/', label: 'Stats' },
     // A group of one is just its link.
     ...groups.filter((g) => g.items.length).map((g) => (g.items.length === 1 ? g.items[0] : g)),
   ];
 }
 
 /** Whether the screen at `url` is the link's: a link with a query matches its address and query (a type
- * `page` when none is named, as the content list and Compose take it). */
+ * `page` when none is named, as Compose takes it; the content list is the home without one). */
 export function navActive(n: NavItem, url: URL): boolean {
   const path = url.pathname;
   if (isGroup(n)) return n.items.some((i) => navActive(i, url)) || !!n.also?.some((p) => path.startsWith(p));
   const href = new URL(n.href, url);
   if (!href.search) return path.startsWith(href.pathname);
+  // The admin's home (/admin/ with no list asked for) is none of the content list's links.
+  if (path === '/admin/' && !url.searchParams.has('type')) return false;
   const value = (k: string, v: string | null) => (k === 'type' ? (v === 'tags' ? 'terms' : v || 'page') : v);
   return path === href.pathname && [...href.searchParams].every(([k, v]) => value(k, url.searchParams.get(k)) === value(k, v));
 }

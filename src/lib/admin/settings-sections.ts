@@ -16,6 +16,9 @@ export const SETTINGS_GROUPS: { label: string; sections: SettingsSection[] }[] =
       { id: 'search', label: 'Search' },
       { id: 'types', label: 'Types' },
       { id: 'site', label: 'Site options' },
+      { id: 'popups', label: 'Popups' },
+      { id: 'stats', label: 'Stats' },
+      { id: 'code', label: 'Code snippets' },
     ],
   },
   {
@@ -40,6 +43,7 @@ export const SETTINGS_GROUPS: { label: string; sections: SettingsSection[] }[] =
     label: 'Upkeep',
     sections: [
       { id: 'redirects', label: 'Redirects' },
+      { id: 'email-log', label: 'Email log' },
       { id: 'sync', label: 'Sync' },
       { id: 'backups', label: 'Backups' },
     ],

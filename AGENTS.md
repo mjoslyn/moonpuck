@@ -2,7 +2,7 @@
 
 # Working on the core
 
-This repository is cfpuck-cms: the CMS (everything outside `src/site/`) and an example site in
+This repository is moonpuck: the CMS (everything outside `src/site/`) and an example site in
 `src/site/` (Example Town). Real sites are forks with this repository as their `upstream` remote, kept
 beside it (`../<site>`).
 `CORE.md`, imported above, is the reference for how the core works, and every site's `AGENTS.md` imports
@@ -10,18 +10,28 @@ it too. This file is about working here.
 
 ## Keep the docs current
 
-Update the docs in the same commit as the change, not afterwards:
+Update the docs in the same commit as the change, not afterwards. A change isn't done until the docs
+match it: anything an editor or admin meets (a screen, label, message, setting, limit or behaviour) is
+checked against the Editor and Admin guides, and anything in the code against `CORE.md`. Removed or
+renamed things come out of the docs too.
 
 - `CORE.md`: what the core does and where (features, data, APIs, blocks, settings, rules). Sites read
   it, so describe the core, never a particular site.
 - `AGENTS.md` (this file): how to work on the core, its checklists and open work.
 - `README.md`: setting up a new site and taking core updates.
-- `docs-site/`: the documentation site (Starlight, published to GitHub Pages by
-  `.github/workflows/docs.yml` when it changes on `main`). Preview with `cd docs-site && npm install && npx astro dev`.
-- `docs-site/src/content/docs/guide/`: the site guide for editors and admins (a low-tech audience; the
-  admin bar's **?** links to it). Change it when a screen they use changes: plain words, the labels as
-  they appear on screen, steps. Its screenshots (`docs-site/src/assets/guide/`) are taken from the
-  example site at 1280 by 800 with Playwright, with Astro's dev toolbar hidden.
+- `docs-site/`: https://moonpuck.com, the home page (`src/pages/index.astro`) and the documentation
+  (Starlight), styled by `src/styles/moonpuck.css`. A Cloudflare Worker serves the built files
+  (`docs-site/wrangler.jsonc`); Workers Builds deploys it when `main` changes. Preview with
+  `cd docs-site && npm install && npx astro dev`.
+- `docs-site/src/content/docs/editors/` and `admins/`: the Editor guide and the Admin guide (a low-tech
+  audience; the admin bar's **?** links editors to the first and admins to the second; each has its own
+  sidebar, `starlight-sidebar-topics`). What only admins can change goes in the Admin guide, and the
+  Editor guide links to it. Change them when a screen they use changes: plain words, the labels as
+  they appear on screen, steps, and settings one per line (a list item each, with its choices after a
+  colon), never run together in a sentence or a table cell. Its screenshots (`docs-site/src/assets/guide/`)
+  are taken from the example site at 1280 by 800 with Playwright, with Astro's dev toolbar hidden; each
+  block in the Editor guide's list of blocks has its own heading and, where it shows something, a picture
+  of it on a page (`guide/blocks/`, cropped to the block).
 
 ## Where things go
 
@@ -45,16 +55,18 @@ Update the docs in the same commit as the change, not afterwards:
    category in `buildConfig` (`src/puck/config.tsx`); containers go in `CONTENT_CONTAINERS`.
 4. Browser behaviour: a script in `public/assets/js/` that enhances the server markup (the page works
    without it).
-5. Styles in `src/styles/site.css`; a section in `CORE.md`.
+5. Styles in `src/styles/site.css`; a section in `CORE.md`; the block in the Editor guide's list of
+   blocks (`docs-site/src/content/docs/editors/page-editor.md`).
 
 ## Workflow
 
 1. Change and commit here. `npm run check` (TypeScript) and `npm test` (unit tests, `tests/`) must pass;
-   a fix comes with a test that fails without it.
+   a fix comes with a test that fails without it. The same commit updates the docs (see Keep the docs
+   current).
 2. Test on the example site, and for anything that real content exercises, in a site: in
    `../<site>`, `git fetch <path to this repository> main && git merge --no-commit FETCH_HEAD`,
    restart its dev server if config or dependencies changed, and test there.
-3. Push cfpuck-cms (it deploys nothing), then in the site `git fetch upstream && git merge upstream/main`
+3. Push moonpuck (it deploys nothing), then in the site `git fetch upstream && git merge upstream/main`
    and commit; a site keeps its own `AGENTS.md`, `README.md`, `.env.example` and `wrangler.jsonc`
    when they conflict. The site's owner pushes the site, which deploys it.
 4. Stored content changes and how to check changes: `CORE.md` (Changing stored content, Checking

@@ -1,0 +1,247 @@
+// Site statistics: page views, visitors a day, links clicked and the sites visits came from. Pages are
+// cached for everyone, so public/assets/js/stats.js reports them from the browser (POST /api/stats); the
+// server counts them by day in the site's time zone (table site_stats). No cookies are set and no
+// addresses are kept: a visitor is counted once a day by a hash of the day, a secret, their address and
+// their browser (site_stat_visitors, emptied after the day), so nobody can be followed across days.
+// Machines (scannerAgent) and signed-in editors aren't counted.
+import type { Db } from './db/query';
+import { env } from './env';
+import { SITE_TZ } from './site';
+import { scannerAgent } from './mailing/clicks';
+import { clientIp } from './mailing/request';
+import { VISITOR_COOKIE } from './popups';
+
+/** How long daily counts are kept. */
+export const STATS_KEEP_DAYS = 400;
+/** The ranges the Stats screen offers, in days. */
+export const STATS_RANGES = [7, 30, 90, 365] as const;
+
+/** The day (YYYY-MM-DD) a moment falls on in the site's time zone. */
+export const statsDay = (at: Date = new Date(), tz: string = SITE_TZ) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(at);
+
+/** The day `n` days before `day` (YYYY-MM-DD, calendar days). */
+export function daysBefore(day: string, n: number): string {
+  const d = new Date(`${day}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+// Addresses that aren't the site's pages: the admin, endpoints, files, tracked email links.
+const NOT_PAGES = /^\/(admin|api|media|assets|m\/c|cdn-cgi|_astro)(\/|$)/;
+
+/** A page's address as counted (its path, without query or fragment), or '' if it isn't one. */
+export function statPath(p: unknown): string {
+  if (typeof p !== 'string' || !p.startsWith('/') || p.startsWith('//')) return '';
+  const path = p.split(/[?#]/)[0];
+  if (path.length > 300 || NOT_PAGES.test(path) || /[\s<>"]/.test(path)) return '';
+  return path;
+}
+
+/**
+ * Where a clicked link led, as counted: a page of the site as its path; another site as its host and
+ * path; an email address or phone number as written. Queries and fragments are left out (they can carry
+ * a visitor's details). '' for anything else.
+ */
+export function statTarget(href: unknown, origin: string): string {
+  if (typeof href !== 'string' || !href.trim()) return '';
+  let u: URL;
+  try {
+    u = new URL(href.trim(), origin);
+  } catch {
+    return '';
+  }
+  if (u.protocol === 'mailto:' || u.protocol === 'tel:') return `${u.protocol}${u.pathname}`.slice(0, 500);
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return '';
+  if (u.origin === new URL(origin).origin) return statPath(u.pathname) || (u.pathname.startsWith('/media/') ? u.pathname.slice(0, 300) : '');
+  return `${u.host}${u.pathname === '/' ? '' : u.pathname}`.slice(0, 500);
+}
+
+/** The host of another site a visit came from, or '' (none, this site, or not a web address). */
+export function referrerHost(ref: unknown, origin: string): string {
+  if (typeof ref !== 'string' || !ref) return '';
+  try {
+    const u = new URL(ref);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return '';
+    if (u.host === new URL(origin).host) return '';
+    return u.host.replace(/^www\./, '').slice(0, 200);
+  } catch {
+    return '';
+  }
+}
+
+/** A Stats visitor cookie's value: 22 base64url characters (16 random bytes), made in the browser. */
+export const visitorCookieOk = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9_-]{22}$/.test(v);
+
+/** The hash a visitor with a cookie is kept under: the same every day, not the cookie itself. */
+export async function cookieHash(id: string): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`site-stats-cookie|${env('AUTH_SECRET') ?? ''}|${id}`)));
+  return [...digest.slice(0, 16)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** The visitor's hash for the day: the same all day, unrelated from one day to the next. */
+export async function visitorHash(day: string, ip: string, ua: string): Promise<string> {
+  const bytes = new TextEncoder().encode(`site-stats|${env('AUTH_SECRET') ?? ''}|${day}|${ip}|${ua}`);
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+  return [...digest.slice(0, 16)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** A visit's campaign from its utm_ parameters ({ c: campaign, s: source, m: medium }), as kept:
+ * `campaign|source|medium`, each trimmed to 100 characters without `|`; '' without a campaign or source. */
+export function campaignKey(u: unknown): string {
+  if (!u || typeof u !== 'object') return '';
+  const part = (v: unknown) => (typeof v === 'string' ? v.replace(/[|\u0000-\u001f]/g, ' ').trim().slice(0, 100) : '');
+  const { c, s, m } = u as Record<string, unknown>;
+  const [campaign, source, medium] = [part(c), part(s), part(m)];
+  return campaign || source ? `${campaign}|${source}|${medium}` : '';
+}
+
+export interface Hit {
+  /** `view` (a page shown) or `click` (a link followed). */
+  t: 'view' | 'click';
+  /** The page's path. */
+  p: string;
+  /** A view's referrer (document.referrer). */
+  r?: string;
+  /** A click's link (its href). */
+  h?: string;
+  /** A view's utm_campaign, utm_source and utm_medium. */
+  u?: { c?: string; s?: string; m?: string };
+  /** The Stats visitor cookie (VISITOR_COOKIE), sent only when it is on and the visitor allowed it. */
+  v?: string;
+}
+
+/** Counts one hit the browser reported; false when it isn't counted (not a page, a machine, bad data). */
+export async function recordHit(db: Db, body: unknown, request: Request, at: Date = new Date()): Promise<boolean> {
+  const hit = (body ?? {}) as Partial<Hit>;
+  const origin = new URL(request.url).origin;
+  const path = statPath(hit.p);
+  if (!path || scannerAgent(request.headers.get('user-agent') ?? '')) return false;
+  const day = statsDay(at);
+  if (hit.t === 'click') {
+    const target = statTarget(hit.h, origin);
+    if (!target) return false;
+    await db.rpc('stat_hit', { kind: 'click', day, path, target });
+    return true;
+  }
+  if (hit.t !== 'view') return false;
+  // The visitor cookie (${VISITOR_COOKIE}) when the browser sent one, else the day's hash.
+  const cookie = visitorCookieOk(hit.v);
+  const visitor = cookie ? await cookieHash(hit.v as string) : await visitorHash(day, clientIp(request), request.headers.get('user-agent') ?? '');
+  await db.rpc('stat_hit', { kind: 'view', day, path, visitor, cookie, referrer: referrerHost(hit.r, origin), campaign: campaignKey(hit.u) });
+  return true;
+}
+
+/** Drops visitor hashes from before today and counts older than STATS_KEEP_DAYS (the hourly run). */
+export async function pruneStats(db: Db, at: Date = new Date()): Promise<string> {
+  const today = statsDay(at);
+  const { count: visitors } = await db.from('site_stat_visitors').delete({ count: 'exact' }).eq('cookie', false).lt('day', today);
+  await db.from('site_stat_visitors').delete().eq('cookie', true).lt('day', daysBefore(today, STATS_KEEP_DAYS));
+  const { count: days } = await db.from('site_stats').delete({ count: 'exact' }).lt('day', daysBefore(today, STATS_KEEP_DAYS));
+  return `${visitors ?? 0} visitor hashes and ${days ?? 0} old counts pruned`;
+}
+
+/** The longest range the Stats screen shows, in days. */
+export const STATS_MAX_DAYS = 731;
+
+/** Days from `from` to `to`, both counted. */
+export const daysBetween = (from: string, to: string) => Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86_400_000) + 1;
+
+export interface StatsRange {
+  from: string;
+  to: string;
+  days: number;
+  /** One of STATS_RANGES when the range is the last that many days, else null (dates chosen). */
+  preset: number | null;
+}
+
+const isDay = (d: string | null): d is string => !!d && /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(`${d}T12:00:00Z`)) && new Date(`${d}T12:00:00Z`).toISOString().startsWith(d);
+
+/**
+ * The range a Stats address asks for: `from` and `to` (dates, in either order, up to STATS_MAX_DAYS
+ * long, ending at the latest today), else `days` (one of STATS_RANGES), else the last 30 days.
+ */
+export function statsRange(params: URLSearchParams, at: Date = new Date()): StatsRange {
+  const today = statsDay(at);
+  let from = params.get('from');
+  let to = params.get('to');
+  if (isDay(from) && isDay(to)) {
+    if (from > to) [from, to] = [to, from];
+    if (to > today) to = today;
+    if (from > to) from = to;
+    if (daysBetween(from, to) > STATS_MAX_DAYS) from = daysBefore(to, STATS_MAX_DAYS - 1);
+    const days = daysBetween(from, to);
+    return { from, to, days, preset: to === today && (STATS_RANGES as readonly number[]).includes(days) ? days : null };
+  }
+  const asked = Number(params.get('days'));
+  const days = (STATS_RANGES as readonly number[]).includes(asked) ? asked : 30;
+  return { from: daysBefore(today, days - 1), to: today, days, preset: days };
+}
+
+export interface StatsSummary {
+  from: string;
+  to: string;
+  /**
+   * views and clicks; visitors: people over the range (each with a cookie once, each without one once a
+   * day, `uniqueOverRange` when any came with a cookie); returning: days of visitors with a cookie seen on
+   * an earlier day.
+   */
+  totals: { views: number; visitors: number; clicks: number; returning: number; uniqueOverRange: boolean };
+  /** Every day of the range, oldest first. */
+  daily: { day: string; views: number; visitors: number; clicks: number }[];
+  /** Every page viewed or clicked from (up to 2,000), with its views and the clicks on links in it. */
+  pages: { path: string; views: number; clicks: number }[];
+  links: { target: string; clicks: number; pages: number }[];
+  referrers: { host: string; visits: number }[];
+  /** Visits that came with utm_ parameters, by campaign, source and medium (the top 200). */
+  campaigns: { campaign: string; source: string; medium: string; visits: number }[];
+}
+
+/** The Stats screen's numbers for a range (the editors' `stats_summary`), its pages by views or clicks. */
+export async function statsSummary(db: Db, range: { from: string; to: string }, sort: 'views' | 'clicks' = 'views'): Promise<StatsSummary> {
+  const { from, to } = range;
+  const days = daysBetween(from, to);
+  const { data, error } = await db.rpc('stats_summary', { from, to, sort });
+  if (error) throw new Error(error.message);
+  const r = data as Omit<StatsSummary, 'from' | 'to' | 'totals' | 'daily' | 'campaigns'> & { campaigns: { target: string; visits: number }[]; daily: { day: string; kind: string; hits: number }[]; cookieVisitors: { days: number; people: number; returning: number } };
+  const byDay = new Map<string, { day: string; views: number; visitors: number; clicks: number }>();
+  for (let i = days - 1; i >= 0; i--) {
+    const day = daysBefore(to, i);
+    byDay.set(day, { day, views: 0, visitors: 0, clicks: 0 });
+  }
+  const key = { view: 'views', visitor: 'visitors', click: 'clicks' } as const;
+  for (const row of r.daily) {
+    const d = byDay.get(row.day);
+    const k = key[row.kind as keyof typeof key];
+    if (d && k) d[k] += Number(row.hits);
+  }
+  const daily = [...byDay.values()];
+  const sum = (k: 'views' | 'visitors' | 'clicks') => daily.reduce((n, d) => n + d[k], 0);
+  const c = r.cookieVisitors;
+  // Days of visitors with a cookie are counted once each over the range instead.
+  const visitors = sum('visitors') - c.days + c.people;
+  return { from, to, totals: { views: sum('views'), visitors, clicks: sum('clicks'), returning: c.returning, uniqueOverRange: c.days > 0 }, daily, pages: r.pages.map((p) => ({ path: p.path, views: Number(p.views), clicks: Number(p.clicks) })), links: r.links, referrers: r.referrers, campaigns: r.campaigns.map((x) => {
+    const [campaign = '', source = '', medium = ''] = x.target.split('|');
+    return { campaign, source, medium, visits: Number(x.visits) };
+  }) };
+}
+
+/** The tables the Stats screen exports as CSV. */
+export const STATS_TABLES = ['daily', 'pages', 'links', 'referrers', 'campaigns'] as const;
+export type StatsTable = (typeof STATS_TABLES)[number];
+
+/** One of the Stats screen's tables as CSV (a byte order mark first, for spreadsheets; formulas guarded). */
+export function statsCsv(s: StatsSummary, table: StatsTable): string {
+  const cell = (v: unknown) => {
+    let t = String(v ?? '');
+    // A leading = + - @ would run as a formula in a spreadsheet (paths and links come from visitors).
+    if (/^[=+\-@\t\r]/.test(t)) t = `'${t}`;
+    return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  };
+  const rows: unknown[][] =
+    table === 'daily' ? [['Day', 'Views', 'Visitors', 'Link clicks'], ...s.daily.map((d) => [d.day, d.views, d.visitors, d.clicks])]
+    : table === 'pages' ? [['Page', 'Views', 'Link clicks'], ...s.pages.map((p) => [p.path, p.views, p.clicks])]
+    : table === 'links' ? [['Link', 'Clicks', 'Pages clicked from'], ...s.links.map((l) => [l.target, l.clicks, l.pages])]
+    : table === 'campaigns' ? [['Campaign', 'Source', 'Medium', 'Visits'], ...s.campaigns.map((c) => [c.campaign, c.source, c.medium, c.visits])]
+    : [['Site', 'Visits'], ...s.referrers.map((r) => [r.host, r.visits])];
+  return `﻿${rows.map((r) => r.map(cell).join(',')).join('\r\n')}\r\n`;
+}

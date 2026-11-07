@@ -77,6 +77,9 @@ export interface EventTickets {
 }
 
 export const TICKETS_KEY = 'tickets';
+/** The ticket an event is attached to (`fields.ticket`: a `ticket` entry's id, src/lib/tickets/setup.ts), or 0. */
+export const TICKET_KEY = 'ticket';
+export const ticketOf = (fields: Record<string, any> | null | undefined) => Math.max(0, Math.floor(Number(fields?.[TICKET_KEY]) || 0));
 
 /** The site's ticket settings (settings.site.tickets). */
 export interface TicketSettings {
