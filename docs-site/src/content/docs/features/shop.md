@@ -7,8 +7,8 @@ sidebar:
 
 The shop is optional and is being built in phases. Phase 1: products, options and variants, stock, the
 shop's blocks and the cart. Phase 2 so far: checkout settings, shipping, pickup, tax, member pricing,
-checkout and orders. Next: the Orders screen, order emails in the email builder, discounts, and orders and
-stock in sync and backups.
+checkout and orders. Then the Orders screen. Next: order emails in the email builder, discounts, and orders and stock in sync
+and backups.
 
 Turn it on under **Settings > Shop** (admins). It brings the `product` type under Content, product pages,
 the shop at `/shop/`, product categories, the cart at `/cart/` and the shop blocks.
@@ -89,4 +89,12 @@ to pay.
 
 What's left of a variant (`loadStock`, `src/lib/shop/stock.ts`) is on hand less what orders hold:
 unexpired holds and paid orders whose stock isn't taken off yet.
+
+## The Orders screen
+
+`/admin/shop/` (`src/pages/admin/shop/`): orders by tab and search (`ordersQuery`), CSV
+(`/api/admin/shop/orders.csv`), and each order's page with its actions through `POST
+/api/admin/shop/orders`: `fulfil`, `notes`, `resend`, `cancel`, `refund` (admins) and `restock`. Lines go
+back in stock through `shop_restock`, which records each line's `restocked` in the statement that checks
+it, so nothing goes back twice.
 

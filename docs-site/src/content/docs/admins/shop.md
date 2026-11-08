@@ -7,8 +7,7 @@ sidebar:
 
 :::note[Preview]
 The shop is being built. Products, options, stock, the cart and checkout (paying, shipping, pickup and
-tax) work now. A screen to manage orders and discount codes come next; until then each order is emailed
-to the site's admin address.
+tax) and orders work now. Discount codes come next.
 :::
 
 If your site has a shop, products appear under **Content**, **Products**, and on your site at `/shop/`.
@@ -100,13 +99,41 @@ Under the cart, visitors check out:
 4. They see the shipping, tax and total, and click **Pay**. Payment is on Stripe's or Square's own page.
 5. They come back to a page with their order, and get a receipt by email.
 
-Each order is emailed to the site's admin address too (or the address set as `SHOP_NOTIFY_EMAIL`).
+Each order is emailed to the site's admin address too (or the address set as `SHOP_NOTIFY_EMAIL`), and
+listed under **Orders**.
 
 What someone is paying for is put aside while they pay, so two people can't buy the last one. If they
 don't pay within the time set under **Settings**, **Shop**, it goes back on sale. Stock comes off the
 count once an order is paid.
 
 An order with nothing to pay (everything free) is placed at once, without the payment page.
+
+## Orders
+
+Click **Orders** in the admin bar (it shows while the shop is on). The tabs:
+
+- **To send or hand over**: paid orders still to ship or to be picked up.
+- **Paid**, **Awaiting payment**, **Cancelled and expired**, **Refunded** and **All orders**.
+
+Search by order number, email or name. **Export CSV** downloads the orders shown, a row for each item.
+
+Click an order to see what was bought, the totals, the buyer, where it goes and the payment. On its page:
+
+- **Mark shipped and email the buyer**: type the tracking number first, if there is one. The buyer gets an
+  email saying it is on its way.
+- **Mark picked up**: for an order collected from a pickup location.
+- **Notes**: for the shop only; the buyer never sees them.
+- **Resend confirmation**: emails the buyer their receipt again.
+- **Refund** (admins): type how much to give back, all or part. The money goes back to their card through
+  Stripe or Square. Refunding all of it marks the order refunded.
+- **Cancel order**: for an order that wasn't paid for, or one with nothing left to pay back (free, or
+  refunded in full).
+- **Put back in stock**: for each item, how many go back on the shelf. Fill these in before you refund or
+  cancel and they go back at the same time, or use **Put back in stock only**. An item can't go back more
+  times than it was bought.
+
+A refund made in Stripe's or Square's own dashboard shows on the order too, but puts nothing back in
+stock: do that on the order's page.
 
 ## Blocks for the shop
 

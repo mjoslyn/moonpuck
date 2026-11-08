@@ -28,6 +28,7 @@ CREATE TABLE shop_orders (
   total INTEGER NOT NULL,
   currency TEXT NOT NULL DEFAULT 'USD',
   refunded_amount INTEGER NOT NULL DEFAULT 0,
+  refund_attempt JSON_TEXT,
   stock_taken BOOLEAN NOT NULL DEFAULT 0,
   fulfilled TEXT NOT NULL DEFAULT '',
   fulfilled_at TIMESTAMPTZ,

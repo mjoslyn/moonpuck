@@ -1,0 +1,197 @@
+---
+// One shop order (src/lib/shop/orders.ts): what was bought, the totals, the buyer, where it goes (an
+// address, or a pickup location), the payment, and the actions: mark shipped (with tracking, emailing the
+// buyer) or picked up, the shop's notes, resend the confirmation, cancel, refund (admins) and put lines
+// back in stock (each line at most what was bought). POST /api/admin/shop/orders.
+import Admin from '../../../layouts/Admin.astro';
+import { SITE_TZ } from '../../../lib/site';
+import { formatMoney } from '../../../lib/payments/money';
+import { addressLines, type ShopOrder } from '../../../lib/shop/orders';
+
+const id = Number(Astro.params.id) || 0;
+const { data } = await Astro.locals.db.from('shop_orders').select('*').eq('id', id).maybeSingle();
+if (!data) return Astro.redirect('/admin/shop/');
+const o = data as ShopOrder;
+const isAdmin = Astro.locals.user?.role === 'admin';
+const money = (n: number) => formatMoney(n, o.currency);
+const when = (s: string | null) => (s ? new Date(s).toLocaleString('en-US', { timeZone: SITE_TZ, month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '');
+const STATUS: Record<string, string> = { paid: 'Paid', pending: 'Awaiting payment', cancelled: 'Cancelled', expired: 'Expired: not paid in time', refunded: 'Refunded' };
+const left = o.total - o.refunded_amount;
+// Lines whose stock was taken off and not all put back yet.
+const restockable = o.stock_taken ? o.lines.map((l, i) => ({ ...l, i, room: l.track ? l.quantity - (l.restocked ?? 0) : 0 })).filter((l) => l.room > 0) : [];
+const canCancel = ['pending', 'expired'].includes(o.status) || (o.status === 'paid' && left <= 0) || o.status === 'refunded';
+const canRefund = isAdmin && o.status === 'paid' && o.provider !== 'free' && left > 0;
+---
+<Admin title={`Order ${o.code}`}>
+  <p class="text-sm"><a href="/admin/shop/" class="text-admin-muted hover:text-admin-accent">← Orders</a></p>
+  <div class="mt-2 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-normal">Order {o.code}</h1>
+      <p class="mt-1 text-sm text-admin-muted">{STATUS[o.status] ?? o.status} · placed {when(o.created_at)}{o.paid_at ? ` · paid ${when(o.paid_at)}` : ''}</p>
+    </div>
+    <button type="button" onclick="print()" class="rounded border border-admin-ink/15 bg-white px-3 py-1.5 text-sm hover:border-admin-accent hover:text-admin-accent print:hidden">Print</button>
+  </div>
+  {o.note && <p class="mt-4 rounded bg-[#fffbeb] px-4 py-3 text-sm text-[#92400e]">{o.note}</p>}
+
+  <div class="mt-6 grid gap-6 lg:grid-cols-[2fr_1fr]">
+    <section class="rounded bg-white p-5 shadow-[0_0_0_1px_rgba(26,26,46,0.08)]">
+      <h2 class="mb-3 text-lg">What was bought</h2>
+      <table class="w-full text-sm">
+        <thead class="border-b border-admin-ink/10 text-left text-xs text-admin-muted">
+          <tr><th class="py-2 font-medium">Item</th><th class="py-2 font-medium">SKU</th><th class="py-2 font-medium">Price</th><th class="py-2 font-medium">Quantity</th><th class="py-2 text-right font-medium">Total</th></tr>
+        </thead>
+        <tbody>
+          {o.lines.map((l) => (
+            <tr class="border-b border-admin-ink/5">
+              <td class="py-2"><a class="hover:text-admin-accent" href={`/admin/edit/${l.product}/`}>{l.title}</a>{l.label && <div class="text-xs text-admin-muted">{l.label}</div>}{l.restocked > 0 && <div class="text-xs text-admin-muted">{l.restocked} back in stock</div>}</td>
+              <td class="py-2 text-admin-muted">{l.sku}</td>
+              <td class="py-2">{money(l.unit)}</td>
+              <td class="py-2">{l.quantity}</td>
+              <td class="py-2 text-right">{money(l.total)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <dl class="mt-3 grid grid-cols-[1fr_auto] gap-x-6 gap-y-1 text-sm">
+        <dt class="text-admin-muted">Subtotal</dt><dd class="text-right">{money(o.subtotal)}</dd>
+        {o.discount > 0 && <><dt class="text-admin-muted">Discount</dt><dd class="text-right">−{money(o.discount)}</dd></>}
+        {o.shipping && <><dt class="text-admin-muted">{o.shipping.kind === 'pickup' ? 'Pickup' : 'Shipping'}: {o.shipping.name}</dt><dd class="text-right">{o.shipping_total ? money(o.shipping_total) : 'Free'}</dd></>}
+        <dt class="text-admin-muted">Tax{o.tax_by === 'stripe' ? ' (Stripe Tax)' : ''}</dt><dd class="text-right">{money(o.tax)}</dd>
+        <dt class="font-medium">Total</dt><dd class="text-right font-medium">{money(o.total)}</dd>
+        {o.refunded_amount > 0 && <><dt class="text-admin-muted">Refunded</dt><dd class="text-right">−{money(o.refunded_amount)}</dd></>}
+      </dl>
+    </section>
+
+    <div class="grid content-start gap-6">
+      <section class="rounded bg-white p-5 text-sm shadow-[0_0_0_1px_rgba(26,26,46,0.08)]">
+        <h2 class="mb-2 text-lg">Buyer</h2>
+        <p>{o.name}<br /><a class="hover:text-admin-accent" href={`mailto:${o.email}`}>{o.email}</a>{o.phone && <><br />{o.phone}</>}</p>
+        <h3 class="mt-4 mb-1 font-medium">{o.fulfilment === 'pickup' ? 'Picking up' : o.fulfilment === 'ship' ? 'Shipping to' : 'Getting it to them'}</h3>
+        {o.fulfilment === 'pickup' && o.shipping && <p>{o.shipping.name}<br /><span class="whitespace-pre-line text-admin-muted">{o.shipping.address}</span></p>}
+        {o.fulfilment === 'ship' && <p>{[o.name, ...addressLines(o.address)].map((l, i) => <>{i ? <br /> : ''}{l}</>)}</p>}
+        {o.fulfilment === 'none' && <p class="text-admin-muted">Nothing to send or hand over.</p>}
+        <h3 class="mt-4 mb-1 font-medium">Payment</h3>
+        <p class="text-admin-muted">{o.provider === 'free' ? 'Nothing to pay' : `${o.provider === 'stripe' ? 'Stripe' : 'Square'}${o.provider_payment ? `: ${o.provider_payment}` : ''}`}</p>
+      </section>
+
+      {o.status === 'paid' && o.fulfilment !== 'none' && (
+        <section class="rounded bg-white p-5 text-sm shadow-[0_0_0_1px_rgba(26,26,46,0.08)] print:hidden">
+          <h2 class="mb-2 text-lg">{o.fulfilment === 'ship' ? 'Shipping' : 'Pickup'}</h2>
+          {o.fulfilled && <p class="mb-2">{o.fulfilled === 'shipped' ? 'Shipped' : 'Picked up'} {when(o.fulfilled_at)}{o.tracking ? `, tracking ${o.tracking}` : ''}.</p>}
+          {o.fulfilment === 'ship' ? (
+            <form data-fulfil="shipped" class="grid gap-2">
+              <label class="text-xs text-admin-muted" for="tracking">Tracking number (optional)</label>
+              <input id="tracking" name="tracking" value={o.tracking} class="rounded border border-admin-ink/15 bg-white px-2 py-1.5" />
+              <button class="justify-self-start rounded bg-admin-accent px-3 py-1.5 text-white hover:bg-admin-accent-dark">{o.fulfilled ? 'Save and email the buyer again' : 'Mark shipped and email the buyer'}</button>
+            </form>
+          ) : (
+            !o.fulfilled && <button type="button" data-fulfil-now="picked_up" class="rounded bg-admin-accent px-3 py-1.5 text-white hover:bg-admin-accent-dark">Mark picked up</button>
+          )}
+          {o.fulfilled && <button type="button" data-fulfil-now="" class="mt-2 text-xs text-admin-muted underline hover:text-admin-accent">Not {o.fulfilled === 'shipped' ? 'shipped' : 'picked up'} after all</button>}
+        </section>
+      )}
+
+      <section class="rounded bg-white p-5 text-sm shadow-[0_0_0_1px_rgba(26,26,46,0.08)] print:hidden">
+        <h2 class="mb-2 text-lg">Notes</h2>
+        <form data-notes class="grid gap-2">
+          <label class="sr-only" for="notes">Notes</label>
+          <textarea id="notes" name="notes" rows="3" class="rounded border border-admin-ink/15 bg-white px-2 py-1.5" placeholder="For the shop only; the buyer doesn't see them.">{o.notes}</textarea>
+          <button class="justify-self-start rounded border border-admin-ink/15 bg-white px-3 py-1.5 hover:border-admin-accent hover:text-admin-accent">Save notes</button>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <section class="mt-6 rounded bg-white p-5 text-sm shadow-[0_0_0_1px_rgba(26,26,46,0.08)] print:hidden">
+    <h2 class="mb-3 text-lg">More</h2>
+    <div class="flex flex-wrap gap-2">
+      {o.status === 'paid' && <button type="button" data-action="resend" class="rounded border border-admin-ink/15 bg-white px-3 py-1.5 hover:border-admin-accent hover:text-admin-accent">Resend confirmation</button>}
+    </div>
+    {(canRefund || canCancel || restockable.length > 0) && (
+      <form data-close class="mt-4 grid gap-3" data-left={left} data-currency={o.currency} data-name={o.name}>
+        {restockable.length > 0 && (
+          <fieldset class="grid gap-1">
+            <legend class="mb-1 text-xs text-admin-muted">Put back in stock</legend>
+            {restockable.map((l) => (
+              <label class="flex items-center gap-2">
+                <input type="number" min="0" max={l.room} value="0" name={`restock-${l.i}`} data-line={l.i} class="w-16 rounded border border-admin-ink/15 bg-white px-2 py-1" />
+                <span>of {l.room}: {l.title}{l.label ? ` (${l.label})` : ''}</span>
+              </label>
+            ))}
+          </fieldset>
+        )}
+        {canRefund && (
+          <label class="flex flex-wrap items-center gap-2">
+            <span class="text-xs text-admin-muted">Refund</span>
+            <input name="amount" inputmode="decimal" value={(left / 100).toFixed(2)} class="w-28 rounded border border-admin-ink/15 bg-white px-2 py-1" />
+            <span class="text-xs text-admin-muted">of {money(left)} left. All of it marks the order refunded.</span>
+          </label>
+        )}
+        <div class="flex flex-wrap gap-2">
+          {canRefund && <button type="submit" data-do="refund" class="rounded bg-admin-accent px-3 py-1.5 text-white hover:bg-admin-accent-dark">Refund</button>}
+          {canCancel && <button type="submit" data-do="cancel" class="rounded border border-admin-ink/15 bg-white px-3 py-1.5 hover:border-[#b91c1c] hover:text-[#b91c1c]">Cancel order</button>}
+          {restockable.length > 0 && <button type="submit" data-do="restock" class="rounded border border-admin-ink/15 bg-white px-3 py-1.5 hover:border-admin-accent hover:text-admin-accent">Put back in stock only</button>}
+        </div>
+        {o.status === 'paid' && left > 0 && !isAdmin && <p class="text-xs text-admin-muted">An admin can refund it.</p>}
+      </form>
+    )}
+  </section>
+  <p id="order-status" role="status" class="mt-3 text-sm text-admin-muted"></p>
+</Admin>
+
+<script define:vars={{ orderId: o.id }}>
+  const status = document.getElementById('order-status');
+  const post = async (body) => {
+    status.textContent = 'Working…';
+    const res = await fetch('/api/admin/shop/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: orderId, ...body }) });
+    status.textContent = '';
+    if (!res.ok) {
+      alert(await res.text());
+      return null;
+    }
+    return res.json();
+  };
+  const money = (cents, currency) => new Intl.NumberFormat('en-US', { style: 'currency', currency: currency.toUpperCase() }).format(cents / 100);
+
+  document.querySelector('[data-fulfil]')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (await post({ action: 'fulfil', kind: e.target.dataset.fulfil, tracking: e.target.tracking.value })) location.reload();
+  });
+  for (const b of document.querySelectorAll('[data-fulfil-now]')) {
+    b.addEventListener('click', async () => {
+      if (await post({ action: 'fulfil', kind: b.dataset.fulfilNow })) location.reload();
+    });
+  }
+  document.querySelector('[data-notes]')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (await post({ action: 'notes', notes: e.target.notes.value })) status.textContent = 'Notes saved.';
+  });
+  document.querySelector('[data-action="resend"]')?.addEventListener('click', async () => {
+    if (await post({ action: 'resend' })) status.textContent = 'Confirmation sent again.';
+  });
+  const close = document.querySelector('[data-close]');
+  close?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const what = e.submitter?.dataset.do;
+    const restock = {};
+    for (const i of close.querySelectorAll('[data-line]')) if (Number(i.value) > 0) restock[i.dataset.line] = Number(i.value);
+    const back = Object.values(restock).reduce((n, q) => n + q, 0);
+    const stockNote = back ? ` ${back} ${back === 1 ? 'item goes' : 'items go'} back in stock.` : '';
+    if (what === 'refund') {
+      const cents = Math.round(Number(String(close.amount.value).replace(/[^0-9.]/g, '')) * 100);
+      const left = Number(close.dataset.left);
+      if (!(cents >= 0) || cents > left) return alert(`Refund at most ${money(left, close.dataset.currency)}.`);
+      if (!confirm(`Refund ${money(cents, close.dataset.currency)} to ${close.dataset.name}?${cents === left ? ' This refunds the whole order.' : ''}${stockNote} The money goes back to their card; this can't be undone.`)) return;
+      if (await post({ action: 'refund', amount: cents, restock })) location.reload();
+    } else if (what === 'cancel') {
+      if (!confirm(`Cancel this order?${stockNote}`)) return;
+      const r = await post({ action: 'cancel', restock });
+      if (r?.message) alert(r.message);
+      if (r) location.reload();
+    } else if (what === 'restock') {
+      if (!back) return alert('Choose how many of each item go back in stock.');
+      if (!confirm(`Put ${back} ${back === 1 ? 'item' : 'items'} back in stock?`)) return;
+      if (await post({ action: 'restock', restock })) location.reload();
+    }
+  });
+</script>

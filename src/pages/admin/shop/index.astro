@@ -1,0 +1,103 @@
+---
+// Shop > Orders (src/lib/shop/orders.ts): the shop's orders, newest first, by tab (to send or hand over,
+// paid, awaiting payment, cancelled and expired, refunded, all) and searched by code, email or name, 50 a
+// page, each linking to its page. Export CSV takes the tab and search.
+import Admin from '../../../layouts/Admin.astro';
+import { SITE_TZ } from '../../../lib/site';
+import { formatMoney } from '../../../lib/payments/money';
+import { shopOn } from '../../../lib/shop/config';
+import { ORDER_TABS, ordersQuery, type ShopOrder } from '../../../lib/shop/orders';
+
+const PER_PAGE = 50;
+const db = Astro.locals.db;
+const params = Astro.url.searchParams;
+const tab = ORDER_TABS.some(([k]) => k === params.get('tab')) ? params.get('tab')! : 'to-fulfil';
+const search = (params.get('q') ?? '').slice(0, 100);
+const page = Math.max(1, Math.min(10_000, Math.floor(Number(params.get('page'))) || 1));
+const { data: siteRow } = await db.from('settings').select('value').eq('key', 'site').maybeSingle();
+const on = shopOn(siteRow?.value);
+const { data, count, error } = await ordersQuery(db, tab, search).range((page - 1) * PER_PAGE, page * PER_PAGE - 1);
+if (error) throw error;
+const orders = (data ?? []) as ShopOrder[];
+const pages = Math.max(1, Math.ceil((count ?? 0) / PER_PAGE));
+const when = (s: string) => new Date(s).toLocaleString('en-US', { timeZone: SITE_TZ, month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+const href = (patch: Record<string, string | number | null>) => {
+  const p = new URLSearchParams({ tab, ...(search ? { q: search } : {}) });
+  for (const [k, v] of Object.entries(patch)) v === null || v === '' ? p.delete(k) : p.set(k, String(v));
+  return `/admin/shop/?${p}`;
+};
+const STATUS: Record<string, [string, string]> = {
+  paid: ['Paid', 'bg-[#ecfdf5] text-[#047857]'],
+  pending: ['Awaiting payment', 'bg-[#fffbeb] text-[#b45309]'],
+  cancelled: ['Cancelled', 'bg-[#f1f5f9] text-admin-muted'],
+  expired: ['Expired', 'bg-[#f1f5f9] text-admin-muted'],
+  refunded: ['Refunded', 'bg-[#eff6ff] text-[#1d4ed8]'],
+};
+const how = (o: ShopOrder) =>
+  o.fulfilment === 'none' ? 'Nothing to send' : o.fulfilled === 'shipped' ? 'Shipped' : o.fulfilled === 'picked_up' ? 'Picked up' : o.fulfilment === 'pickup' ? `To pick up: ${o.shipping?.name ?? ''}` : `To ship: ${o.shipping?.name ?? ''}`;
+const csv = `/api/admin/shop/orders.csv?${new URLSearchParams({ tab, ...(search ? { q: search } : {}) })}`;
+---
+<Admin title="Orders">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-normal">Orders</h1>
+      <p class="mt-1 text-sm text-admin-muted">What has been bought in the shop. Products are under Content; payments, shipping and tax under <a class="underline hover:text-admin-accent" href="/admin/settings/shop/">Settings &gt; Shop</a>.</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <form method="get" class="flex items-center gap-2">
+        <input type="hidden" name="tab" value={tab} />
+        <input name="q" value={search} placeholder="Order, email or name" aria-label="Search orders" class="w-56 rounded border border-admin-ink/15 bg-white px-2 py-1.5 text-sm" />
+        <button class="rounded border border-admin-ink/15 bg-white px-3 py-1.5 text-sm hover:border-admin-accent hover:text-admin-accent">Search</button>
+      </form>
+      <a href={csv} class="rounded border border-admin-ink/15 bg-white px-3 py-1.5 text-sm hover:border-admin-accent hover:text-admin-accent">Export CSV</a>
+    </div>
+  </div>
+  {!on && <p class="mt-4 rounded bg-admin-soft px-4 py-3 text-sm">The shop is off, so nobody can buy anything. Its orders are kept here.</p>}
+
+  <nav class="mt-6 flex flex-wrap gap-1 border-b border-admin-ink/10 text-sm" aria-label="Orders">
+    {ORDER_TABS.map(([k, label]) => (
+      <a href={href({ tab: k, page: null })} class={`-mb-px border-b-2 px-3 py-2 ${k === tab ? 'border-admin-accent text-admin-ink' : 'border-transparent text-admin-muted hover:text-admin-ink'}`} aria-current={k === tab ? 'page' : undefined}>{label}</a>
+    ))}
+  </nav>
+
+  <div class="mt-4 overflow-x-auto rounded bg-white shadow-[0_0_0_1px_rgba(26,26,46,0.08)]">
+    <table class="w-full text-sm">
+      <thead class="border-b border-admin-ink/10 text-left text-xs text-admin-muted">
+        <tr>
+          <th class="px-4 py-2 font-medium">Order</th>
+          <th class="px-4 py-2 font-medium">Placed</th>
+          <th class="px-4 py-2 font-medium">Buyer</th>
+          <th class="px-4 py-2 font-medium">Items</th>
+          <th class="px-4 py-2 font-medium">Total</th>
+          <th class="px-4 py-2 font-medium">Status</th>
+          <th class="px-4 py-2 font-medium">Getting it to them</th>
+        </tr>
+      </thead>
+      <tbody>
+        {orders.map((o) => (
+          <tr class="border-b border-admin-ink/5 last:border-0 hover:bg-admin-bg">
+            <td class="px-4 py-3"><a href={`/admin/shop/${o.id}/`} class="font-medium hover:text-admin-accent">{o.code}</a></td>
+            <td class="px-4 py-3 whitespace-nowrap text-admin-muted">{when(o.created_at)}</td>
+            <td class="px-4 py-3">{o.name}<div class="text-xs text-admin-muted">{o.email}</div></td>
+            <td class="px-4 py-3 text-admin-muted">{o.quantity}</td>
+            <td class="px-4 py-3">{formatMoney(o.total, o.currency)}{o.refunded_amount > 0 && <div class="text-xs text-admin-muted">{formatMoney(o.refunded_amount, o.currency)} refunded</div>}</td>
+            <td class="px-4 py-3"><span class={`rounded px-2 py-0.5 text-xs ${STATUS[o.status]?.[1] ?? ''}`}>{STATUS[o.status]?.[0] ?? o.status}</span>{o.note && <span class="ml-1 text-xs text-[#b45309]" title={o.note}>Note</span>}</td>
+            <td class="px-4 py-3 text-admin-muted">{how(o)}</td>
+          </tr>
+        ))}
+        {!orders.length && (
+          <tr>
+            <td colspan="7" class="px-4 py-10 text-center text-admin-muted">{search ? 'No orders match.' : tab === 'to-fulfil' ? 'Nothing waiting to be sent or handed over.' : 'No orders here.'}</td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+  {pages > 1 && (
+    <nav class="mt-4 flex items-center gap-3 text-sm" aria-label="Pages">
+      {page > 1 && <a class="hover:text-admin-accent" href={href({ page: page - 1 })}>← Newer</a>}
+      <span class="text-admin-muted">Page {page} of {pages}</span>
+      {page < pages && <a class="hover:text-admin-accent" href={href({ page: page + 1 })}>Older →</a>}
+    </nav>
+  )}
+</Admin>

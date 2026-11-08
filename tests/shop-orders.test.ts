@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { siteDb } from '../src/lib/db/site';
 import { PROVIDERS } from '../src/lib/payments';
 import { loadStock } from '../src/lib/shop/stock';
-import { expireShopHolds, markShopPaid, returnFromShopCheckout, shopWebhook, startShopCheckout, type ShopOrder } from '../src/lib/shop/orders';
+import { cancelShopOrder, expireShopHolds, fulfilOrder, markShopPaid, ordersCsvRows, ordersQuery, refundShopOrder, restockOrder, returnFromShopCheckout, shopWebhook, startShopCheckout, type ShopOrder } from '../src/lib/shop/orders';
 import { renderRequest } from '../src/render/page';
 import '../src/lib/shop/page-data';
 
@@ -15,11 +15,13 @@ vi.mock('../src/lib/forms/mail', async (actual) => ({ ...(await actual<object>()
 const paid = new Set<string>();
 let made = 0;
 const created: any[] = [];
+const refunds: number[] = [];
 Object.assign(PROVIDERS.stripe, {
   configured: () => true,
   create: async (req: any) => (created.push(req), { ref: `cs_${++made}`, url: `https://pay.example/cs_${made}` }),
   check: async ({ ref }: { ref: string }) => (paid.has(ref) ? { status: 'paid', paymentId: `pi_${ref}`, amount: 0 } : { status: 'pending' }),
   close: async () => {},
+  refund: async (_payment: string, amount: number) => (refunds.push(amount), { id: `re_${refunds.length}`, status: 'succeeded' }),
 });
 
 const db = siteDb();
@@ -145,5 +147,61 @@ describe('checkout', () => {
     expect(page.html).toContain(`data-order="paid"`);
     expect(page.html).toContain(o.code);
     expect(page.html).toContain('Pick up at The store');
+  });
+});
+
+describe('the Orders screen', () => {
+  const paidOrder = async (slug: string, stock: number, quantity: number) => {
+    const id = await product(slug, { price: 1000, trackStock: true }, stock);
+    await startShopCheckout(buyer([{ product: id, variant: 'default', quantity }], { option: 'pickup:store' }), 'http://localhost');
+    const o = await byToken('');
+    paid.add(o.provider_ref!);
+    await returnFromShopCheckout(o.token, false);
+    return { product: id, order: await order(o.id) };
+  };
+  const onHand = async (product: number) => (await db.from('shop_stock').select('on_hand').eq('product_id', product).single()).data!.on_hand;
+
+  it('refunds part, then the rest, putting lines back in stock once', async () => {
+    const { product: p, order: o } = await paidOrder('refund-scarf', 5, 3);
+    expect(await onHand(p)).toBe(2);
+    expect(await refundShopOrder(db, o.id, 1000, { 0: 1 })).toEqual({ refunded: 1000, full: false, restocked: { 0: 1 } });
+    expect(await onHand(p)).toBe(3);
+    // More than is left to put back: nothing goes back.
+    expect(await restockOrder(db, o.id, { 0: 3 })).toEqual({});
+    const rest = o.total - 1000;
+    expect(await refundShopOrder(db, o.id, rest, { 0: 2 })).toMatchObject({ full: true, restocked: { 0: 2 } });
+    expect(await onHand(p)).toBe(5);
+    expect(await order(o.id)).toMatchObject({ status: 'refunded', refunded_amount: o.total });
+    expect(refunds.slice(-2)).toEqual([1000, rest]);
+    await expect(refundShopOrder(db, o.id, 1, {})).rejects.toThrow(/at most/);
+    // Fully refunded, it can be cancelled.
+    await cancelShopOrder(db, o.id);
+    expect((await order(o.id)).status).toBe('cancelled');
+  });
+
+  it('cancels an unpaid order, letting its hold go, and refuses to cancel a paid one', async () => {
+    const p = await product('cancel-hat', { price: 1000, trackStock: true }, 1);
+    await startShopCheckout(buyer([{ product: p, variant: 'default', quantity: 1 }], { option: 'pickup:store' }), 'http://localhost');
+    const held = await byToken('');
+    expect((await loadStock(db, [p])).get(p)).toEqual({ default: 0 });
+    await cancelShopOrder(db, held.id);
+    expect((await order(held.id)).status).toBe('cancelled');
+    expect((await loadStock(db, [p])).get(p)).toEqual({ default: 1 });
+    const { order: o } = await paidOrder('cancel-paid', 2, 1);
+    await expect(cancelShopOrder(db, o.id)).rejects.toThrow(/Refund/);
+  });
+
+  it('marks an order shipped with its tracking and emails the buyer', async () => {
+    const { order: o } = await paidOrder('ship-mug', 2, 1);
+    sent.length = 0;
+    await fulfilOrder(db, o.id, 'shipped', '1Z999');
+    expect(await order(o.id)).toMatchObject({ fulfilled: 'shipped', tracking: '1Z999' });
+    expect(sent.map((m) => m.subject)).toEqual([expect.stringContaining('has shipped')]);
+    // To send: paid, not yet fulfilled, with something to send.
+    const { data } = await ordersQuery(db, 'to-fulfil');
+    expect((data ?? []).some((x: ShopOrder) => x.id === o.id)).toBe(false);
+    const rows = ordersCsvRows([await order(o.id)]);
+    expect(rows[0][0]).toBe('Order');
+    expect(rows[1]).toEqual(expect.arrayContaining([o.code, 'ship-mug', '1Z999']));
   });
 });

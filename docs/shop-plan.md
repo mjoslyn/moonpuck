@@ -34,11 +34,11 @@ with the server's quote (`/api/shop/quote`) and availability (`/api/shop/availab
 Done so far: the checkout settings (provider, hold, zones and rates, pickup, tax), the totals engine
 (`src/lib/shop/totals.ts`, returned by the quote endpoint), member pricing, and orders and checkout
 (`src/lib/shop/orders.ts`: the Cart's checkout, `shop_order_create` with stock holds, the return, the
-webhook, stock taken off when paid, holds expiring, the order's page, plain confirmation emails). An
-order keeps its lines on the order (`shop_orders.lines`, JSON) rather than in a table of their own, so
-the order and its lines are written in one statement with the stock check. Next: the admin's Orders
-screen (fulfil, refund and restock by line, notes, CSV), the order emails in the email builder,
-discounts, and sync and backups.
+webhook, stock taken off when paid, holds expiring, the order's page, plain confirmation emails) and the
+Orders screen (tabs, search, CSV; mark shipped with tracking or picked up, notes, resend, cancel, refund
+and restock by line). An order keeps its lines on the order (`shop_orders.lines`, JSON) rather than in a
+table of their own, so the order and its lines are written in one statement with the stock check. Next:
+the order emails in the email builder, discounts, and sync and backups.
 
 ### Settings > Shop
 

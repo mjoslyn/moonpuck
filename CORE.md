@@ -1225,7 +1225,7 @@ never subscribes anyone again); the settings are, with the others. Migration `*_
 An optional feature, on under Settings > Shop (`settings.site.shop`: `enabled`, `currency`, `weightUnit`;
 `shopSettings`, `shopOn`, `src/lib/shop/config.ts`), built in phases on a preview branch: phase 1 has
 products, options, variants, stock and the cart; phase 2, checkout (payments, manual shipping rates and
-pickup, tax and orders), is built, with the admin's Orders screen and discounts next. Off, nothing is deleted: the admin hides the core's product type and
+pickup, tax, orders and the Orders screen), is built, with discounts next. Off, nothing is deleted: the admin hides the core's product type and
 product categories (`showsType`, `showsTaxonomy`, `src/lib/features.ts`), the site serves none of them
 (`resolve`, the loader's `off` types), the shop's blocks render nothing (`SHOP_BLOCKS`) and its endpoints
 answer 404.
@@ -1289,6 +1289,19 @@ answer 404.
   Cart block, loaded by a server hook, `src/lib/shop/page-data.ts`; never cached, noindex): paid, being
   confirmed, or not completed; a paid one empties the buyer's cart. `/cart/?checkout=cancelled` after the
   provider's Cancel.
+- **The Orders screen** (the admin bar's Orders while the shop is on, `/admin/shop/`; editors): orders by
+  tab (to send or hand over: paid, not yet fulfilled, with something to send; paid; awaiting payment;
+  cancelled and expired; refunded; all), searched by code, email or name (`ordersQuery`), 50 a page, and
+  Export CSV (`GET /api/admin/shop/orders.csv`, a row per line, formulas guarded; `ordersCsvRows`). An
+  order's page (`/admin/shop/<id>/`) shows its lines, totals, buyer, address or pickup location and
+  payment, with its actions (POST `/api/admin/shop/orders`, which doesn't clear the page cache): mark
+  shipped with a tracking number (emailing the buyer) or picked up (`fulfilOrder`, `fulfilled`,
+  `fulfilled_at`, `tracking`), the shop's notes, resend the confirmation, cancel (`cancelShopOrder`: an
+  unpaid one, its hold let go, after asking the provider; a free or fully refunded one), refund (admins;
+  part or all at the provider, `refundShopOrder`, with its own idempotency key while its outcome is unknown,
+  `refund_attempt`, as ticket refunds) and put lines back in stock (`restockOrder`, `shop_restock`: each
+  line at most what was bought, checked in the statement that records it, `lines[].restocked`; only once
+  the order's stock was taken off). Cancel and refund take the lines to put back with them.
 - **Member pricing** (while Members is on; the product's Shop settings, Members): per level, a percent
   off every variant's price (`memberDiscounts`) or a price of their own (`memberPrices`, which a variant
   can set for itself, its `memberPrices`), and members only (`membersOnly`, of `levels`; none: any level).
@@ -1396,8 +1409,9 @@ The admin bar (`src/layouts/Admin.astro`, its items from `adminNav` in `src/lib/
 dropdown (each type shown, its list at `/admin/?type=<type>`, then Taxonomies, then Templates in a section
 of its own, `section`; the content list has no tabs of its own for the types), a **Compose** dropdown
 (each type with a page, at `/admin/compose/?type=<type>`; then Form and, while Mailing is on, Campaign;
-then Template, Template part and Pattern), Media, Stats, a **Forms** dropdown (Forms, Submissions) and a **People** dropdown (Users and Members
-for admins, Mailing Lists and Tickets, each while its feature is on; a group of one shows as its link),
+then Template, Template part and Pattern), Media, Stats, a **Forms** dropdown (Forms, Submissions), a **People** dropdown (Users and Members
+for admins, Mailing Lists and Tickets, each while its feature is on; a group of one shows as its link)
+and the Shop's **Orders** while it is on,
 then a gear for Settings (admins), **?**, View site and the account menu. Below 1024px it all sits behind
 one menu button, the groups as headings. The dropdowns are `details[data-menu]`: one open at a time, closed
 by a click elsewhere or Escape.

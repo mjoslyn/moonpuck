@@ -364,6 +364,39 @@ export const FUNCTIONS: Record<string, Fn> = {
     },
   },
 
+  /**
+   * Put lines of an order back in stock: `p_lines` is { <line index>: quantity }. Each line takes back
+   * at most what it hasn't yet (`restocked` against `quantity`), checked in the statement that records it,
+   * so nothing goes back twice; only for an order whose stock was taken off. Answers what went back, by
+   * line index.
+   */
+  shop_restock: {
+    async run(exec, a) {
+      const id = Math.trunc(Number(a.p_id));
+      const back: Record<string, number> = {};
+      for (const [k, raw] of Object.entries((a.p_lines ?? {}) as Record<string, unknown>)) {
+        const i = Math.trunc(Number(k));
+        const n = Math.trunc(Number(raw));
+        if (!(i >= 0) || !(n > 0)) continue;
+        const path = `$[${i}]`;
+        const [line] = await exec.rows<{ product: number; variant: string; track: number }>(
+          `UPDATE shop_orders SET lines = json_set(lines, '${path}.restocked', coalesce(json_extract(lines, '${path}.restocked'), 0) + ?2)
+           WHERE id = ?1 AND stock_taken = 1 AND json_extract(lines, '${path}') IS NOT NULL AND json_extract(lines, '${path}.track') = 1
+             AND coalesce(json_extract(lines, '${path}.restocked'), 0) + ?2 <= json_extract(lines, '${path}.quantity')
+           RETURNING json_extract(lines, '${path}.product') AS product, json_extract(lines, '${path}.variant') AS variant, 1 AS track`,
+          [id, n],
+        );
+        if (!line) continue;
+        await exec.changes(
+          `INSERT INTO shop_stock (product_id, variant, on_hand) SELECT ?1, ?2, ?3 WHERE EXISTS (SELECT 1 FROM entries WHERE id = ?1) ON CONFLICT (product_id, variant) DO UPDATE SET on_hand = on_hand + ?3`,
+          [Math.trunc(Number(line.product)), String(line.variant), n],
+        );
+        back[String(i)] = n;
+      }
+      return back;
+    },
+  },
+
   /** Claims a campaign to send (no other run holds it, or that run went quiet 16 minutes ago). */
   mail_claim: {
     async run(exec, a) {

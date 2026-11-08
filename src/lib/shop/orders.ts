@@ -385,15 +385,20 @@ export function orderSummaryHtml(o: ShopOrder, origin: string): string {
   );
 }
 
-/** The buyer's confirmation and the shop's copy of a paid order. */
-async function sendOrderEmails(o: ShopOrder, origin: string) {
-  const summary = orderSummaryHtml(o, origin);
+/** The buyer's confirmation of a paid order. */
+async function sendBuyerConfirmation(o: ShopOrder, origin: string) {
   await sendMail({
     to: [o.email],
     subject: `Your order ${o.code} from ${site.name}`,
-    html: `<p>Thank you, ${esc(o.name)}. We have your order <strong>${esc(o.code)}</strong>.</p>${summary}`,
+    html: `<p>Thank you, ${esc(o.name)}. We have your order <strong>${esc(o.code)}</strong>.</p>${orderSummaryHtml(o, origin)}`,
     kind: 'shop',
   });
+}
+
+/** The buyer's confirmation and the shop's copy of a paid order. */
+async function sendOrderEmails(o: ShopOrder, origin: string) {
+  const summary = orderSummaryHtml(o, origin);
+  await sendBuyerConfirmation(o, origin);
   const to = notifyAddress();
   if (to) {
     await sendMail({
@@ -406,3 +411,156 @@ async function sendOrderEmails(o: ShopOrder, origin: string) {
   }
 }
 
+
+// ---- The Orders screen ------------------------------------------------------------------------
+
+/** Lines to put back in stock: { <line index>: quantity }, each at most what it hasn't put back yet. */
+export type Restock = Record<string, number>;
+
+async function loadOrder(db: Db, id: number): Promise<ShopOrder> {
+  const { data } = await db.from('shop_orders').select('*').eq('id', id).maybeSingle<ShopOrder>();
+  if (!data) throw new Error('No such order.');
+  return data;
+}
+
+/** Put lines back in stock (only an order whose stock was taken off; each line at most once over). What went back, by line. */
+export async function restockOrder(db: Db, id: number, lines: Restock): Promise<Restock> {
+  const { data, error } = await db.rpc('shop_restock', { p_id: id, p_lines: lines });
+  if (error) throw error;
+  return (data ?? {}) as Restock;
+}
+
+/**
+ * Mark a paid order shipped (with its tracking, if any) or picked up. Shipping emails the buyer, with
+ * the tracking; picking up doesn't. Marking it again changes the tracking and sends the email again.
+ */
+export async function fulfilOrder(db: Db, id: number, kind: 'shipped' | 'picked_up' | '', tracking = '', origin?: string) {
+  const o = await loadOrder(db, id);
+  if (o.status !== 'paid') throw new Error('Only paid orders can be marked shipped or picked up.');
+  const t = text(tracking, 300);
+  await db.from('shop_orders').update({ fulfilled: kind, fulfilled_at: kind ? new Date().toISOString() : null, tracking: kind === 'shipped' ? t : '' }).eq('id', id);
+  if (kind === 'shipped') await sendShippedEmail({ ...o, tracking: t }, siteOrigin(origin));
+}
+
+/** An order's notes for the shop (not shown to the buyer). */
+export async function saveNotes(db: Db, id: number, notes: string) {
+  const { error } = await db.from('shop_orders').update({ notes: String(notes ?? '').slice(0, 5000) }).eq('id', id);
+  if (error) throw error;
+}
+
+/** Send a paid order's confirmation to the buyer again. */
+export async function resendShopConfirmation(db: Db, id: number, origin?: string) {
+  const o = await loadOrder(db, id);
+  if (o.status !== 'paid') throw new Error('Only paid orders have a confirmation to send.');
+  await sendBuyerConfirmation(o, siteOrigin(origin));
+}
+
+/**
+ * Cancel an order that isn't paid for (its stock was only held, and goes back on sale), or a paid one
+ * with nothing (left) to pay back: free, or refunded in full; that one's lines go back in stock as
+ * `restock` says. An unpaid one is asked of its provider first: paid there after all, it is marked paid
+ * and not cancelled (`paid`); a check that fails cancels nothing.
+ */
+export async function cancelShopOrder(db: Db, id: number, restock: Restock = {}, origin?: string): Promise<{ paid?: boolean; restocked?: Restock }> {
+  const o = await loadOrder(db, id);
+  if (o.status === 'paid' && o.total > o.refunded_amount) throw new Error('Refund a paid order to cancel it.');
+  if (!['pending', 'paid', 'expired', 'refunded'].includes(o.status)) throw new Error('This order is already cancelled.');
+  const provider = providerOf(o.provider);
+  if ((o.status === 'pending' || o.status === 'expired') && provider && o.provider_ref) {
+    const state = await paymentState(o).catch((e) => {
+      throw new Error(`Could not check the payment at ${provider.label} (${(e as Error).message}), so the order was not cancelled. Try again in a moment.`);
+    });
+    if (state.status === 'paid') {
+      await markShopPaid(db, o, state, origin);
+      return { paid: true };
+    }
+    if (state.status === 'processing') throw new Error(`Its payment is on its way at ${provider.label} (a bank payment can take days), so the order was not cancelled.`);
+    if (o.status === 'pending') await closeCheckout(o.provider, o.provider_ref);
+  }
+  // As it was when read: an order paid meanwhile isn't cancelled.
+  const { data, error } = await db.from('shop_orders').update({ status: 'cancelled' }).eq('id', id).eq('status', o.status).select('id');
+  if (error) throw error;
+  if (!data?.length) throw new Error('The order changed meanwhile; look at it again.');
+  return { restocked: o.stock_taken ? await restockOrder(db, id, restock) : {} };
+}
+
+/**
+ * Refund `amount` of a paid order at its provider (admins), and put lines back in stock as `restock`
+ * says. All of it marks the order refunded. Each refund has its own idempotency key, kept while its
+ * outcome is unknown, so a retried one is made once (as ticket refunds).
+ */
+export async function refundShopOrder(db: Db, id: number, amount: number, restock: Restock = {}): Promise<{ refunded: number; full: boolean; restocked: Restock }> {
+  const o = await loadOrder(db, id);
+  if (o.status !== 'paid' && o.status !== 'refunded') throw new Error('Only paid orders can be refunded.');
+  const left = o.total - o.refunded_amount;
+  if (amount < 0 || amount > left) throw new Error('Refund at most what is left of the order.');
+  let total = o.refunded_amount;
+  if (amount > 0) {
+    const provider = providerOf(o.provider);
+    if (!provider) throw new Error('Free orders have nothing to refund.');
+    if (!o.provider_payment) throw new Error('This order has no payment recorded at the provider; refund it from its dashboard.');
+    const last = (o as ShopOrder & { refund_attempt?: { key: string; amount: number; from: number } | null }).refund_attempt;
+    const key = last && last.amount === amount && last.from === o.refunded_amount ? last.key : `shop-${o.id}-${newToken().slice(0, 12)}`;
+    await db.from('shop_orders').update({ refund_attempt: { key, amount, from: o.refunded_amount, at: new Date().toISOString() } }).eq('id', id);
+    const made = await provider.refund(o.provider_payment, amount, o.currency, key);
+    await db.from('shop_orders').update({ refund_attempt: null }).eq('id', id);
+    if (made.status === 'failed') throw new Error(`${provider.label} did not make the refund${made.reason ? ` (${made.reason})` : ''}. Nothing was recorded.`);
+    // The provider's webhook may have recorded it already: the total is what it was plus this one.
+    const { data: now } = await db.from('shop_orders').select('refunded_amount').eq('id', id).single();
+    total = Math.max(Number(now?.refunded_amount) || 0, o.refunded_amount + amount);
+    await db.from('shop_orders').update({ refunded_amount: total, ...(total >= o.total ? { status: 'refunded' } : {}) }).eq('id', id).in('status', ['paid', 'refunded']);
+  }
+  return { refunded: total, full: total >= o.total, restocked: o.stock_taken ? await restockOrder(db, id, restock) : {} };
+}
+
+/** The shipped email: the order's summary and its tracking. */
+async function sendShippedEmail(o: ShopOrder, origin: string) {
+  await sendMail({
+    to: [o.email],
+    subject: `Your order ${o.code} from ${site.name} has shipped`,
+    html: `<p>Good news, ${esc(o.name)}: your order <strong>${esc(o.code)}</strong> is on its way.</p>${o.tracking ? `<p>Tracking: <strong>${esc(o.tracking)}</strong></p>` : ''}${orderSummaryHtml(o, origin)}`,
+    kind: 'shop',
+  });
+}
+
+/** The orders as CSV rows (the Orders screen's export): one row per line. */
+export function ordersCsvRows(orders: ShopOrder[]): string[][] {
+  const head = ['Order', 'Date', 'Status', 'Name', 'Email', 'Phone', 'Fulfilment', 'Shipping', 'Address', 'Product', 'Options', 'SKU', 'Unit', 'Quantity', 'Line total', 'Subtotal', 'Discount', 'Shipping cost', 'Tax', 'Total', 'Refunded', 'Currency', 'Fulfilled', 'Tracking'];
+  const rows: string[][] = [head];
+  const money = (n: number) => (n / 100).toFixed(2);
+  for (const o of orders) {
+    for (const [i, l] of o.lines.entries()) {
+      const first = i === 0;
+      rows.push([
+        o.code, o.created_at, o.status, o.name, o.email, o.phone, o.fulfilment, o.shipping?.name ?? '', addressLines(o.address).join(', '),
+        l.title, l.label, l.sku, money(l.unit), String(l.quantity), money(l.total),
+        first ? money(o.subtotal) : '', first ? money(o.discount) : '', first ? money(o.shipping_total) : '', first ? money(o.tax) : '', first ? money(o.total) : '', first ? money(o.refunded_amount) : '',
+        o.currency, o.fulfilled, o.tracking,
+      ]);
+    }
+  }
+  return rows;
+}
+
+/** The Orders screen's tabs. */
+export const ORDER_TABS: [string, string][] = [
+  ['to-fulfil', 'To send or hand over'],
+  ['paid', 'Paid'],
+  ['pending', 'Awaiting payment'],
+  ['closed', 'Cancelled and expired'],
+  ['refunded', 'Refunded'],
+  ['all', 'All orders'],
+];
+
+/** The orders a tab and search show, newest first (the Orders screen and its CSV). */
+export function ordersQuery(db: Db, tab: string, search = '') {
+  let q = db.from('shop_orders').select('*', { count: 'exact' }).order('created_at', { ascending: false }).order('id', { ascending: false });
+  if (tab === 'to-fulfil') q = q.eq('status', 'paid').eq('fulfilled', '').neq('fulfilment', 'none');
+  else if (tab === 'paid') q = q.eq('status', 'paid');
+  else if (tab === 'pending') q = q.eq('status', 'pending');
+  else if (tab === 'closed') q = q.in('status', ['cancelled', 'expired']);
+  else if (tab === 'refunded') q = q.eq('status', 'refunded');
+  const s = search.trim().replace(/[,()"\\*%]/g, ' ').trim().slice(0, 100);
+  if (s) q = q.or(`code.ilike.*${s}*,email.ilike.*${s}*,name.ilike.*${s}*`);
+  return q;
+}
