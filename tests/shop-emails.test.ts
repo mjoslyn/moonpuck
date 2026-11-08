@@ -5,6 +5,10 @@ import { siteDb } from '../src/lib/db/site';
 import { PROVIDERS } from '../src/lib/payments';
 import { fulfilOrder, markShopPaid, refundShopOrder, resendShopConfirmation, startShopCheckout, type ShopOrder } from '../src/lib/shop/orders';
 import { shopSettingsFrom } from '../src/lib/shop/config';
+import { site } from '../src/lib/site';
+
+// The shop's copies go here, whatever the site's own addresses are (the tests run on every site's config).
+process.env.SHOP_NOTIFY_EMAIL = 'shop@example.org';
 import { orderPayment, SAMPLE_SHOP_ORDER, shopEmail, shopEmailToSend, DEFAULT_SHOP_EMAILS } from '../src/lib/shop/email';
 
 type Sent = { to: string[]; replyTo?: string; subject: string; html: string; text: string };
@@ -52,8 +56,8 @@ beforeEach(async () => {
 describe('sending', () => {
   it('sends the built-in confirmation and the shop its copy, once paid', async () => {
     const o = await paidOrder();
-    expect(sent.map((m) => m.to[0])).toEqual(['ada@example.org', 'info@example.org']);
-    expect(sent[0].subject).toBe(`Your order ${o.code} from Example Town`);
+    expect(sent.map((m) => m.to[0])).toEqual(['ada@example.org', 'shop@example.org']);
+    expect(sent[0].subject).toBe(`Your order ${o.code} from ${site.name}`);
     expect(sent[0].html).toContain('Pick up at The store');
     expect(sent[0].html).toContain(`/cart/?order=${o.token}`);
     expect(sent[1]).toMatchObject({ replyTo: 'ada@example.org', subject: `New order ${o.code}: $20.00` });
@@ -70,7 +74,7 @@ describe('sending', () => {
 
     sent.length = 0;
     await fulfilOrder(db, o.id, 'shipped', 'TRACK-1', 'http://localhost');
-    expect(sent[0].subject).toBe(`Your order ${o.code} from Example Town has shipped`);
+    expect(sent[0].subject).toBe(`Your order ${o.code} from ${site.name} has shipped`);
     expect(sent[0].html).toContain('Template: TRACK-1');
 
     sent.length = 0;

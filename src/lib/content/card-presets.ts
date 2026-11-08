@@ -8,7 +8,7 @@ import { SITE_RENDER } from '../site/render';
 export type { CardPreset };
 
 /** The shop's card (Settings > Shop) for a site without its own `product` design: the image, name and price. */
-const PRODUCT_CARD: CardPreset = {
+export const PRODUCT_CARD: CardPreset = {
   id: 'product',
   label: 'Product: image, name and price',
   description: 'The product\'s image, its name and its price (the shop).',

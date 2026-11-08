@@ -159,7 +159,9 @@ describe('product category pages', () => {
     expect(page.status).toBe(200);
     expect(page.html).toContain('Mugs for coffee.');
     expect(page.html).toContain('Blue mug');
-    expect(page.html).toContain('$12.00');
+    // The core's product card shows the price; a site with a product card of its own shows what it shows.
+    const { CARD_PRESETS, PRODUCT_CARD } = await import('../src/lib/content/card-presets');
+    if (CARD_PRESETS.includes(PRODUCT_CARD)) expect(page.html).toContain('$12.00');
     await setSite({ shop: undefined });
   });
 });
@@ -180,10 +182,12 @@ describe('availability and cards', () => {
   });
 
   it('never starts collections with the product card, and offers it only while the shop is on', async () => {
-    const { DEFAULT_CARD, cardOffered } = await import('../src/lib/content/card-presets');
-    expect(DEFAULT_CARD).not.toBe('product');
-    expect(cardOffered('product', false)).toBe(false);
+    const { CARD_PRESETS, DEFAULT_CARD, PRODUCT_CARD, cardOffered } = await import('../src/lib/content/card-presets');
     expect(cardOffered('product', true)).toBe(true);
     expect(cardOffered(DEFAULT_CARD, false)).toBe(true);
+    // A site with a product card of its own keeps it (as its default too, if it is its first).
+    if (!CARD_PRESETS.includes(PRODUCT_CARD)) return;
+    expect(DEFAULT_CARD).not.toBe('product');
+    expect(cardOffered('product', false)).toBe(false);
   });
 });

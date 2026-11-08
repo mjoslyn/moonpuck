@@ -7,6 +7,9 @@ import { alertLowStock, stockRows } from '../src/lib/shop/low-stock';
 import { markShopPaid, startShopCheckout, type ShopOrder } from '../src/lib/shop/orders';
 import { checkoutSettings } from '../src/lib/shop/checkout-settings';
 
+// The shop's alerts go here, whatever the site's own addresses are (the tests run on every site's config).
+process.env.SHOP_NOTIFY_EMAIL = 'shop@example.org';
+
 const sent: { to: string[]; subject: string; html: string }[] = [];
 vi.mock('../src/lib/forms/mail', async (actual) => ({ ...(await actual<object>()), sendMail: async (m: any) => (sent.push(m), true) }));
 let made = 0;
@@ -55,7 +58,7 @@ describe('alerts', () => {
     const p = await product(5);
     const o = await buy(p, 2);
     await markShopPaid(db, o, { paymentId: 'pi' }, 'http://localhost');
-    expect(sent.filter((m) => m.subject.startsWith('Low stock'))).toEqual([expect.objectContaining({ to: ['info@example.org'], subject: `Low stock: Pot ${n}` })]);
+    expect(sent.filter((m) => m.subject.startsWith('Low stock'))).toEqual([expect.objectContaining({ to: ['shop@example.org'], subject: `Low stock: Pot ${n}` })]);
     expect(sent.find((m) => m.subject.startsWith('Low stock'))!.html).toContain('3 left');
 
     sent.length = 0;
