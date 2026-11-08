@@ -7,7 +7,7 @@
 // - Turnstile: a widget for moonpuck.com in the Cloudflare dashboard; its site key as
 //   PUBLIC_TURNSTILE_SITE_KEY in the build's environment (Workers Builds > Variables), and its secret key
 //   with `npx wrangler secret put TURNSTILE_SECRET_KEY`.
-// - Email Routing on moonpuck.com, with CONTACT_TO (below) a verified destination address; the email is
+// - Email Routing on moonpuck.com, with CONTACT_TO (set in the dashboard) a verified destination address; the email is
 //   sent from CONTACT_FROM, an address on moonpuck.com.
 {
   "name": "moonpuck-site",
@@ -20,8 +20,13 @@
     "run_worker_first": ["/api/*"]
   },
   "send_email": [{ "name": "CONTACT" }],
+  // Logs (Observability > Logs): the contact form logs why a send failed.
+  "observability": { "enabled": true },
+  // CONTACT_TO, where the form's emails go, is set in the dashboard (Settings > Variables and secrets):
+  // a verified destination address under Email Routing, not an address that only forwards.
+  // keep_vars keeps it across deploys.
+  "keep_vars": true,
   "vars": {
-    "CONTACT_TO": "info@moonpuck.com",
     "CONTACT_FROM": "form@moonpuck.com"
   },
   "routes": [{ "pattern": "moonpuck.com", "custom_domain": true }]
