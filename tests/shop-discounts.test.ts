@@ -104,6 +104,9 @@ describe('discountCandidates', () => {
     expect((await discountCandidates(db, { code: 'GOLD', member: { ...gold, level: 'silver' } })).problem).toMatch(/members only/);
     expect((await discountCandidates(db, { code: 'GOLD', member: gold })).problem).toBeUndefined();
     expect((await discountCandidates(db, { code: 'NOPE' })).problem).toBe('This code isn’t valid.');
+    // A code is matched as written: underscores are no wildcards, so a code can't be found out a letter at a time.
+    expect((await discountCandidates(db, { code: '____' })).problem).toBe('This code isn’t valid.');
+    expect((await discountCandidates(db, { code: 'G___' })).problem).toBe('This code isn’t valid.');
 
     const once = await discount({ code: 'ONCE', value: 10, once_per_email: true, max_uses: 2 });
     const order = { token: 't', code: 'C', status: 'paid', provider: 'free', name: 'A', email: 'ada@example.org', lines: [], quantity: 1, subtotal: 0, total: 0, currency: 'USD', discount_id: once, discount_code: 'ONCE' };

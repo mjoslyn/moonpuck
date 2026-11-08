@@ -59,7 +59,7 @@ export async function discountCandidates(db: Db, input: { code?: string | null; 
   const code = cleanCode(input.code);
   const email = input.email?.trim().toLowerCase() || null;
   if (code) {
-    const { data } = await db.from('shop_discounts').select('*').ilike('code', code).maybeSingle();
+    const { data } = await db.from('shop_discounts').select('*').eq('code', code).maybeSingle();
     if (!data) return { discounts: [], code, problem: 'This code isn’t valid.' };
     const d = asDiscount(data);
     if (!running(d)) return { discounts: [], code, problem: 'This code has expired or isn’t on yet.' };

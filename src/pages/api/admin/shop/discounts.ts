@@ -16,7 +16,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const d = cleanDiscount(body.discount);
   if (typeof d === 'string') return new Response(d, { status: 400 });
   if (d.code) {
-    const { data: taken } = await db.from('shop_discounts').select('id').ilike('code', d.code).neq('id', id).maybeSingle();
+    const { data: taken } = await db.from('shop_discounts').select('id').eq('code', d.code).neq('id', id).maybeSingle();
     if (taken) return new Response(`Another discount has the code ${d.code}.`, { status: 409 });
   }
   const { data, error } = id ? await db.from('shop_discounts').update(d).eq('id', id).select('id').single() : await db.from('shop_discounts').insert(d).select('id').single();
