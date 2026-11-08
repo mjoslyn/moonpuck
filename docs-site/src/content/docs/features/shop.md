@@ -31,10 +31,17 @@ What a product sells is in its fields under the reserved key `shop` (`src/lib/sh
 | `maxPerOrder` | Empty: 99. |
 | `trackStock` | Off: no limit. |
 | `options` | Up to 3, each with a name and values. |
-| `variants` | One per combination: a stable `id`, its `values`, and its own price, compare-at price, SKU, weight and image (media id), or `off`. |
+| `variants` | One per combination: a stable `id`, its `values`, and its own price, compare-at price, SKU, weight and image (media id), sale price and members' sale prices, or `off`. |
+| `gallery` | Media ids shown after the featured image by the Product gallery block; at most 30. |
+| `sale` | `start` and `end` (ISO, either open), `price` or `percent` off, and members' `memberPrices` or `memberDiscounts` by level. |
 
 A product with no options has one variant, `default`. Changing the options keeps each variant whose
 values stay (its id, price and stock), adds the new combinations and drops the rest.
+
+While a sale runs (`saleRuns`), `resolveVariant` gives a variant its sale price as `price` when it is
+lower, with the usual price as `regular` and struck through (`compareAt`), so the blocks, the quote and
+checkout all charge it. `unitFor` gives a member the lowest of their member price, their sale price and
+the sale price.
 
 ## Stock
 
@@ -56,8 +63,11 @@ answer 404 while the shop is off.
 
 ## Blocks
 
-`product-price`, `add-to-cart`, `cart` and `cart-link` (`src/render/c/shop.ts`), offered in the editor's
-**Shop** category while the shop is on and rendering nothing while it is off. The product card design
+`product-price`, `add-to-cart`, `product-gallery`, `cart` and `cart-link` (`src/render/c/shop.ts`),
+offered in the editor's **Shop** category while the shop is on and rendering nothing while it is off. The
+Product gallery shows the featured image, the `gallery` and the variants' own pictures
+(`productImages`), with `public/assets/js/product-gallery.js` switching them and following the variant
+chosen in Add to cart (`c-product:variant`). The product card design
 (`product`) is added to the site's cards unless the site has its own.
 
 ## Templates
@@ -68,10 +78,15 @@ page at `/cart/` unless a page has that address.
 
 ## Checkout and orders
 
-Under the Cart block, `cart.js` builds the checkout: the buyer's details, their country and state, the
-shipping and pickup options from `POST /api/shop/quote` (sent with `destination` and `option`, it answers
-`shipping`, `chosen` and `totals` too: `src/lib/shop/totals.ts`), the address for a shipped order, the
-totals and Pay.
+`cart.js` builds the Cart block as a two-column checkout: on the left the form (Contact, Delivery with the
+country and state, Shipping method, Payment with Pay), on the right the order summary (each line's
+picture with its quantity, the discount code and the totals), which comes first and folds behind **Show
+order summary** below 900px. The shipping and pickup options come from `POST /api/shop/quote` (sent with
+`destination` and `option`, it answers `shipping`, `chosen` and `totals` too: `src/lib/shop/totals.ts`).
+The quote names a product's download but never its stored path.
+
+With Stripe Tax chosen, Settings > Shop asks Stripe whether Stripe Tax is active
+(`GET /api/admin/shop/stripe-tax`) and warns while it isn't, since Stripe refuses those checkouts.
 
 `POST /api/shop/checkout` (`startShopCheckout`, `src/lib/shop/orders.ts`) prices the cart again, checks
 the option and address, and makes the order in `shop_orders` with `shop_order_create`
@@ -95,7 +110,13 @@ unexpired holds and paid orders whose stock isn't taken off yet.
 
 `/admin/shop/` (`src/pages/admin/shop/`): orders by tab and search (`ordersQuery`), CSV
 (`/api/admin/shop/orders.csv`), and each order's page with its actions through `POST
-/api/admin/shop/orders`: `fulfil`, `notes`, `resend`, `cancel`, `refund` (admins) and `restock`. Lines go
-back in stock through `shop_restock`, which records each line's `restocked` in the statement that checks
-it, so nothing goes back twice.
+/api/admin/shop/orders`: `fulfil`, `note`, `status`, `resend`, `cancel`, `refund` (admins) and `restock`.
+Lines go back in stock through `shop_restock`, which records each line's `restocked` in the statement that
+checks it, so nothing goes back twice.
+
+Each order's history is in `shop_order_events` (`src/lib/shop/history.ts`): placed, paid, every email with
+its subject and recipients, fulfilment, labels, delivery, refunds, restocks, cancellations, expiry, status
+changes and notes, each with who did it. The shop's own statuses (`settings.site.shop.statuses`,
+`src/lib/shop/statuses.ts`) are set on an order's page (`shop_orders.custom_status`), can email the buyer
+with a design from the email builder, and filter the Orders screen (`?status=`).
 

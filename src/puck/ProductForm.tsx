@@ -390,18 +390,18 @@ function GalleryField({ ids, onChange }: { ids: number[]; onChange: (ids: number
     <div className="mb-3">
       <span className="mb-1 block text-xs text-admin-muted">Gallery images (after the featured image, in the Product gallery block)</span>
       {ids.length > 0 && (
-        <ul className="mb-2 flex flex-wrap gap-2">
+        <ul className="mb-2 grid list-none grid-cols-3 gap-3 p-0">
           {ids.map((id, i) => (
             <li key={id} className="flex flex-col items-center gap-1">
-              {urls[id] ? <img src={urls[id]} alt="" className="h-14 w-14 rounded border border-admin-ink/10 object-cover" /> : <div className="h-14 w-14 rounded border border-dashed border-admin-ink/20" />}
-              <span className="flex gap-1 text-xs">
-                <button type="button" className="text-admin-muted disabled:opacity-30" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Move earlier">
+              {urls[id] ? <img src={urls[id]} alt="" className="aspect-square w-full rounded border border-admin-ink/10 object-cover" /> : <div className="aspect-square w-full rounded border border-dashed border-admin-ink/20" />}
+              <span className="flex items-center gap-2 text-sm">
+                <button type="button" className="text-admin-muted disabled:opacity-30" disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Move picture ${i + 1} earlier`} title="Move earlier">
                   ←
                 </button>
-                <button type="button" className="text-admin-muted underline" onClick={() => onChange(ids.filter((x) => x !== id))}>
-                  Remove
+                <button type="button" className="px-1 text-admin-muted hover:text-[#c4592a]" onClick={() => onChange(ids.filter((x) => x !== id))} aria-label={`Remove picture ${i + 1}`} title="Remove">
+                  ×
                 </button>
-                <button type="button" className="text-admin-muted disabled:opacity-30" disabled={i === ids.length - 1} onClick={() => move(i, 1)} aria-label="Move later">
+                <button type="button" className="text-admin-muted disabled:opacity-30" disabled={i === ids.length - 1} onClick={() => move(i, 1)} aria-label={`Move picture ${i + 1} later`} title="Move later">
                   →
                 </button>
               </span>

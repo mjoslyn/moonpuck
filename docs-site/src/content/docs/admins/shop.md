@@ -29,8 +29,8 @@ If your site has a shop, products appear under **Content**, **Products**, and on
 A product without a price isn't for sale. The other settings under **Shop**:
 
 - **Gallery images**: more pictures of it, shown after its featured image by the **Product gallery**
-  block. Click **Add images** and choose one or more from the media library; the arrows put them in
-  order, and **Remove** takes one out.
+  block. Click **Add images** and choose one or more from the media library; the arrows under a picture
+  move it earlier or later, and **×** takes it out.
 - **SKU** and **Weight**: for your records, and later for shipping by weight.
 - **Shipped**: untick it for things nobody posts, such as a class or a gift card.
 - **Pickup only**: collected, never posted.

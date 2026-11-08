@@ -100,4 +100,6 @@ Concise and factual: what changed, why, and any measurements; no editorial frami
   through `src/lib/payments`, manual shipping rates and pickup, tax, discounts, orders with stock holds,
   refunds with a restock choice, order emails, stats, orders and stock in sync and backups), is built; phase 3 (the Stock
   screen, low-stock alerts, digital downloads, Shippo rates, labels and tracking) is built and checked
-  against Shippo's test API; its tracking webhook still to check on a deployed copy.
+  against Shippo's test API; its tracking webhook still to check on a deployed copy. Stripe is checked against
+  its test API (connecting, checkout, cancel and expiry, Stripe Tax, refunds from the order page and the
+  dashboard, its events' shapes); webhook delivery from Stripe itself still to check on a deployed copy.
