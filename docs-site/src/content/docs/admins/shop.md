@@ -166,6 +166,22 @@ only). Uses count paid orders and orders waiting to be paid, so the last use can
 The discount is shared out over the items it applies to, and tax is worked out after it. A refund gives
 back what was paid, after the discount.
 
+## Shop stats
+
+Click **Shop** in the admin bar, then **Stats**, for what the shop sold. Choose **7 days**, **30 days**,
+**90 days** or **Year**, or pick dates and click **Show**. Orders count on the day they were paid.
+
+![Shop stats](../../../assets/guide/shop-stats.png)
+
+- **Net sales**: what buyers paid, less what was refunded.
+- **Orders**: paid orders, the items in them, and checkouts started but never paid.
+- **Average order** and **Buyers** (and how many ordered more than once).
+- **Sales a day** (a week, for longer ranges); **Show as a table** lists them.
+- **Products that sold most**, **Discounts used** and **How orders were sent**.
+
+**Download CSV** beside a table downloads it. Visits to the shop's pages are under **Stats** in the
+admin bar.
+
 ## Blocks for the shop
 
 In the page editor, under **Shop**:

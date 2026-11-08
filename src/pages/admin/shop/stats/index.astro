@@ -1,0 +1,157 @@
+---
+// Shop > Stats (src/lib/shop/stats.ts): what the shop sold over the last 7, 30, 90 or 365 days or dates
+// chosen, by the day orders were paid: sales, refunds, orders, items, the average order, discounts,
+// shipping and tax, a bar a day (a week past 90 days), the products that sold most, the discounts used and
+// how orders were sent. Each table downloads as CSV.
+import Admin from '../../../../layouts/Admin.astro';
+import { SITE_TZ } from '../../../../lib/site';
+import { formatMoney } from '../../../../lib/payments/money';
+import { STATS_MAX_DAYS, STATS_RANGES, statsDay, statsRange } from '../../../../lib/stats';
+import { shopSettings } from '../../../../lib/shop/config';
+import { SHOP_STATS_MAX_ORDERS, shopStats } from '../../../../lib/shop/stats';
+
+const db = Astro.locals.db;
+const range = statsRange(Astro.url.searchParams);
+const { data: siteRow } = await db.from('settings').select('value').eq('key', 'site').maybeSingle();
+const currency = shopSettings(siteRow?.value).currency;
+const s = await shopStats(db, range, currency, SITE_TZ);
+const today = statsDay();
+const money = (n: number) => formatMoney(n, currency);
+const fmt = (n: number) => n.toLocaleString('en-US');
+
+const step = range.days > 90 ? 7 : 1;
+const bars: { label: string; orders: number; sales: number }[] = [];
+for (let i = 0; i < s.daily.length; i += step) {
+  const group = s.daily.slice(i, i + step);
+  bars.push({ label: step === 1 ? group[0].day : `Week of ${group[0].day}`, orders: group.reduce((n, d) => n + d.orders, 0), sales: group.reduce((n, d) => n + d.sales, 0) });
+}
+const max = Math.max(1, ...bars.map((b) => b.sales));
+const withYear = s.from.slice(0, 4) !== s.to.slice(0, 4) || s.to.slice(0, 4) !== today.slice(0, 4);
+const dayLabel = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(withYear ? { year: 'numeric' } : {}), timeZone: 'UTC' });
+const barLabel = (l: string) => (l.startsWith('Week of ') ? `Week of ${dayLabel(l.slice(8))}` : dayLabel(l));
+const rangeParams = range.preset ? { days: String(range.preset) } : { from: range.from, to: range.to };
+const csv = (table: string) => `/api/admin/shop/stats.csv?${new URLSearchParams({ ...rangeParams, table })}`;
+const t = s.totals;
+const card = 'rounded bg-white p-5 shadow-[0_0_0_1px_rgba(26,26,46,0.08)]';
+const label = 'text-xs font-semibold tracking-wider text-admin-muted uppercase';
+const th = 'px-4 py-2.5 font-semibold';
+const td = 'border-t border-admin-ink/5 px-4 py-2';
+const input = 'rounded border border-admin-ink/15 bg-white px-2 py-1 text-sm outline-none focus:border-admin-accent';
+const csvLink = 'text-xs font-normal text-admin-accent hover:underline';
+const sent = t.orders ? (n: number) => `${fmt(n)} (${Math.round((n / t.orders) * 100)}%)` : fmt;
+---
+<Admin title="Shop stats">
+  <div class="flex flex-wrap items-end justify-between gap-6">
+    <div>
+      <h1 class="text-3xl font-normal">Shop stats</h1>
+      <p class="mt-1 text-sm text-admin-muted">What the shop sold, by the day orders were paid. Refunded orders count as sales, with their refunds taken off in Net sales. Visits to the shop's pages are under <a class="underline" href="/admin/stats/">Stats</a>.</p>
+    </div>
+    <div class="flex flex-wrap items-end gap-3">
+      <nav class="flex gap-1 rounded bg-white p-1 text-sm shadow-[0_0_0_1px_rgba(26,26,46,0.08)]" aria-label="Range">
+        {STATS_RANGES.map((n) => (
+          <a href={`?days=${n}`} aria-current={n === range.preset ? 'page' : undefined} class={`rounded-sm px-3 py-1.5 ${n === range.preset ? 'bg-admin-ink text-white' : 'hover:bg-admin-soft'}`}>{n === 365 ? 'Year' : `${n} days`}</a>
+        ))}
+      </nav>
+      <form method="get" class="flex flex-wrap items-end gap-2" aria-label="Dates">
+        <label class="text-xs text-admin-muted">From<br /><input type="date" name="from" value={range.from} max={today} required class={input} /></label>
+        <label class="text-xs text-admin-muted">To<br /><input type="date" name="to" value={range.to} max={today} required class={input} /></label>
+        <button class={`rounded-sm px-3 py-1.5 text-sm ${range.preset ? 'border border-admin-ink/15 hover:border-admin-accent' : 'bg-admin-ink text-white'}`}>Show</button>
+      </form>
+    </div>
+  </div>
+  {range.days === STATS_MAX_DAYS && <p class="mt-2 text-xs text-admin-muted">Ranges go back at most {STATS_MAX_DAYS} days from their end.</p>}
+  {s.cut && <p class="mt-4 rounded bg-[#fffbeb] px-4 py-3 text-sm text-[#92400e]">More than {fmt(SHOP_STATS_MAX_ORDERS)} orders in these dates: the numbers are of the first {fmt(SHOP_STATS_MAX_ORDERS)}. Choose fewer days.</p>}
+  {s.otherCurrency > 0 && <p class="mt-4 rounded bg-admin-soft px-4 py-3 text-sm">{fmt(s.otherCurrency)} paid {s.otherCurrency === 1 ? 'order is' : 'orders are'} in another currency than the shop's ({currency}), and left out.</p>}
+
+  <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class={card}><p class={label}>Net sales</p><p class="mt-1 text-3xl">{money(t.net)}</p><p class="mt-1 text-xs text-admin-muted">{money(t.sales)} paid{t.refunds ? `, ${money(t.refunds)} refunded` : ''}</p></div>
+    <div class={card}><p class={label}>Orders</p><p class="mt-1 text-3xl">{fmt(t.orders)}</p><p class="mt-1 text-xs text-admin-muted">{fmt(t.items)} {t.items === 1 ? 'item' : 'items'}{t.unpaid ? `; ${fmt(t.unpaid)} checkouts not paid` : ''}</p></div>
+    <div class={card}><p class={label}>Average order</p><p class="mt-1 text-3xl">{money(t.average)}</p></div>
+    <div class={card}><p class={label}>Buyers</p><p class="mt-1 text-3xl">{fmt(t.buyers)}</p><p class="mt-1 text-xs text-admin-muted">{fmt(t.repeat)} ordered more than once</p></div>
+  </div>
+  <p class="mt-2 text-xs text-admin-muted">In the sales: {money(t.shipping)} shipping and pickup fees, {money(t.tax)} tax. Discounts took off {money(t.discounts)}.</p>
+
+  <section class={`${card} mt-4`}>
+    <h2 class="flex justify-between gap-2 text-sm font-semibold">Sales {step === 1 ? 'a day' : 'a week'} <a class={csvLink} href={csv('daily')} download>Download CSV</a></h2>
+    <p class="text-xs text-admin-muted">{dayLabel(s.from)} to {dayLabel(s.to)}</p>
+    {!t.orders ? (
+      <p class="mt-6 text-sm text-admin-muted">No paid orders in these dates.</p>
+    ) : (
+      <div class="stats-chart mt-4">
+        <span class="stats-max text-xs text-admin-muted">{money(max)}</span>
+        <div class="stats-bars" role="img" aria-label={`Sales ${step === 1 ? 'a day' : 'a week'}, up to ${money(max)}`}>
+          {bars.map((b) => (
+            <div class="stats-bar" tabindex="0" data-tip={`${barLabel(b.label)}: ${money(b.sales)}, ${fmt(b.orders)} ${b.orders === 1 ? 'order' : 'orders'}`}>
+              <span style={`height:${(b.sales / max) * 100}%`}></span>
+            </div>
+          ))}
+        </div>
+        <div class="mt-1 flex justify-between text-xs text-admin-muted"><span>{dayLabel(s.from)}</span><span>{dayLabel(s.to)}</span></div>
+      </div>
+    )}
+    {t.orders > 0 && (
+      <details class="mt-3 text-sm">
+        <summary class="cursor-pointer text-xs text-admin-muted">Show as a table</summary>
+        <table class="mt-2 w-full text-left text-sm">
+          <thead class="text-xs text-admin-muted"><tr><th class="py-1 font-semibold">{step === 1 ? 'Day' : 'Week'}</th><th class="py-1 text-right font-semibold">Orders</th><th class="py-1 text-right font-semibold">Sales</th></tr></thead>
+          <tbody>{[...bars].reverse().map((b) => <tr class="border-t border-admin-ink/5"><td class="py-1">{barLabel(b.label)}</td><td class="py-1 text-right tabular-nums">{fmt(b.orders)}</td><td class="py-1 text-right tabular-nums">{money(b.sales)}</td></tr>)}</tbody>
+        </table>
+      </details>
+    )}
+  </section>
+
+  <div class="mt-4 grid gap-4 lg:grid-cols-[2fr_1fr]">
+    <section>
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 class="text-sm font-semibold">Products that sold most</h2>
+        <p class="text-xs text-admin-muted">After their share of discounts. <a class={csvLink} href={csv('products')} download>Download CSV</a></p>
+      </div>
+      <div class="mt-2 max-h-[32rem] overflow-auto rounded bg-white shadow-[0_0_0_1px_rgba(26,26,46,0.08)]">
+        <table class="w-full border-collapse text-sm">
+          <thead class="sticky top-0 bg-admin-soft text-left text-xs tracking-wider text-admin-muted uppercase"><tr><th class={th}>Product</th><th class={`${th} text-right`}>Sold</th><th class={`${th} text-right`}>Sales</th></tr></thead>
+          <tbody>
+            {s.products.map((p) => <tr><td class={td}><a class="hover:underline" href={`/admin/edit/${p.product}/`}>{p.title}</a></td><td class={`${td} text-right tabular-nums`}>{fmt(p.quantity)}</td><td class={`${td} text-right tabular-nums`}>{money(p.sales)}</td></tr>)}
+            {!s.products.length && <tr><td class={`${td} text-admin-muted`} colspan="3">None yet.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <div class="grid content-start gap-4">
+      <section>
+        <h2 class="flex justify-between gap-2 text-sm font-semibold">Discounts used <a class={csvLink} href={csv('discounts')} download>Download CSV</a></h2>
+        <div class="mt-2 overflow-auto rounded bg-white shadow-[0_0_0_1px_rgba(26,26,46,0.08)]">
+          <table class="w-full border-collapse text-sm">
+            <thead class="bg-admin-soft text-left text-xs tracking-wider text-admin-muted uppercase"><tr><th class={th}>Discount</th><th class={`${th} text-right`}>Orders</th><th class={`${th} text-right`}>Took off</th></tr></thead>
+            <tbody>
+              {s.discounts.map((d) => <tr><td class={td}>{d.code}</td><td class={`${td} text-right tabular-nums`}>{fmt(d.orders)}</td><td class={`${td} text-right tabular-nums`}>{money(d.amount)}</td></tr>)}
+              {!s.discounts.length && <tr><td class={`${td} text-admin-muted`} colspan="3">None used.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class={card}>
+        <h2 class="text-sm font-semibold">How orders were sent</h2>
+        <dl class="mt-2 grid grid-cols-[1fr_auto] gap-y-1 text-sm">
+          <dt>Shipped</dt><dd class="text-right tabular-nums">{sent(s.fulfilment.ship)}</dd>
+          <dt>Picked up</dt><dd class="text-right tabular-nums">{sent(s.fulfilment.pickup)}</dd>
+          <dt>Nothing to send</dt><dd class="text-right tabular-nums">{sent(s.fulfilment.none)}</dd>
+        </dl>
+      </section>
+    </div>
+  </div>
+</Admin>
+
+<style>
+  .stats-chart { position: relative; padding-left: 4rem; }
+  .stats-max { position: absolute; left: 0; top: 0; }
+  .stats-bars { display: flex; align-items: flex-end; gap: 2px; height: 180px; border-bottom: 1px solid color-mix(in srgb, var(--color-admin-ink) 15%, transparent); }
+  .stats-bar { position: relative; flex: 1 1 0; height: 100%; display: flex; align-items: flex-end; outline: none; }
+  .stats-bar span { display: block; width: 100%; min-height: 1px; border-radius: 4px 4px 0 0; background: var(--color-admin-accent); }
+  .stats-bar:hover span, .stats-bar:focus-visible span { background: var(--color-admin-accent-dark); }
+  .stats-bar:hover::after, .stats-bar:focus-visible::after {
+    content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); z-index: 1;
+    white-space: nowrap; padding: 4px 8px; border-radius: 4px; font-size: 12px; background: var(--color-admin-bar); color: var(--color-admin-on-bar); pointer-events: none;
+  }
+  .stats-bar:first-child:hover::after, .stats-bar:first-child:focus-visible::after { left: 0; transform: none; }
+  .stats-bar:last-child:hover::after, .stats-bar:last-child:focus-visible::after { left: auto; right: 0; transform: none; }
+</style>

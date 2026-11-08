@@ -1304,6 +1304,14 @@ answer 404.
   `refund_attempt`, as ticket refunds) and put lines back in stock (`restockOrder`, `shop_restock`: each
   line at most what was bought, checked in the statement that records it, `lines[].restocked`; only once
   the order's stock was taken off). Cancel and refund take the lines to put back with them.
+- **Shop stats** (Shop > Stats, `/admin/shop/stats/`, editors; `src/lib/shop/stats.ts`): over the Stats
+  screen's ranges (`statsRange`), from paid and refunded orders by the day they were paid in the site's
+  time zone (`summarizeOrders`): net sales (paid less refunded), orders, items, the average order, buyers
+  and those who ordered more than once, checkouts started and never paid, the shipping, tax and discounts
+  in the sales, a bar a day (a week past 90 days), the products that sold most (after their share of
+  discounts), the discounts used and how orders were sent. Orders in another currency than the shop's
+  are left out and counted; at most `SHOP_STATS_MAX_ORDERS` (20,000) are read. Each table downloads as
+  CSV (`GET /api/admin/shop/stats.csv?table=daily|products|discounts` with the range, formulas guarded).
 - **Order emails** (`src/lib/shop/email.ts`, safe in the browser; Settings > Shop, Emails,
   `settings.site.shop.emails`, `shopEmailsFrom`): the buyer's confirmation (when paid, and Resend
   confirmation), shipped (marking an order shipped, with its tracking), refunded (a refund made on its
@@ -1445,7 +1453,7 @@ of its own, `section`; the content list has no tabs of its own for the types), a
 (each type with a page, at `/admin/compose/?type=<type>`; then Form and, while Mailing is on, Campaign;
 then Template, Template part and Pattern), Media, Stats, a **Forms** dropdown (Forms, Submissions), a **People** dropdown (Users and Members
 for admins, Mailing Lists and Tickets, each while its feature is on; a group of one shows as its link)
-and a **Shop** dropdown (Orders, Discounts) while the shop is on,
+and a **Shop** dropdown (Orders, Discounts, Stats) while the shop is on,
 then a gear for Settings (admins), **?**, View site and the account menu. Below 1024px it all sits behind
 one menu button, the groups as headings. The dropdowns are `details[data-menu]`: one open at a time, closed
 by a click elsewhere or Escape.

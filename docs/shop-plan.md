@@ -37,7 +37,8 @@ Done so far: the checkout settings (provider, hold, zones and rates, pickup, tax
 webhook, stock taken off when paid, holds expiring, the order's page, plain confirmation emails) and the
 Orders screen (tabs, search, CSV; mark shipped with tracking or picked up, notes, resend, cancel, refund
 and restock by line), and discounts (`src/lib/shop/discounts.ts`, `discount-lookup.ts`, Shop > Discounts), and the order emails in
-the email builder (`src/lib/shop/email.ts`; confirmation, shipped, refunded and the shop's copy).
+the email builder (`src/lib/shop/email.ts`; confirmation, shipped, refunded and the shop's copy), and Shop > Stats
+(`src/lib/shop/stats.ts`: sales by day, products, discounts).
 An order keeps its lines on the order (`shop_orders.lines`, JSON) rather than in a
 table of their own, so the order and its lines are written in one statement with the stock check. Next:
 sync and backups.
@@ -132,7 +133,7 @@ sync and backups.
 
 ### Admin
 
-- A Shop menu while it is on: Orders, Discounts (Stock in phase 3). Products stay under Content.
+- A Shop menu while it is on: Orders, Discounts, Stats (Stock in phase 3). Products stay under Content.
 - Orders (`/admin/shop/`): filter by status and fulfilment; an order's detail with mark shipped or
   picked up (sends the shipped email with tracking), resend, cancel, refund (admins), notes; CSV export.
 - Refund and cancel dialogs list the lines, each with an amount and a "Return to stock" quantity
