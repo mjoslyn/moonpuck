@@ -12,7 +12,7 @@ export function memoryBucket(): R2BucketLike {
       size: f.bytes.length,
       uploaded: f.uploaded,
       httpEtag: `"${key}-${f.uploaded.getTime()}"`,
-      ...(withBody ? { body: new Blob([f.bytes]).stream() } : {}),
+      ...(withBody ? { body: new Blob([f.bytes as Uint8Array<ArrayBuffer>]).stream() } : {}),
       writeHttpMetadata: (h: Headers) => h.set('content-type', f.type),
     };
   };
