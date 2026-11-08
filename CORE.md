@@ -1245,7 +1245,14 @@ answer 404.
   sale), SKU, weight, shipped, pickup only, taxed, most per order, count stock, and up to 3 options with
   their values. Each combination is a variant (`variantsFor`; one `default` variant without options) with
   a stable id and its own price, compare-at price, SKU, weight and image (media id), or `off` (not sold);
-  changing the options keeps each variant whose values stay. A combination stored without a variant reads
+  changing the options keeps each variant whose values stay. **Sales** (`sale`, `Sale`, `saleOf`, `saleRuns`): a start and end
+  (ISO; either open), a sale price or percent off, and members' sale prices or percent off by level
+  (`memberPrices`, `memberDiscounts`); a variant's `salePrice` and `memberSalePrices` come first. While
+  it runs (`resolveVariant` at `now`), a variant's `price` is its sale price when lower (`regular` the
+  usual one, `compareAt` the higher of the two, `sale` set), so every reader (`sellable`, the quote,
+  checkout, the blocks) charges and shows it; `unitFor` gives members the lowest of their member price
+  (from the usual price), their sale price and the sale price. The Product price and Add to cart blocks
+  mark it (`c-price__sale`). A combination stored without a variant reads
   with an id made from its values (`comboId`), the same each time.
 - **Stock**: table `shop_stock` (product, variant, on hand; migration `*_shop_stock.sql`), kept apart
   from the product's fields so a product's save never overwrites a count; the settings save each count

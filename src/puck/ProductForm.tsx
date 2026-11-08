@@ -50,6 +50,7 @@ export function ProductForm({ entryId, fields, onChange }: { entryId: number | n
       <DownloadField value={raw.download} onChange={(download) => set({ download: download ?? undefined })} />
       <Num title="Most per order (empty: no limit)" min={1} value={raw.maxPerOrder ?? undefined} onChange={(maxPerOrder) => set({ maxPerOrder: maxPerOrder || null })} />
       {members?.enabled && members.levels.length > 0 && <MemberPricing raw={raw} levels={members.levels} onChange={set} />}
+      <SalePricing raw={raw} levels={members?.enabled ? members.levels : []} onChange={set} />
       <Toggle title="Count stock" value={raw.trackStock} onChange={(v) => set({ trackStock: v || undefined })} />
       {raw.trackStock && !hasOptions && <StockInput label="In stock" value={stock.counts[DEFAULT_VARIANT]} disabled={!entryId} onSave={(n) => stock.save(DEFAULT_VARIANT, n)} />}
       {raw.trackStock && <p className="-mt-2 mb-3 text-xs text-admin-muted" role="status">{stock.status || 'Stock saves as you change it, apart from the product.'}</p>}
@@ -90,7 +91,9 @@ export function ProductForm({ entryId, fields, onChange }: { entryId: number | n
               <div className="border-t border-admin-ink/10 bg-white p-2">
                 <PriceInput title="Price (empty: the product's)" optional value={v.price ?? undefined} onChange={(price) => setVariant(v.id, { price: price ?? null })} />
                 <PriceInput title="Compare-at price (empty: the product's)" optional value={v.compareAt ?? undefined} onChange={(compareAt) => setVariant(v.id, { compareAt: compareAt ?? null })} />
-                {members?.enabled && members.levels.length > 0 && <VariantMemberPrices variant={v} levels={members.levels} onChange={(memberPrices) => setVariant(v.id, { memberPrices })} />}
+                {members?.enabled && members.levels.length > 0 && <VariantMemberPrices prices={v.memberPrices} levels={members.levels} onChange={(memberPrices) => setVariant(v.id, { memberPrices })} />}
+                {raw.sale && <PriceInput title="Sale price (empty: the sale's)" optional value={v.salePrice ?? undefined} onChange={(salePrice) => setVariant(v.id, { salePrice: salePrice ?? null })} />}
+                {raw.sale && members?.enabled && members.levels.length > 0 && <VariantMemberPrices sale prices={v.memberSalePrices} levels={members.levels} onChange={(memberSalePrices) => setVariant(v.id, { memberSalePrices })} />}
                 {raw.trackStock && <StockInput label="In stock" value={stock.counts[v.id]} disabled={!entryId} onSave={(n) => stock.save(v.id, n)} />}
                 <Row title="SKU">
                   <input className={inputClass} value={v.sku ?? ''} placeholder={raw.sku ?? ''} onChange={(e) => setVariant(v.id, { sku: e.target.value || undefined })} />
@@ -167,15 +170,103 @@ function MemberPricing({ raw, levels, onChange }: { raw: Raw; levels: MemberLeve
   );
 }
 
-/** A variant's own price for each member level (empty: the product's member pricing). */
-function VariantMemberPrices({ variant, levels, onChange }: { variant: Variant; levels: MemberLevel[]; onChange: (memberPrices: Record<string, number> | undefined) => void }) {
-  const prices = variant.memberPrices ?? {};
+const toLocal = (iso: string | null | undefined) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+};
+const fromLocal = (v: string) => (v ? new Date(v).toISOString() : null);
+
+/**
+ * A sale: on or off, when it starts and ends (empty: now, and until turned off), the sale price (one
+ * price, or a percent off each variant's), and for each member level their sale price or percent off.
+ * Variants can set their own sale prices. Only prices lower than the usual are charged.
+ */
+function SalePricing({ raw, levels, onChange }: { raw: Raw; levels: MemberLevel[]; onChange: (patch: Raw) => void }) {
+  const sale: Record<string, any> | undefined = raw.sale;
+  const set = (patch: Record<string, any>) => onChange({ sale: { ...(sale ?? {}), ...patch } });
+  const [kind, setKind] = useState<'price' | 'percent'>(sale?.percent ? 'percent' : 'price');
+  const off: Record<string, number> = sale?.memberDiscounts ?? {};
+  const fixed: Record<string, number> = sale?.memberPrices ?? {};
+  const [kinds, setKinds] = useState<Record<string, 'none' | 'percent' | 'fixed'>>({});
+  const kindOf = (id: string) => (fixed[id] != null ? 'fixed' : off[id] ? 'percent' : (kinds[id] ?? 'none'));
+  const setLevel = (level: string, k: 'none' | 'percent' | 'fixed', amount?: number) => {
+    const o = { ...off };
+    const f = { ...fixed };
+    delete o[level];
+    delete f[level];
+    if (k === 'percent' && amount) o[level] = Math.min(100, amount);
+    if (k === 'fixed' && amount != null) f[level] = amount;
+    set({ memberDiscounts: Object.keys(o).length ? o : undefined, memberPrices: Object.keys(f).length ? f : undefined });
+  };
+  const now = Date.now();
+  const state = !sale ? '' : sale.start && Date.parse(sale.start) > now ? 'Not started yet.' : sale.end && Date.parse(sale.end) <= now ? 'Ended.' : 'On now.';
+  return (
+    <div className="mb-3 rounded border border-admin-ink/10 p-2">
+      <Toggle title="On sale" value={!!sale} onChange={(on) => onChange({ sale: on ? {} : undefined })} />
+      {sale && (
+        <>
+          <Row title="Starts (empty: now)">
+            <input type="datetime-local" className={inputClass} value={toLocal(sale.start)} onChange={(e) => set({ start: fromLocal(e.target.value) })} />
+          </Row>
+          <Row title="Ends (empty: until it is turned off)">
+            <input type="datetime-local" className={inputClass} value={toLocal(sale.end)} onChange={(e) => set({ end: fromLocal(e.target.value) })} />
+          </Row>
+          <Select
+            title="Sale price"
+            value={kind}
+            options={[
+              ['price', 'A price (every variant’s, unless a variant has its own)'],
+              ['percent', 'A percent off each variant’s price'],
+            ]}
+            onChange={(v) => {
+              const k = v === 'percent' ? 'percent' : 'price';
+              setKind(k);
+              set(k === 'percent' ? { price: null } : { percent: null });
+            }}
+          />
+          {kind === 'price' ? <PriceInput title="Sale price" optional value={sale.price ?? undefined} onChange={(price) => set({ price: price ?? null })} /> : <Num title="Percent off" min={0} max={100} value={sale.percent ?? undefined} onChange={(percent) => set({ percent: percent || null })} />}
+          {levels.map((l) => {
+            const k = kindOf(l.id);
+            return (
+              <div key={l.id} className="mb-1">
+                <Select
+                  title={`${l.name} members pay in the sale`}
+                  value={k}
+                  options={[
+                    ['none', 'Their usual price, or the sale price when lower'],
+                    ['percent', 'A percent off the usual price'],
+                    ['fixed', 'A sale price of their own'],
+                  ]}
+                  onChange={(v) => {
+                    const next = (v ?? 'none') as 'none' | 'percent' | 'fixed';
+                    setKinds((x) => ({ ...x, [l.id]: next }));
+                    setLevel(l.id, next, next === 'percent' ? off[l.id] : next === 'fixed' ? fixed[l.id] : undefined);
+                  }}
+                />
+                {k === 'percent' && <Num title="Percent off" min={0} max={100} value={off[l.id]} onChange={(pct) => setLevel(l.id, 'percent', pct)} />}
+                {k === 'fixed' && <PriceInput title="Their sale price (every variant's, unless a variant has its own)" optional value={fixed[l.id]} onChange={(c) => setLevel(l.id, 'fixed', c)} />}
+              </div>
+            );
+          })}
+          <p className="mb-0 text-xs text-admin-muted">
+            {state} While it runs, the sale price shows with the usual price struck through and a Sale mark; members pay the lowest of their price, their sale price and the sale price.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** A variant's own price for each member level (empty: the product's member pricing), or its sale price for each. */
+function VariantMemberPrices({ prices: given, sale, levels, onChange }: { prices: Record<string, number> | undefined; sale?: boolean; levels: MemberLevel[]; onChange: (prices: Record<string, number> | undefined) => void }) {
+  const prices = given ?? {};
   return (
     <>
       {levels.map((l) => (
         <PriceInput
           key={l.id}
-          title={`${l.name} members' price (empty: the product's member pricing)`}
+          title={sale ? `${l.name} members' sale price (empty: the sale's)` : `${l.name} members' price (empty: the product's member pricing)`}
           optional
           value={prices[l.id]}
           onChange={(c) => {

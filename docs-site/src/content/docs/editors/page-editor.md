@@ -940,7 +940,8 @@ Its settings:
 #### Product price
 
 The product's price, or "From" the lowest when its variants differ, with any compare-at price struck
-through.
+through. While the product is on sale, the sale price with the usual price struck through and a **Sale**
+mark.
 
 Its settings:
 

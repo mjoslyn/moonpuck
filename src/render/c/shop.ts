@@ -40,10 +40,10 @@ function productEntry(b: { attrs: Record<string, any> }, env: Env): Entry | unde
 
 const currency = (env: Env) => shopSettings(env.ctx.settings.site).currency;
 
-/** A price, struck through beside its compare-at price when that is higher. */
-function priceHtml(price: number, compareAt: number | null | undefined, cur: string): string {
+/** A price, struck through beside its compare-at price when that is higher, and marked while on sale. */
+function priceHtml(price: number, compareAt: number | null | undefined, cur: string, sale = false): string {
   const was = compareAt && compareAt > price ? `<s class="c-price__was">${esc(formatMoney(compareAt, cur))}</s> ` : '';
-  return `${was}<span class="c-price__now">${esc(formatMoney(price, cur))}</span>`;
+  return `${was}<span class="c-price__now">${esc(formatMoney(price, cur))}</span>${sale ? ' <span class="c-price__sale">Sale</span>' : ''}`;
 }
 
 /**
@@ -63,7 +63,8 @@ function memberNote(p: Product, e: Entry, env: Env): string {
   const deals = m.levels
     .map((l) => {
       const member = { level: l.id, status: 'active' };
-      const fixed = p.memberPrices?.[l.id] != null || variants.some((v) => v.memberPrices?.[l.id] != null);
+      // A percent off, said as such while nothing else changes what they pay (no fixed prices, no sale).
+      const fixed = p.memberPrices?.[l.id] != null || variants.some((v) => v.memberPrices?.[l.id] != null || v.sale || v.memberSalePrices?.[l.id] != null || v.memberSaleDiscounts?.[l.id]);
       if (fixed) {
         const units = variants.map((v) => unitFor(p, v, member, fromCategories));
         const low = Math.min(...units);
@@ -95,8 +96,10 @@ const productPrice: Renderer = (b, env) => {
   const cur = currency(env);
   const same = range.min === range.max;
   // Its compare-at price shows when every variant sells at the one price.
-  const compareAt = same ? sellable(p)[0]?.compareAt : null;
-  const html = same ? priceHtml(range.min, compareAt, cur) : `From <span class="c-price__now">${esc(formatMoney(range.min, cur))}</span>`;
+  const sold = sellable(p);
+  const compareAt = same ? sold[0]?.compareAt : null;
+  const onSale = sold.some((v) => v.sale);
+  const html = same ? priceHtml(range.min, compareAt, cur, onSale) : `From <span class="c-price__now">${esc(formatMoney(range.min, cur))}</span>${onSale ? ' <span class="c-price__sale">Sale</span>' : ''}`;
   return `<p ${root(b.attrs, ['c-price', 'c-product-price'])} data-product="${e.id}">${html}</p>`;
 };
 
@@ -109,6 +112,7 @@ function variantData(env: Env, e: Entry, p: Product, stock: StockMap | undefined
       values: v.values,
       price: v.price,
       compareAt: v.compareAt,
+      sale: v.sale,
       image: m ? mediaUrl(downsize(m, 'large').path) : null,
       // A product whose stock wasn't read (a card in a list): as many as an order takes, until the script asks.
       left: maxQuantity(p, stock?.has(e.id) ? leftOf(p, stock.get(e.id), v.id) : null),
@@ -141,7 +145,7 @@ const addToCart: Renderer = (b, env) => {
   return (
     `<form ${root(a, ['c-add-to-cart'])} id="${id}" data-add-to-cart data-product="${e.id}" data-title="${escAttr(e.title)}" data-currency="${escAttr(cur)}" data-variants="${jsonAttr(variants)}" data-label="${escAttr(label)}" data-cart-path="${CART_PATH}"${Number(a.product) ? '' : ' data-own'}>` +
     (choices ? `<div class="c-add-to-cart__options">${choices}</div>` : '') +
-    `<p class="c-price c-add-to-cart__price">${priceHtml(first.price!, first.compareAt, cur)}</p>` +
+    `<p class="c-price c-add-to-cart__price">${priceHtml(first.price!, first.compareAt, cur, first.sale)}</p>` +
     memberNote(p, e, env) +
     `<div class="c-add-to-cart__row">${qty}<button type="submit" class="c-shop-button c-add-to-cart__button"${soldOut ? ' disabled' : ''}>${esc(soldOut ? 'Sold out' : label)}</button></div>` +
     `<p class="c-add-to-cart__status" role="status" aria-live="polite"></p>` +

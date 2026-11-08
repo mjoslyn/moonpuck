@@ -90,6 +90,24 @@ export interface Variant {
   off?: boolean;
   /** Its price for active members, by level id (over the product's member price and discount). */
   memberPrices?: Record<string, number>;
+  /** Its price while the product's sale runs (over the sale's price and percent off). */
+  salePrice?: number | null;
+  /** Its members' price while the sale runs, by level id (over the sale's member prices). */
+  memberSalePrices?: Record<string, number>;
+}
+
+/**
+ * A sale: from `start` to `end` (ISO times; either may be empty), every variant sells at its sale price
+ * (its own, else `price`, else `percent` off its price) and members of a level at their sale price (the
+ * variant's, else `memberPrices`, else `memberDiscounts` percent off its price), each only when lower.
+ */
+export interface Sale {
+  start?: string | null;
+  end?: string | null;
+  price?: number | null;
+  percent?: number | null;
+  memberPrices?: Record<string, number>;
+  memberDiscounts?: Record<string, number>;
 }
 
 export interface Product {
@@ -122,6 +140,7 @@ export interface Product {
   /** Only active members (of `levels`, or any level when none) may buy it. */
   membersOnly?: boolean;
   levels?: string[];
+  sale?: Sale;
 }
 
 /** A product's download: where it is kept (under the store's shop-downloads/ folder), its name and size. */
@@ -153,6 +172,14 @@ export interface ResolvedVariant {
   image: number | null;
   off: boolean;
   memberPrices?: Record<string, number>;
+  /** Its price without the sale (`price` is the sale price while one runs). */
+  regular: number | null;
+  /** On sale now: `price` is below `regular`. */
+  sale: boolean;
+  /** Its members' sale prices by level, while the sale runs (the variant's over the sale's). */
+  memberSalePrices?: Record<string, number>;
+  /** The sale's percent off for members, by level, while it runs. */
+  memberSaleDiscounts?: Record<string, number>;
 }
 
 const cents = (v: unknown): number | null => (v === '' || v == null || !Number.isFinite(Number(v)) || Number(v) < 0 ? null : Math.round(Number(v)));
@@ -230,6 +257,8 @@ export function productOf(fields: Record<string, any> | null | undefined): Produ
       image: Number(v.image) > 0 ? Number(v.image) : null,
       off: v.off === true || undefined,
       memberPrices: memberPricesOf(v.memberPrices),
+      salePrice: cents(v.salePrice),
+      memberSalePrices: memberPricesOf(v.memberSalePrices),
     }));
   const max = Math.floor(Number(raw.maxPerOrder));
   return {
@@ -251,7 +280,33 @@ export function productOf(fields: Record<string, any> | null | undefined): Produ
     memberPrices: memberPricesOf(raw.memberPrices),
     membersOnly: raw.membersOnly === true || undefined,
     levels: Array.isArray(raw.levels) ? raw.levels.filter((l: unknown) => typeof l === 'string' && /^[\w-]{1,40}$/.test(l)).slice(0, 50) : undefined,
+    sale: saleOf(raw.sale),
   };
+}
+
+const isoTime = (v: unknown): string | null => (typeof v === 'string' && v && !Number.isNaN(Date.parse(v)) ? new Date(v).toISOString() : null);
+
+/** A sale as stored, cleaned; undefined when it has no prices. */
+export function saleOf(v: unknown): Sale | undefined {
+  const r = v as Record<string, unknown> | null;
+  if (!r || typeof r !== 'object') return undefined;
+  const pct = Number(r.percent);
+  const sale: Sale = {
+    start: isoTime(r.start),
+    end: isoTime(r.end),
+    price: cents(r.price),
+    percent: Number.isFinite(pct) && pct > 0 ? Math.min(100, Math.round(pct * 100) / 100) : null,
+    memberPrices: memberPricesOf(r.memberPrices),
+    memberDiscounts: memberDiscountsOf(r.memberDiscounts),
+  };
+  return sale;
+}
+
+/** Whether a product's sale runs at `now`: inside its times (an empty one is open). */
+export function saleRuns(sale: Sale | undefined, now: Date = new Date()): boolean {
+  if (!sale) return false;
+  const t = now.getTime();
+  return !(sale.start && t < Date.parse(sale.start)) && !(sale.end && t >= Date.parse(sale.end));
 }
 
 /** Percent off by level: above 0, at most 100, to two decimals. */
@@ -282,10 +337,16 @@ export const memberDiscount = (p: Product, member: Membership) => {
 export const unitFor = (p: Product, v: ResolvedVariant, member: Membership, fromCategories?: Record<string, number>) => {
   const level = activeLevel(member);
   if (!level) return v.price!;
+  // `price` is the sale price while a sale runs; the member price is worked out from the regular price,
+  // and the member's sale price (a sale's own for the level) wins when lower.
+  const regular = v.regular ?? v.price!;
   const fixed = v.memberPrices?.[level] ?? p.memberPrices?.[level];
-  if (fixed != null) return Math.min(fixed, v.price!);
   const pct = p.memberDiscounts?.[level] || fromCategories?.[level] || 0;
-  return pct ? Math.round((v.price! * (100 - pct)) / 100) : v.price!;
+  const member$ = fixed != null ? fixed : pct ? Math.round((regular * (100 - pct)) / 100) : regular;
+  const saleFixed = v.memberSalePrices?.[level];
+  const salePct = v.memberSaleDiscounts?.[level];
+  const memberSale = saleFixed != null ? saleFixed : salePct ? Math.round((regular * (100 - salePct)) / 100) : Infinity;
+  return Math.min(v.price!, member$, memberSale);
 };
 
 /** The reserved term field a product category keeps its member discounts under (percent, by level). */
@@ -323,27 +384,44 @@ function comboId(values: string[]): string {
   return `c${(h >>> 0).toString(36)}`;
 }
 
-/** A variant with the product's settings where it has none of its own. */
-export function resolveVariant(p: Product, v: Variant): ResolvedVariant {
-  return {
+/** A variant with the product's settings where it has none of its own, at its sale price while the
+ *  product's sale runs at `now` (the regular price, or its compare-at price when higher, struck through). */
+export function resolveVariant(p: Product, v: Variant, now: Date = new Date()): ResolvedVariant {
+  const regular = v.price ?? p.price;
+  const compareAt = v.compareAt ?? p.compareAt ?? null;
+  const out: ResolvedVariant = {
     id: v.id,
     values: v.values,
     label: v.values.join(' / '),
-    price: v.price ?? p.price,
-    compareAt: v.compareAt ?? p.compareAt ?? null,
+    price: regular,
+    regular,
+    sale: false,
+    compareAt,
     sku: v.sku || p.sku || '',
     weight: v.weight ?? p.weight ?? null,
     image: v.image ?? null,
     off: !!v.off,
     memberPrices: v.memberPrices,
   };
+  if (regular == null || !saleRuns(p.sale, now)) return out;
+  const sale = p.sale!;
+  const own = v.salePrice ?? sale.price ?? (sale.percent ? Math.round((regular * (100 - sale.percent)) / 100) : null);
+  const memberSalePrices = { ...(sale.memberPrices ?? {}), ...(v.memberSalePrices ?? {}) };
+  if (Object.keys(memberSalePrices).length) out.memberSalePrices = memberSalePrices;
+  if (sale.memberDiscounts) out.memberSaleDiscounts = sale.memberDiscounts;
+  if (own != null && own < regular) {
+    out.price = own;
+    out.sale = true;
+    out.compareAt = Math.max(regular, compareAt ?? 0);
+  }
+  return out;
 }
 
 /** The variants a product sells (switched-off ones and those with no price left out). */
-export const sellable = (p: Product): ResolvedVariant[] => p.variants.map((v) => resolveVariant(p, v)).filter((v) => !v.off && v.price != null);
+export const sellable = (p: Product, now: Date = new Date()): ResolvedVariant[] => p.variants.map((v) => resolveVariant(p, v, now)).filter((v) => !v.off && v.price != null);
 
 /** A variant by id, as sold; undefined when it isn't (gone, off or without a price). */
-export const variantOf = (p: Product, id: string): ResolvedVariant | undefined => sellable(p).find((v) => v.id === id);
+export const variantOf = (p: Product, id: string, now: Date = new Date()): ResolvedVariant | undefined => sellable(p, now).find((v) => v.id === id);
 
 /** The lowest and highest price of what a product sells; null when it sells nothing. */
 export function priceRange(p: Product): { min: number; max: number } | null {

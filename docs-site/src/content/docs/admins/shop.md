@@ -21,7 +21,7 @@ If your site has a shop, products appear under **Content**, **Products**, and on
 3. Add a **Featured image** and an **Excerpt**: they show beside the price on its page and in the shop.
 4. Describe it on the page itself, as with any page.
 5. Under **Shop**, give it a **Price**. Add a **Compare-at price** to show a higher price struck
-   through (a sale).
+   through, or put it **On sale** (see Sales below).
 6. Click **Publish**.
 
 ![A product's Shop settings](../../../assets/guide/shop-product-settings.png)
@@ -41,6 +41,22 @@ A product without a price isn't for sale. The other settings under **Shop**:
   members their price.
 - A variant can have its own price for each member level too. Left empty, it uses the product's member
   pricing.
+
+## Sales
+
+Under **Shop**, tick **On sale**, then set:
+
+- **Starts**: a date and time, or empty for now.
+- **Ends**: a date and time, or empty to run until you untick **On sale**.
+- **Sale price**: A price (every variant's), or A percent off each variant's price.
+- **Members pay in the sale** (for each member level, when your site has Members turned on): Their usual
+  price, or the sale price when lower; A percent off the usual price; or A sale price of their own.
+
+While the sale runs, the product's page and cards show the sale price with the usual price struck through
+and a **Sale** mark, and the cart charges it. Members pay the lowest of their member price, their sale
+price and the sale price. A sale price that isn't lower than the usual price isn't used. A variant can
+have its own **Sale price**, and its own sale price for each member level. Pages can take a minute or
+two to show a sale starting or ending; the cart always charges the price at that moment.
 
 ## Sizes, colors and other options
 

@@ -112,6 +112,7 @@
         price.innerHTML = '';
         if (v.compareAt && v.compareAt > v.price) price.append(el('s', { className: 'c-price__was', textContent: money(v.compareAt, currency) }), ' ');
         price.append(el('span', { className: 'c-price__now', textContent: money(v.price, currency) }));
+        if (v.sale) price.append(' ', el('span', { className: 'c-price__sale', textContent: 'Sale' }));
       }
       if (img && original) {
         if (v.image) {
