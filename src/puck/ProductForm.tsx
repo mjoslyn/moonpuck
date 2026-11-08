@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Num, Row, Select, Toggle, inputClass, MediaModal } from './fields';
 import { PriceInput } from './TicketsForm';
 import { browserClient } from '../lib/db/browser';
+import { moveItem } from '../lib/admin/move-item';
 import { mediaUrl } from '../lib/media/image';
 import { useMemberSettings, useSite } from './member-settings';
 import type { MemberLevel } from '../lib/members/config';
@@ -384,12 +385,7 @@ function GalleryField({ ids, onChange }: { ids: number[]; onChange: (ids: number
       .in('id', missing)
       .then(({ data }) => setUrls((u) => ({ ...u, ...Object.fromEntries((data ?? []).map((m: { id: number; path: string }) => [m.id, mediaUrl(m.path)])) })));
   }, [key]);
-  const move = (i: number, by: number) => {
-    const next = [...ids];
-    const [x] = next.splice(i, 1);
-    next.splice(i + by, 0, x);
-    onChange(next);
-  };
+  const move = (i: number, by: -1 | 1) => onChange(moveItem(ids, i, by));
   return (
     <div className="mb-3">
       <span className="mb-1 block text-xs text-admin-muted">Gallery images (after the featured image, in the Product gallery block)</span>

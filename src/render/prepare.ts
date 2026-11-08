@@ -111,7 +111,9 @@ async function descendantTermIds(ctx: RenderCtx, roots: number[]): Promise<numbe
 async function loadEntryMedia(ctx: RenderCtx, ids: number[]) {
   const entries = ids.map((id) => ctx.loader.entries.get(id)).filter(Boolean);
   const imageIds = entries.flatMap((e) => imageFields(e!.type).map((k) => Number(e!.fields?.[k])).filter((n) => n > 0));
-  await ctx.loader.loadMedia([...entries.map((e) => e!.featured_media_id!), ...imageIds]);
+  // A product's gallery and variants' pictures, for a Product gallery or Add to cart in its card.
+  const productIds = entries.flatMap((e) => (e!.type === 'product' ? productImages(productOf(e!.fields), null) : []));
+  await ctx.loader.loadMedia([...entries.map((e) => e!.featured_media_id!), ...imageIds, ...productIds]);
 }
 
 async function loadDoc(ctx: RenderCtx, key: string, fetch: () => Promise<PuckItem[] | null | undefined>, state: WalkState) {
@@ -319,13 +321,16 @@ async function prepareShop(ctx: RenderCtx, type: string, attrs: Record<string, a
   // A buyer's order on the cart's page (?order=<token>; such pages are never cached).
   if (type === 'cart' && !ctx.editor && ctx.queried.url.searchParams.has('order')) await renderHooks.shopOrder?.(ctx);
   if (type !== 'product-price' && type !== 'add-to-cart' && type !== 'product-gallery') return;
+  if (type === 'product-gallery') {
+    // On any page: in a collection's cards the products (and their pictures, loadEntryMedia) are the cards'.
+    const tag = '<script src="/assets/js/product-gallery.js" defer></script>';
+    if (!ctx.headScripts.includes(tag)) ctx.headScripts.push(tag);
+  }
   const named = Number(attrs.product) || 0;
   if (named) await ctx.loader.entriesByIds([named]);
   const e = named ? ctx.loader.entries.get(named) : ctx.queried.entry;
   if (type === 'product-gallery') {
     if (e?.type !== 'product') return;
-    const tag = '<script src="/assets/js/product-gallery.js" defer></script>';
-    if (!ctx.headScripts.includes(tag)) ctx.headScripts.push(tag);
     const ids = productImages(productOf(e.fields), e.featured_media_id);
     if (ids.length) await ctx.loader.loadMedia(ids);
     return;

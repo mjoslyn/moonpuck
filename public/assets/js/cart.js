@@ -77,6 +77,7 @@
     const outside = () => [...document.querySelectorAll('.c-entry-image img')].find((i) => !i.closest('.c-collection__items'));
     // A Product gallery for the same product on the page shows the variant's picture itself (product-gallery.js).
     const gallery = !card && document.querySelector(`[data-product-gallery][data-product="${product}"]`);
+    let shownVariant = null;
     const img = gallery ? null : card ? card.querySelector('.c-entry-image img') : form.hasAttribute('data-own') ? outside() : null;
     const original = img && { src: img.getAttribute('src'), srcset: img.getAttribute('srcset'), sources: [...(img.closest('picture')?.querySelectorAll('source') ?? [])] };
     const chosen = () => {
@@ -116,7 +117,14 @@
         price.append(el('span', { className: 'c-price__now', textContent: money(v.price, currency) }));
         if (v.sale) price.append(' ', el('span', { className: 'c-price__sale', textContent: 'Sale' }));
       }
-      if (gallery) document.dispatchEvent(new CustomEvent('c-product:variant', { detail: { product, image: v.imageId || null } }));
+      // The gallery follows the variant only when the choice changes, not on every refresh (availability,
+      // the cart changing), so a picture the visitor picked stays. The form keeps the variant's picture for
+      // a gallery whose script starts after this one.
+      if (gallery && v.id !== shownVariant) {
+        shownVariant = v.id;
+        form.dataset.variantImage = v.imageId || '';
+        document.dispatchEvent(new CustomEvent('c-product:variant', { detail: { product, image: v.imageId || null } }));
+      }
       if (img && original) {
         if (v.image) {
           img.src = v.image;

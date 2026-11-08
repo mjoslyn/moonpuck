@@ -14,6 +14,7 @@ import { EmailCard } from './EmailCard';
 import type { MailList } from '../lib/mailing/config';
 import { DEFAULT_DOWNLOAD_DAYS, DEFAULT_DOWNLOAD_LIMIT, DEFAULT_LOW_STOCK, DEFAULT_NEWS_LABEL } from '../lib/shop/checkout-settings';
 import { shopEmailKit } from './shop-email';
+import { moveItem } from '../lib/admin/move-item';
 import { MAX_STATUSES, newStatusId, STATUS_EMAIL, type ShopStatus } from '../lib/shop/statuses';
 
 const EMAIL_HELP: Record<ShopEmailKind, string> = {
@@ -74,12 +75,7 @@ export default function ShopCheckoutSettings({ value, currency, weightUnit, prov
   // The shop's own order statuses (src/lib/shop/statuses.ts), as edited (cleaned on save).
   const statuses: ShopStatus[] = Array.isArray(value.statuses) ? value.statuses : [];
   const setStatus = (id: string, patch: Partial<ShopStatus>) => set({ statuses: statuses.map((x) => (x.id === id ? { ...x, ...patch } : x)) });
-  const moveStatus = (i: number, by: number) => {
-    const next = [...statuses];
-    const [x] = next.splice(i, 1);
-    next.splice(i + by, 0, x);
-    set({ statuses: next });
-  };
+  const moveStatus = (i: number, by: -1 | 1) => set({ statuses: moveItem(statuses, i, by) });
 
   return (
     <>

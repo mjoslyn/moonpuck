@@ -136,12 +136,15 @@ function parentsFirst<T extends { id: number; parent_id: number | null }>(rows: 
 }
 
 /** Media ids that entry content and image fields point at. */
-function mediaRefs(e: any): number[] {
+export function mediaRefs(e: any): number[] {
   const ids = new Set<number>();
   if (e.featured_media_id) ids.add(Number(e.featured_media_id));
   const text = typeof e.content === 'string' ? e.content : JSON.stringify(e.content ?? null);
   for (const m of text.matchAll(/"mediaId":\s*"?(\d+)/g)) ids.add(Number(m[1]));
   for (const f of fieldsFor(e.type)) if (f.type === 'image' && Number(e.fields?.[f.key])) ids.add(Number(e.fields[f.key]));
+  // A product's gallery and its variants' pictures (fields.shop).
+  const shop = e.fields?.shop;
+  for (const id of [...(Array.isArray(shop?.gallery) ? shop.gallery : []), ...(Array.isArray(shop?.variants) ? shop.variants.map((v: any) => v?.image) : [])]) if (Number(id) > 0) ids.add(Number(id));
   return [...ids];
 }
 

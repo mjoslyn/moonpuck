@@ -270,18 +270,17 @@ const productGallery: Renderer = (b, env) => {
   const aspect = GALLERY_ASPECTS.find(([k]) => k === String(a.aspect ?? '')) ?? GALLERY_ASPECTS[0];
   const ratio = aspect[2];
   const shape = ratio ? `aspect-ratio:${aspect[0]};object-fit:cover;width:100%;height:auto` : '';
-  const slides = media
-    .map((m, i) => {
-      const img = mediaImgTag(mediaImage(m, 'large', { ratio, style: shape || undefined, className: 'c-product-gallery__image' }), { loading: i ? 'lazy' : undefined });
-      return `<figure class="c-product-gallery__slide" data-media="${m.id}"${i ? ' hidden' : ''}>${img}</figure>`;
-    })
-    .join('');
+  // Each picture as the large one shows it (another image where the media library swaps one in for the
+  // shape); its thumbnail shows, names and links to the same one.
+  const large = media.map((m) => mediaImage(m, 'large', { ratio, style: shape || undefined, className: 'c-product-gallery__image' }));
+  const slides = media.map((m, i) => `<figure class="c-product-gallery__slide" data-media="${m.id}"${i ? ' hidden' : ''}>${mediaImgTag(large[i], { loading: i ? 'lazy' : undefined })}</figure>`).join('');
   const thumbs =
     media.length > 1
       ? `<ul class="c-product-gallery__thumbs">${media
           .map((m, i) => {
-            const t = mediaImage(m, 'thumbnail', { ratio: 1, className: 'c-product-gallery__thumb-image' });
-            return `<li><a class="c-product-gallery__thumb" href="${escAttr(mediaUrl(downsize(m, 'full').path))}" data-media="${m.id}" aria-label="${escAttr(`Picture ${i + 1} of ${media.length}${m.alt ? `: ${m.alt}` : ''}`)}"${i ? '' : ' aria-current="true"'}>${mediaImgTag({ ...t, alt: '' }, { loading: 'lazy' })}</a></li>`;
+            const t = mediaImage(m, 'medium', { ratio, className: 'c-product-gallery__thumb-image' });
+            const alt = large[i].alt;
+            return `<li><a class="c-product-gallery__thumb" href="${escAttr(large[i].src)}" data-media="${m.id}" aria-label="${escAttr(`Picture ${i + 1} of ${media.length}${alt ? `: ${alt}` : ''}`)}"${i ? '' : ' aria-current="true"'}>${mediaImgTag({ ...t, alt: '' }, { loading: 'lazy' })}</a></li>`;
           })
           .join('')}</ul>`
       : '';

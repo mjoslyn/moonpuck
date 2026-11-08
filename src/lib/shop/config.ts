@@ -299,8 +299,9 @@ const galleryOf = (v: unknown): number[] | undefined => {
   return ids.length ? ids : undefined;
 };
 
-/** The pictures the Product gallery shows: the featured image, then the gallery, then variants' own (each once). */
-export const productImages = (p: Product | null, featured: number | null | undefined): number[] => [...new Set([Number(featured) || 0, ...(p?.gallery ?? []), ...(p?.variants ?? []).filter((v) => !v.off).map((v) => Number(v.image) || 0)].filter((n) => n > 0))];
+/** The pictures the Product gallery shows: the featured image, then the gallery, then the own pictures of
+ *  the variants Add to cart offers (`sellable`: not off, with a price), each once. */
+export const productImages = (p: Product | null, featured: number | null | undefined): number[] => [...new Set([Number(featured) || 0, ...(p?.gallery ?? []), ...(p ? sellable(p) : []).map((v) => Number(v.image) || 0)].filter((n) => n > 0))];
 
 const isoTime = (v: unknown): string | null => (typeof v === 'string' && v && !Number.isNaN(Date.parse(v)) ? new Date(v).toISOString() : null);
 
