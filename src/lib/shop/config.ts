@@ -9,7 +9,7 @@ import { orderStatusesFrom, type ShopStatus } from './statuses';
 import { byLevel, isActive, type MemberRow } from '../members/config';
 
 /** The shop's blocks: offered in the editor, and shown on the site, only while the shop is on. */
-export const SHOP_BLOCKS = ['product-price', 'add-to-cart', 'cart', 'cart-link'];
+export const SHOP_BLOCKS = ['product-price', 'add-to-cart', 'product-gallery', 'cart', 'cart-link'];
 
 /** The reserved field key a product's shop settings live under. */
 export const SHOP_KEY = 'shop';
@@ -145,7 +145,11 @@ export interface Product {
   membersOnly?: boolean;
   levels?: string[];
   sale?: Sale;
+  /** More pictures of it (media ids), shown after its featured image by the Product gallery block. */
+  gallery?: number[];
 }
+
+export const MAX_GALLERY = 30;
 
 /** A product's download: where it is kept (under the store's shop-downloads/ folder), its name and size. */
 export interface ProductDownload {
@@ -285,8 +289,18 @@ export function productOf(fields: Record<string, any> | null | undefined): Produ
     membersOnly: raw.membersOnly === true || undefined,
     levels: Array.isArray(raw.levels) ? raw.levels.filter((l: unknown) => typeof l === 'string' && /^[\w-]{1,40}$/.test(l)).slice(0, 50) : undefined,
     sale: saleOf(raw.sale),
+    gallery: galleryOf(raw.gallery),
   };
 }
+
+/** Gallery media ids: distinct, at most MAX_GALLERY; undefined for none. */
+const galleryOf = (v: unknown): number[] | undefined => {
+  const ids = [...new Set((Array.isArray(v) ? v : []).map((x) => Math.trunc(Number(x))).filter((n) => n > 0))].slice(0, MAX_GALLERY);
+  return ids.length ? ids : undefined;
+};
+
+/** The pictures the Product gallery shows: the featured image, then the gallery, then variants' own (each once). */
+export const productImages = (p: Product | null, featured: number | null | undefined): number[] => [...new Set([Number(featured) || 0, ...(p?.gallery ?? []), ...(p?.variants ?? []).filter((v) => !v.off).map((v) => Number(v.image) || 0)].filter((n) => n > 0))];
 
 const isoTime = (v: unknown): string | null => (typeof v === 'string' && v && !Number.isNaN(Date.parse(v)) ? new Date(v).toISOString() : null);
 

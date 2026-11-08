@@ -75,7 +75,9 @@
     // (not one an Add to cart block names), the page's Featured image outside any card. Else none.
     const card = form.closest('.c-collection__items > li');
     const outside = () => [...document.querySelectorAll('.c-entry-image img')].find((i) => !i.closest('.c-collection__items'));
-    const img = card ? card.querySelector('.c-entry-image img') : form.hasAttribute('data-own') ? outside() : null;
+    // A Product gallery for the same product on the page shows the variant's picture itself (product-gallery.js).
+    const gallery = !card && document.querySelector(`[data-product-gallery][data-product="${product}"]`);
+    const img = gallery ? null : card ? card.querySelector('.c-entry-image img') : form.hasAttribute('data-own') ? outside() : null;
     const original = img && { src: img.getAttribute('src'), srcset: img.getAttribute('srcset'), sources: [...(img.closest('picture')?.querySelectorAll('source') ?? [])] };
     const chosen = () => {
       const values = selects.map((s) => s.value);
@@ -114,6 +116,7 @@
         price.append(el('span', { className: 'c-price__now', textContent: money(v.price, currency) }));
         if (v.sale) price.append(' ', el('span', { className: 'c-price__sale', textContent: 'Sale' }));
       }
+      if (gallery) document.dispatchEvent(new CustomEvent('c-product:variant', { detail: { product, image: v.imageId || null } }));
       if (img && original) {
         if (v.image) {
           img.src = v.image;

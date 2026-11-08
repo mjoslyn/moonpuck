@@ -8,6 +8,7 @@ import { NewsletterPanel, SubscribePanel } from './SubscribePanel';
 import { FormStylePanel } from './FormStyle';
 import { EVENT_BLOCKS } from '../lib/events/on';
 import { SHOP_BLOCKS } from '../lib/shop/config';
+import { GALLERY_ASPECTS } from '../render/c/shop';
 import { SITE_BLOCKS } from '../lib/site/render';
 import { taxonomiesOf } from '../lib/site';
 import { SITE_EDITOR } from '../lib/site/editor';
@@ -67,6 +68,14 @@ Object.assign(PANELS, {
       <Text title="Button" value={a.label} placeholder="Add to cart" onChange={(v) => set({ label: v || undefined })} />
       <Toggle title="Ask how many" value={a.showQuantity !== false} onChange={(v) => set({ showQuantity: v ? undefined : false })} />
       <p className="mb-2 text-xs text-admin-muted">The product's options (Size, Color...) are offered as choices; what's sold out can't be chosen. Prices, options and stock are in the product's settings, under Shop.</p>
+    </>
+  ),
+  'product-gallery': (a: Attrs, set: (p: Attrs) => void) => (
+    <>
+      <EntryField title="Product" entryType="product" value={a.product} onChange={(id) => set({ product: id || undefined })} />
+      <p className="mb-3 text-xs text-admin-muted">Empty: the product whose page it is on.</p>
+      <Select title="Shape" value={a.aspect ?? ''} options={GALLERY_ASPECTS.map(([k, label]) => [k, label] as [string, string])} onChange={(v) => set({ aspect: v || undefined })} />
+      <p className="mb-2 text-xs text-admin-muted">Its featured image large, with thumbnails of the rest below: the gallery images in its settings under Shop, then its variants' own. A variant chosen in Add to cart shows its picture.</p>
     </>
   ),
   cart: (a: Attrs, set: (p: Attrs) => void) => (
@@ -191,6 +200,7 @@ const LABELS: Record<string, string> = {
   'member-link': 'Member sign-in link',
   'product-price': 'Product price',
   'add-to-cart': 'Add to cart',
+  'product-gallery': 'Product gallery',
   cart: 'Cart',
   'cart-link': 'Cart link',
   subscribe: 'Subscribe',

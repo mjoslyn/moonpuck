@@ -23,7 +23,7 @@ import { prepareMap } from './c/map';
 import { prepareNavigation } from './c/navigation';
 import { isPageTickets, prepareTickets, prepareTicketsBlock } from './c/tickets';
 import { EVENT_BLOCKS, eventsOn } from '../lib/events/on';
-import { SHOP_BLOCKS, productOf, shopOn } from '../lib/shop/config';
+import { SHOP_BLOCKS, productImages, productOf, shopOn } from '../lib/shop/config';
 import { loadStock } from '../lib/shop/stock';
 import { CART_SCRIPT, STOCK_KEY } from './c/shop';
 import { LISTS_KEY } from './c/mailing';
@@ -290,6 +290,7 @@ async function walk(items: PuckItem[], ctx: RenderCtx, state: WalkState) {
       }
       case 'product-price':
       case 'add-to-cart':
+      case 'product-gallery':
       case 'cart':
       case 'cart-link':
         await prepareShop(ctx, type, attrs);
@@ -317,10 +318,18 @@ async function prepareShop(ctx: RenderCtx, type: string, attrs: Record<string, a
   if (!ctx.headScripts.includes(CART_SCRIPT)) ctx.headScripts.push(CART_SCRIPT);
   // A buyer's order on the cart's page (?order=<token>; such pages are never cached).
   if (type === 'cart' && !ctx.editor && ctx.queried.url.searchParams.has('order')) await renderHooks.shopOrder?.(ctx);
-  if (type !== 'product-price' && type !== 'add-to-cart') return;
+  if (type !== 'product-price' && type !== 'add-to-cart' && type !== 'product-gallery') return;
   const named = Number(attrs.product) || 0;
   if (named) await ctx.loader.entriesByIds([named]);
   const e = named ? ctx.loader.entries.get(named) : ctx.queried.entry;
+  if (type === 'product-gallery') {
+    if (e?.type !== 'product') return;
+    const tag = '<script src="/assets/js/product-gallery.js" defer></script>';
+    if (!ctx.headScripts.includes(tag)) ctx.headScripts.push(tag);
+    const ids = productImages(productOf(e.fields), e.featured_media_id);
+    if (ids.length) await ctx.loader.loadMedia(ids);
+    return;
+  }
   if (type !== 'add-to-cart' || e?.type !== 'product') return;
   const stock = (ctx.data.get(STOCK_KEY) as Awaited<ReturnType<typeof loadStock>> | undefined) ?? new Map();
   if (!stock.has(e.id)) for (const [id, counts] of await loadStock(ctx.loader.db, [e.id])) stock.set(id, counts);

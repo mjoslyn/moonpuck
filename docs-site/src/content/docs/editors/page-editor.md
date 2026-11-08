@@ -937,6 +937,19 @@ Its settings:
 - **Button**.
 - **Ask how many**.
 
+#### Product gallery
+
+The product's pictures: its featured image large, with thumbnails of the rest below (its gallery images,
+then its variants' own pictures). Clicking a thumbnail, or using the arrow keys on one, shows it large.
+When a visitor chooses a variant in **Add to cart**, its picture shows.
+
+![The Product gallery block](../../../assets/guide/blocks/product-gallery.png)
+
+Its settings:
+
+- **Product**: leave it empty for the page's own product.
+- **Shape**: Each picture's own shape, Square, Landscape (4:3) or Portrait (3:4).
+
 #### Product price
 
 The product's price, or "From" the lowest when its variants differ, with any compare-at price struck

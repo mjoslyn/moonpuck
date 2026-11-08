@@ -10,7 +10,7 @@ import { browserClient } from '../lib/db/browser';
 import { mediaUrl } from '../lib/media/image';
 import { useMemberSettings, useSite } from './member-settings';
 import type { MemberLevel } from '../lib/members/config';
-import { DEFAULT_VARIANT, MAX_OPTIONS, SHOP_KEY, cleanOptions, newVariantId, shopSettings, variantsFor, type ProductDownload, type ProductOption, type Variant } from '../lib/shop/config';
+import { DEFAULT_VARIANT, MAX_GALLERY, MAX_OPTIONS, SHOP_KEY, cleanOptions, newVariantId, shopSettings, variantsFor, type ProductDownload, type ProductOption, type Variant } from '../lib/shop/config';
 import { formatMoney } from '../lib/payments/money';
 
 const small = 'rounded-sm border border-admin-ink/20 px-2 py-1 text-xs font-semibold hover:border-admin-ink/50';
@@ -47,6 +47,7 @@ export function ProductForm({ entryId, fields, onChange }: { entryId: number | n
       <Toggle title="Shipped" value={raw.ships !== false} onChange={(v) => set({ ships: v ? undefined : false })} />
       {raw.ships !== false && <Toggle title="Pickup only (never shipped)" value={raw.pickupOnly} onChange={(v) => set({ pickupOnly: v || undefined })} />}
       <Toggle title="Taxed" value={raw.taxable !== false} onChange={(v) => set({ taxable: v ? undefined : false })} />
+      <GalleryField ids={Array.isArray(raw.gallery) ? raw.gallery : []} onChange={(gallery) => set({ gallery: gallery.length ? gallery : undefined })} />
       <DownloadField value={raw.download} onChange={(download) => set({ download: download ?? undefined })} />
       <Num title="Most per order (empty: no limit)" min={1} value={raw.maxPerOrder ?? undefined} onChange={(maxPerOrder) => set({ maxPerOrder: maxPerOrder || null })} />
       {members?.enabled && members.levels.length > 0 && <MemberPricing raw={raw} levels={members.levels} onChange={set} />}
@@ -364,6 +365,72 @@ function VariantImage({ id, onChange }: { id: number | null; onChange: (id: numb
         )}
       </div>
       {open && <MediaModal onClose={() => setOpen(false)} onSelect={(m) => { onChange(m.mediaId ?? m.id ?? null); setUrl(m.url); setOpen(false); }} />}
+    </div>
+  );
+}
+
+/** More pictures of the product (shown after its featured image by the Product gallery block): chosen from
+ *  the media library, several at once, in order (← and → move one), each removable. */
+function GalleryField({ ids, onChange }: { ids: number[]; onChange: (ids: number[]) => void }) {
+  const [urls, setUrls] = useState<Record<number, string>>({});
+  const [open, setOpen] = useState(false);
+  const key = ids.join(',');
+  useEffect(() => {
+    const missing = ids.filter((id) => !urls[id]);
+    if (!missing.length) return;
+    browserClient()
+      .from('media')
+      .select('id, path')
+      .in('id', missing)
+      .then(({ data }) => setUrls((u) => ({ ...u, ...Object.fromEntries((data ?? []).map((m: { id: number; path: string }) => [m.id, mediaUrl(m.path)])) })));
+  }, [key]);
+  const move = (i: number, by: number) => {
+    const next = [...ids];
+    const [x] = next.splice(i, 1);
+    next.splice(i + by, 0, x);
+    onChange(next);
+  };
+  return (
+    <div className="mb-3">
+      <span className="mb-1 block text-xs text-admin-muted">Gallery images (after the featured image, in the Product gallery block)</span>
+      {ids.length > 0 && (
+        <ul className="mb-2 flex flex-wrap gap-2">
+          {ids.map((id, i) => (
+            <li key={id} className="flex flex-col items-center gap-1">
+              {urls[id] ? <img src={urls[id]} alt="" className="h-14 w-14 rounded border border-admin-ink/10 object-cover" /> : <div className="h-14 w-14 rounded border border-dashed border-admin-ink/20" />}
+              <span className="flex gap-1 text-xs">
+                <button type="button" className="text-admin-muted disabled:opacity-30" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Move earlier">
+                  ←
+                </button>
+                <button type="button" className="text-admin-muted underline" onClick={() => onChange(ids.filter((x) => x !== id))}>
+                  Remove
+                </button>
+                <button type="button" className="text-admin-muted disabled:opacity-30" disabled={i === ids.length - 1} onClick={() => move(i, 1)} aria-label="Move later">
+                  →
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {ids.length < MAX_GALLERY && (
+        <button type="button" className={small} onClick={() => setOpen(true)}>
+          Add images
+        </button>
+      )}
+      {open && (
+        <MediaModal
+          only="image"
+          multiple
+          onClose={() => setOpen(false)}
+          onSelectMany={(list) => {
+            const picked = list.map((m) => Number(m.mediaId ?? m.id)).filter((n) => n > 0 && !ids.includes(n));
+            setUrls((u) => ({ ...u, ...Object.fromEntries(list.map((m) => [Number(m.mediaId ?? m.id), m.url])) }));
+            onChange([...ids, ...picked].slice(0, MAX_GALLERY));
+            setOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

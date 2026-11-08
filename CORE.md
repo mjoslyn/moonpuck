@@ -1263,7 +1263,7 @@ answer 404.
 - **Blocks** (`src/render/c/shop.ts`; the editor's Shop category while it is on): **Product price**
   (`product-price`: its price, or From the lowest; the compare-at price struck through), **Add to cart**
   (`add-to-cart`: options as choices, quantity, button; the product it names, else the page's or card's),
-  **Cart** (`cart`) and **Cart link** (`cart-link`, the number of items). Collections get a `product`
+  **Product gallery** (`product-gallery`: the product's pictures, `productImages`: its featured image, its `gallery` (media ids from its Shop settings, at most `MAX_GALLERY`, 30), then its variants' own, each once; large with thumbnails linking to the full picture, `aspect` crops them; `public/assets/js/product-gallery.js` shows a thumbnail's picture in place and, on `c-product:variant` from cart.js's Add to cart for the same product, the variant's picture; the starter `single-product` template has it), **Cart** (`cart`) and **Cart link** (`cart-link`, the number of items). Collections get a `product`
   card design unless the site has its own (`card-presets.ts`), offered while the shop is on
   (`cardOffered`) and never the default (`DEFAULT_CARD` is the site's first).
 - **Cart**: kept in the visitor's browser (`localStorage`, `public/assets/js/cart.js`, added by these
@@ -1475,7 +1475,7 @@ answer 404.
   chosen pickup location's place, else the store's (`taxRateFor`); with Stripe Tax it is left to checkout.
   The quote endpoint takes `destination` and `option` and answers `shipping`, `chosen` and `totals` too
   (`cartTotals`).
-- **Templates**: turning the shop on the first time makes `single-product` (the product's categories
+- **Templates**: turning the shop on the first time makes `single-product` (the Product gallery beside the product's categories
   over its name), `archive-product` (a Filters block by product category over the products) and
   `taxonomy-product_category` (a category's name and description over its products)
   (`SHOP_TEMPLATES`, `ensureShopTemplates`, `src/lib/shop/templates.ts`) when no templates have those

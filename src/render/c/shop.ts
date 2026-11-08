@@ -8,8 +8,8 @@ import type { Entry } from '../../lib/types';
 import { esc } from '../html';
 import { attrs, escAttr, styleDecls } from './style';
 import { formatMoney } from '../../lib/payments/money';
-import { downsize, mediaUrl } from '../../lib/media/image';
-import { CART_PATH, categoryDiscounts, maxQuantity, priceRange, productOf, sellable, shopSettings, unitFor, type Product } from '../../lib/shop/config';
+import { downsize, mediaImage, mediaImgTag, mediaUrl } from '../../lib/media/image';
+import { CART_PATH, categoryDiscounts, maxQuantity, priceRange, productImages, productOf, sellable, shopSettings, unitFor, type Product } from '../../lib/shop/config';
 import { leftOf, type StockMap } from '../../lib/shop/stock';
 import { ARCHIVE_PATHS } from '../../lib/site';
 import { ACCOUNT_PATH, memberSettings } from '../../lib/members/config';
@@ -113,6 +113,7 @@ function variantData(env: Env, e: Entry, p: Product, stock: StockMap | undefined
       price: v.price,
       compareAt: v.compareAt,
       sale: v.sale,
+      imageId: v.image,
       image: m ? mediaUrl(downsize(m, 'large').path) : null,
       // A product whose stock wasn't read (a card in a list): as many as an order takes, until the script asks.
       left: maxQuantity(p, stock?.has(e.id) ? leftOf(p, stock.get(e.id), v.id) : null),
@@ -244,9 +245,53 @@ const cartLink: Renderer = (b) => {
   return `<a ${root(a, ['c-cart-link'])} href="${CART_PATH}" data-cart-link><span class="c-cart-link__label">${esc(label)}</span> <span class="c-cart-link__count" data-cart-count hidden>0</span></a>`;
 };
 
+/** The shapes the Product gallery can crop its pictures to (empty: each its own). */
+export const GALLERY_ASPECTS: [string, string, number | null][] = [
+  ['', 'Each picture’s own shape', null],
+  ['1', 'Square', 1],
+  ['4/3', 'Landscape (4:3)', 4 / 3],
+  ['3/4', 'Portrait (3:4)', 3 / 4],
+];
+
+/**
+ * The product's pictures: a large one (its featured image to begin with) and thumbnails below of the rest
+ * (the gallery, then its variants' own), which show it large (public/assets/js/product-gallery.js; without
+ * it, they link to the picture). A variant chosen in Add to cart for the same product shows its picture.
+ */
+const productGallery: Renderer = (b, env) => {
+  const e = productEntry(b, env);
+  if (!e) return note(env, 'Product gallery: shows the pictures of the product whose page it is on, or of the product chosen in its settings.');
+  const p = productOf(e.fields);
+  const media = productImages(p, e.featured_media_id)
+    .map((id) => env.ctx.loader.media.get(id))
+    .filter((m): m is NonNullable<typeof m> => !!m);
+  if (!media.length) return note(env, 'This product has no pictures yet: give it a featured image, and gallery images in its settings under Shop.');
+  const a = b.attrs;
+  const aspect = GALLERY_ASPECTS.find(([k]) => k === String(a.aspect ?? '')) ?? GALLERY_ASPECTS[0];
+  const ratio = aspect[2];
+  const shape = ratio ? `aspect-ratio:${aspect[0]};object-fit:cover;width:100%;height:auto` : '';
+  const slides = media
+    .map((m, i) => {
+      const img = mediaImgTag(mediaImage(m, 'large', { ratio, style: shape || undefined, className: 'c-product-gallery__image' }), { loading: i ? 'lazy' : undefined });
+      return `<figure class="c-product-gallery__slide" data-media="${m.id}"${i ? ' hidden' : ''}>${img}</figure>`;
+    })
+    .join('');
+  const thumbs =
+    media.length > 1
+      ? `<ul class="c-product-gallery__thumbs">${media
+          .map((m, i) => {
+            const t = mediaImage(m, 'thumbnail', { ratio: 1, className: 'c-product-gallery__thumb-image' });
+            return `<li><a class="c-product-gallery__thumb" href="${escAttr(mediaUrl(downsize(m, 'full').path))}" data-media="${m.id}" aria-label="${escAttr(`Picture ${i + 1} of ${media.length}${m.alt ? `: ${m.alt}` : ''}`)}"${i ? '' : ' aria-current="true"'}>${mediaImgTag({ ...t, alt: '' }, { loading: 'lazy' })}</a></li>`;
+          })
+          .join('')}</ul>`
+      : '';
+  return `<div ${root(a, ['c-product-gallery'])} data-product-gallery data-product="${e.id}"><div class="c-product-gallery__main">${slides}</div>${thumbs}</div>`;
+};
+
 export const SHOP_RENDERERS: Record<string, Renderer> = {
   'product-price': productPrice,
   'add-to-cart': addToCart,
+  'product-gallery': productGallery,
   cart,
   'cart-link': cartLink,
 };
