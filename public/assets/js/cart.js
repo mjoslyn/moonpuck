@@ -298,7 +298,7 @@
     form.append(details);
 
     if (shipping.needs !== 'none') {
-      const how = el('fieldset', { className: 'c-checkout__group' }, [el('legend', { textContent: 'Getting your order' })]);
+      const how = el('fieldset', { className: 'c-checkout__group' }, [el('legend', { textContent: 'Shipping method' })]);
       if (shipping.needs === 'any' && (offer.countries || []).length) {
         const row = el('div', { className: 'c-checkout__row' }, [field('Country', select('country', offer.countries, () => ((co.state = ''), renderCart())))]);
         if (co.country === 'US') row.append(field('State', select('state', [['', 'Choose…'], ...(offer.states || [])], renderCart)));

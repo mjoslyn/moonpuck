@@ -66,7 +66,7 @@ const canRefund = isAdmin && o.status === 'paid' && o.provider !== 'free' && lef
       <section class="rounded bg-white p-5 text-sm shadow-[0_0_0_1px_rgba(26,26,46,0.08)]">
         <h2 class="mb-2 text-lg">Buyer</h2>
         <p>{o.name}<br /><a class="hover:text-admin-accent" href={`mailto:${o.email}`}>{o.email}</a>{o.phone && <><br />{o.phone}</>}</p>
-        <h3 class="mt-4 mb-1 font-medium">{o.fulfilment === 'pickup' ? 'Picking up' : o.fulfilment === 'ship' ? 'Shipping to' : 'Getting it to them'}</h3>
+        <h3 class="mt-4 mb-1 font-medium">{o.fulfilment === 'pickup' ? 'Picking up' : o.fulfilment === 'ship' ? 'Shipping to' : 'Shipping method'}</h3>
         {o.fulfilment === 'pickup' && o.shipping && <p>{o.shipping.name}<br /><span class="whitespace-pre-line text-admin-muted">{o.shipping.address}</span></p>}
         {o.fulfilment === 'ship' && <p>{[o.name, ...addressLines(o.address)].map((l, i) => <>{i ? <br /> : ''}{l}</>)}</p>}
         {o.fulfilment === 'none' && <p class="text-admin-muted">Nothing to send or hand over.</p>}
