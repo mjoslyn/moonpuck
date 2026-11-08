@@ -1230,7 +1230,7 @@ never subscribes anyone again); the settings are, with the others. Migration `*_
 ## Shop (preview)
 
 An optional feature, on under Settings > Shop (`settings.site.shop`: `enabled`, `currency`, `weightUnit`;
-`shopSettings`, `shopOn`, `src/lib/shop/config.ts`), built in phases on a preview branch: phase 1 has
+`shopSettings`, `shopOn`, `src/lib/shop/config.ts`), built in phases: phase 1 has
 products, options, variants, stock and the cart; phase 2, checkout (payments, manual shipping rates and
 pickup, tax, orders, the Orders screen, discounts, order emails, stats, and orders and stock in sync and backups), and phase 3 (the Stock screen, low-stock alerts, digital downloads, and carrier rates, labels and tracking) are built. Off, nothing is deleted: the admin hides the core's product type and
 product categories (`showsType`, `showsTaxonomy`, `src/lib/features.ts`), the site serves none of them
