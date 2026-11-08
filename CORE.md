@@ -477,14 +477,17 @@ range and sort; `statsCsv`, formulas guarded). Pages are cached
 for everyone, so `public/assets/js/stats.js` (on every page but previews and Not found) reports the view
 and each link followed (`click` and middle-click; not `#` links) with `sendBeacon` to `POST /api/stats`,
 which counts them by day in the site's time zone (`stat_hit`, table `site_stats`: `day`, `kind` view,
-visitor, click or referrer, `path`, `target`, `hits`; migration `*_site_stats.sql`). No cookies, storage or
+visitor, click or referrer, `path`, `target`, `hits`; migration `*_site_stats.sql`). No cookies, storage (but the visit's campaign, below) or
 addresses: a visitor is counted once a day by a hash of the day, `AUTH_SECRET`, their address and browser
 (`site_stat_visitors`, emptied after the day by the hourly run, `pruneStats`). A link is kept as its path
 on the site, or host and path elsewhere, `mailto:`/`tel:` as written, without query or fragment
 (`statTarget`); a referrer as its host (`referrerHost`). Machines (`scannerAgent`) and signed-in editors
 aren't counted; addresses that aren't pages (`/admin`, `/api`, `/media`...) are refused (`statPath`). **Campaigns**: a view whose address has `utm_campaign`
 or `utm_source` (with `utm_medium`) counts under kind `campaign`, target `campaign|source|medium`
-(`campaignKey`; migration `*_site_stats_campaigns.sql`), listed and exported with the others. **Make a
+(`campaignKey`; migration `*_site_stats_campaigns.sql`), listed and exported with the others. stats.js also
+keeps a landing address's utm_ values in the tab's `sessionStorage` (`site.campaign`; while a consent banner
+is on, only once the visitor accepts, and removed on rejecting), which the cart sends with a shop order
+(`shop_orders.campaign`, `campaignKey`; migration `*_shop_orders_campaign.sql`) for Shop > Stats. **Make a
 campaign link**, a button beside that table's heading opening a dialog (`src/admin/CampaignLink.tsx`; `campaignLink`
 in `src/lib/campaign-link.ts`; what was typed stays while the page is open), adds a campaign's name, source and optional medium to a page on the site (a path or the link picker; the
 home page when empty; other sites refused), lower case with hyphens for spaces and no `|` (`campaignPart`),
@@ -1309,9 +1312,11 @@ answer 404.
   time zone (`summarizeOrders`): net sales (paid less refunded), orders, items, the average order, buyers
   and those who ordered more than once, checkouts started and never paid, the shipping, tax and discounts
   in the sales, a bar a day (a week past 90 days), the products that sold most (after their share of
-  discounts), the discounts used and how orders were sent. Orders in another currency than the shop's
+  discounts), the discounts used, sales by campaign (the order's `campaign`: the utm_ values its visit came
+  with) and how orders were sent. Orders in another currency than the shop's
   are left out and counted; at most `SHOP_STATS_MAX_ORDERS` (20,000) are read. Each table downloads as
-  CSV (`GET /api/admin/shop/stats.csv?table=daily|products|discounts` with the range, formulas guarded).
+  CSV (`GET /api/admin/shop/stats.csv?table=daily|products|discounts|campaigns` with the range, formulas
+  guarded). An order's page and the orders CSV show its campaign.
 - **Order emails** (`src/lib/shop/email.ts`, safe in the browser; Settings > Shop, Emails,
   `settings.site.shop.emails`, `shopEmailsFrom`): the buyer's confirmation (when paid, and Resend
   confirmation), shipped (marking an order shipped, with its tracking), refunded (a refund made on its

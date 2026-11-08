@@ -308,7 +308,7 @@ export const FUNCTIONS: Record<string, Fn> = {
         quantity: lines.reduce((n, l) => n + l.quantity, 0), subtotal: Math.trunc(Number(order.subtotal)), discount: Math.trunc(Number(order.discount ?? 0)),
         shipping_total: Math.trunc(Number(order.shipping_total ?? 0)), tax: Math.trunc(Number(order.tax ?? 0)), total: Math.trunc(Number(order.total)), currency: order.currency ?? 'USD',
         member_id: order.member_id || null, ip: String(order.ip ?? ''), expires_at: order.expires_at || null, paid_at: order.paid_at || null,
-        discount_id: order.discount_id || null, discount_code: String(order.discount_code ?? ''),
+        discount_id: order.discount_id || null, discount_code: String(order.discount_code ?? ''), campaign: String(order.campaign ?? ''),
       };
       const client = limits.client as { orders: number } | undefined;
       const discount = limits.discount as { id: number; max: number | null; once: boolean } | undefined;

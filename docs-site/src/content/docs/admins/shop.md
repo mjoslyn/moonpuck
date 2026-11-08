@@ -178,6 +178,9 @@ Click **Shop** in the admin bar, then **Stats**, for what the shop sold. Choose 
 - **Average order** and **Buyers** (and how many ordered more than once).
 - **Sales a day** (a week, for longer ranges); **Show as a table** lists them.
 - **Products that sold most**, **Discounts used** and **How orders were sent**.
+- **Campaigns**: sales from visits that came by a campaign link (see **Making a campaign link** in the
+  Stats guide), such as a newsletter or an advert. An order's page shows its campaign too. While a cookie
+  banner is on, only visitors who accept cookies are counted here.
 
 **Download CSV** beside a table downloads it. Visits to the shop's pages are under **Stats** in the
 admin bar.

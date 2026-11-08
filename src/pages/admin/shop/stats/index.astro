@@ -2,7 +2,7 @@
 // Shop > Stats (src/lib/shop/stats.ts): what the shop sold over the last 7, 30, 90 or 365 days or dates
 // chosen, by the day orders were paid: sales, refunds, orders, items, the average order, discounts,
 // shipping and tax, a bar a day (a week past 90 days), the products that sold most, the discounts used and
-// how orders were sent. Each table downloads as CSV.
+// how orders were sent and sales by campaign. Each table downloads as CSV.
 import Admin from '../../../../layouts/Admin.astro';
 import { SITE_TZ } from '../../../../lib/site';
 import { formatMoney } from '../../../../lib/payments/money';
@@ -125,6 +125,19 @@ const sent = t.orders ? (n: number) => `${fmt(n)} (${Math.round((n / t.orders) *
             <tbody>
               {s.discounts.map((d) => <tr><td class={td}>{d.code}</td><td class={`${td} text-right tabular-nums`}>{fmt(d.orders)}</td><td class={`${td} text-right tabular-nums`}>{money(d.amount)}</td></tr>)}
               {!s.discounts.length && <tr><td class={`${td} text-admin-muted`} colspan="3">None used.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section>
+        <h2 class="flex justify-between gap-2 text-sm font-semibold">Campaigns <a class={csvLink} href={csv('campaigns')} download>Download CSV</a></h2>
+        <p class="text-xs text-admin-muted">Orders whose visit came from a link with a campaign (utm_ values): {fmt(s.fromCampaigns)} of {fmt(t.orders)}. <a class="underline" href="/admin/stats/">Make a campaign link</a> on Stats.</p>
+        <div class="mt-2 overflow-auto rounded bg-white shadow-[0_0_0_1px_rgba(26,26,46,0.08)]">
+          <table class="w-full border-collapse text-sm">
+            <thead class="bg-admin-soft text-left text-xs tracking-wider text-admin-muted uppercase"><tr><th class={th}>Campaign</th><th class={`${th} text-right`}>Orders</th><th class={`${th} text-right`}>Sales</th></tr></thead>
+            <tbody>
+              {s.campaigns.map((c) => <tr><td class={td}>{c.campaign || '(none)'}<div class="text-xs text-admin-muted">{[c.source, c.medium].filter(Boolean).join(' / ')}</div></td><td class={`${td} text-right tabular-nums`}>{fmt(c.orders)}</td><td class={`${td} text-right tabular-nums`}>{money(c.sales)}</td></tr>)}
+              {!s.campaigns.length && <tr><td class={`${td} text-admin-muted`} colspan="3">None yet.</td></tr>}
             </tbody>
           </table>
         </div>

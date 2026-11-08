@@ -23,6 +23,7 @@ import { addressLines, shopEmail, shopEmailsFrom, shopEmailToSend, type ShopEmai
 import { defaultTemplate } from '../email-templates';
 import { emailEvents } from '../events/email';
 import { SITE_TZ } from '../site';
+import { campaignKey } from '../stats';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** Orders the shop takes in a minute (all buyers together), against floods. */
@@ -93,6 +94,8 @@ export interface ShopOrder {
   /** The discount it took (Shop > Discounts) and its code ('' for an automatic one). */
   discount_id: number | null;
   discount_code: string;
+  /** The campaign the buyer's visit came from: `campaign|source|medium` (src/lib/stats.ts), '' for none. */
+  campaign: string;
   stock_taken: boolean;
   fulfilled: '' | 'shipped' | 'picked_up';
   tracking: string;
@@ -219,6 +222,8 @@ export async function startShopCheckout(body: any, origin: string, viewer: Viewe
       subtotal: totals.subtotal, discount: totals.discount, shipping_total: totals.shipping, tax: totals.tax ?? 0, total,
       currency, member_id: isActive(member) ? member.user_id : null, ip: buyerAddress(ip),
       discount_id: discount?.id ?? null, discount_code: discount?.code ?? '',
+      // The campaign the buyer's visit came from (its utm_ values, kept by stats.js), as the site's stats keep it.
+      campaign: campaignKey(body?.campaign),
       // A paid order holds its stock a little longer than its checkout takes payment.
       expires_at: free ? null : new Date(Date.now() + hold + 2 * 60_000).toISOString(),
       paid_at: free ? new Date().toISOString() : null,
@@ -506,7 +511,7 @@ export async function refundShopOrder(db: Db, id: number, amount: number, restoc
 
 /** The orders as CSV rows (the Orders screen's export): one row per line. */
 export function ordersCsvRows(orders: ShopOrder[]): string[][] {
-  const head = ['Order', 'Date', 'Status', 'Name', 'Email', 'Phone', 'Fulfilment', 'Shipping', 'Address', 'Product', 'Options', 'SKU', 'Unit', 'Quantity', 'Line total', 'Subtotal', 'Discount', 'Shipping cost', 'Tax', 'Total', 'Refunded', 'Currency', 'Fulfilled', 'Tracking'];
+  const head = ['Order', 'Date', 'Status', 'Name', 'Email', 'Phone', 'Fulfilment', 'Shipping', 'Address', 'Product', 'Options', 'SKU', 'Unit', 'Quantity', 'Line total', 'Subtotal', 'Discount', 'Shipping cost', 'Tax', 'Total', 'Refunded', 'Currency', 'Fulfilled', 'Tracking', 'Campaign'];
   const rows: string[][] = [head];
   const money = (n: number) => (n / 100).toFixed(2);
   for (const o of orders) {
@@ -516,7 +521,7 @@ export function ordersCsvRows(orders: ShopOrder[]): string[][] {
         o.code, o.created_at, o.status, o.name, o.email, o.phone, o.fulfilment, o.shipping?.name ?? '', addressLines(o.address).join(', '),
         l.title, l.label, l.sku, money(l.unit), String(l.quantity), money(l.total),
         first ? money(o.subtotal) : '', first ? money(o.discount) : '', first ? money(o.shipping_total) : '', first ? money(o.tax) : '', first ? money(o.total) : '', first ? money(o.refunded_amount) : '',
-        o.currency, o.fulfilled, o.tracking,
+        o.currency, o.fulfilled, o.tracking, (o.campaign ?? '').split('|').filter(Boolean).join(' / '),
       ]);
     }
   }

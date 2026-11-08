@@ -1,8 +1,8 @@
 // Shop > Stats: what the shop sold over a range of days (the Stats screen's ranges, src/lib/stats.ts),
 // from its paid orders (and those refunded since) by the day they were paid in the site's time zone:
 // sales, refunds, orders, items, the average order, discounts, shipping and tax, a bar a day (a week past
-// 90 days), the products that sold most, the discounts used, how orders were sent, and checkouts that
-// weren't paid. Server only.
+// 90 days), the products that sold most, the discounts used, sales by campaign (the utm_ values of the
+// buyer's visit), how orders were sent, and checkouts that weren't paid. Server only.
 import type { Db } from '../db/query';
 import { daysBefore, statsDay, type StatsRange } from '../stats';
 import type { ShopOrder } from './orders';
@@ -10,7 +10,7 @@ import type { ShopOrder } from './orders';
 /** Orders read for one range at most: past it the screen says the numbers are cut short. */
 export const SHOP_STATS_MAX_ORDERS = 20_000;
 
-type StatsOrder = Pick<ShopOrder, 'id' | 'status' | 'email' | 'lines' | 'subtotal' | 'discount' | 'discount_code' | 'shipping_total' | 'tax' | 'total' | 'refunded_amount' | 'currency' | 'fulfilment' | 'paid_at' | 'created_at'>;
+type StatsOrder = Pick<ShopOrder, 'id' | 'status' | 'email' | 'lines' | 'subtotal' | 'discount' | 'discount_code' | 'shipping_total' | 'tax' | 'total' | 'refunded_amount' | 'currency' | 'fulfilment' | 'paid_at' | 'created_at' | 'campaign'>;
 
 export interface ShopStats {
   from: string;
@@ -40,6 +40,10 @@ export interface ShopStats {
   /** The products that sold most, by what they brought in (after their share of discounts). */
   products: { product: number; title: string; quantity: number; sales: number }[];
   discounts: { code: string; orders: number; amount: number }[];
+  /** Sales by the campaign the buyer's visit came from (utm_ values), most first; orders without one aren't listed. */
+  campaigns: { campaign: string; source: string; medium: string; orders: number; sales: number }[];
+  /** Orders with a campaign, of `totals.orders`. */
+  fromCampaigns: number;
   fulfilment: { ship: number; pickup: number; none: number };
   /** Paid orders in another currency (the shop's was changed): left out of the sums. */
   otherCurrency: number;
@@ -60,6 +64,7 @@ export function summarizeOrders(orders: StatsOrder[], range: Pick<StatsRange, 'f
   const products = new Map<string, { product: number; title: string; quantity: number; sales: number }>();
   const discounts = new Map<string, { code: string; orders: number; amount: number }>();
   const fulfilment = { ship: 0, pickup: 0, none: 0 };
+  const campaigns = new Map<string, ShopStats['campaigns'][number]>();
   const buyers = new Map<string, number>();
   let otherCurrency = 0;
   for (const o of orders) {
@@ -96,6 +101,13 @@ export function summarizeOrders(orders: StatsOrder[], range: Pick<StatsRange, 'f
       discounts.set(code, d);
     }
     fulfilment[o.fulfilment in fulfilment ? o.fulfilment : 'none']++;
+    if (o.campaign) {
+      const [campaign = '', source = '', medium = ''] = o.campaign.split('|');
+      const c = campaigns.get(o.campaign) ?? { campaign, source, medium, orders: 0, sales: 0 };
+      c.orders++;
+      c.sales += o.total;
+      campaigns.set(o.campaign, c);
+    }
     const who = o.email.trim().toLowerCase();
     buyers.set(who, (buyers.get(who) ?? 0) + 1);
   }
@@ -111,6 +123,8 @@ export function summarizeOrders(orders: StatsOrder[], range: Pick<StatsRange, 'f
     daily: [...daily].map(([day, v]) => ({ day, ...v })),
     products: [...products.values()].sort((a, b) => b.sales - a.sales || b.quantity - a.quantity).slice(0, 50),
     discounts: [...discounts.values()].sort((a, b) => b.amount - a.amount),
+    campaigns: [...campaigns.values()].sort((a, b) => b.sales - a.sales || b.orders - a.orders),
+    fromCampaigns: [...campaigns.values()].reduce((n, c) => n + c.orders, 0),
     fulfilment,
     otherCurrency,
   };
@@ -123,7 +137,7 @@ export async function shopStats(db: Db, range: Pick<StatsRange, 'from' | 'to'>, 
   const end = new Date(`${daysBefore(range.to, -2)}T00:00:00Z`).toISOString();
   const { data, error } = await db
     .from('shop_orders')
-    .select('id, status, email, lines, subtotal, discount, discount_code, shipping_total, tax, total, refunded_amount, currency, fulfilment, paid_at, created_at')
+    .select('id, status, email, lines, subtotal, discount, discount_code, shipping_total, tax, total, refunded_amount, currency, fulfilment, paid_at, created_at, campaign')
     .or(`and(paid_at.gte.${start},paid_at.lt.${end}),and(paid_at.is.null,created_at.gte.${start},created_at.lt.${end})`)
     .order('id')
     .limit(SHOP_STATS_MAX_ORDERS + 1);

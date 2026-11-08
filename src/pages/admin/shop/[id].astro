@@ -72,6 +72,7 @@ const canRefund = isAdmin && o.status === 'paid' && o.provider !== 'free' && lef
         {o.fulfilment === 'none' && <p class="text-admin-muted">Nothing to send or hand over.</p>}
         <h3 class="mt-4 mb-1 font-medium">Payment</h3>
         <p class="text-admin-muted">{o.provider === 'free' ? 'Nothing to pay' : `${o.provider === 'stripe' ? 'Stripe' : 'Square'}${o.provider_payment ? `: ${o.provider_payment}` : ''}`}</p>
+        {o.campaign && <><h3 class="mt-4 mb-1 font-medium">Campaign</h3><p class="text-admin-muted">{o.campaign.split('|').filter(Boolean).join(' / ')}</p></>}
       </section>
 
       {o.status === 'paid' && o.fulfilment !== 'none' && (

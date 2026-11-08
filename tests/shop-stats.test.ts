@@ -7,7 +7,7 @@ import { shopStats, summarizeOrders } from '../src/lib/shop/stats';
 const line = (product: number, title: string, quantity: number, total: number, discount = 0) => ({ product, variant: 'default', title, label: '', sku: '', unit: total / quantity, quantity, total, discount, tax: 0, track: false, restocked: 0 });
 const order = (o: Record<string, unknown>) => ({
   id: 1, status: 'paid', email: 'a@example.org', lines: [line(1, 'Mug', 2, 2000)], subtotal: 2000, discount: 0, discount_code: '', shipping_total: 500, tax: 100, total: 2600,
-  refunded_amount: 0, currency: 'USD', fulfilment: 'ship', paid_at: '2026-11-03T15:00:00.000Z', created_at: '2026-11-03T14:50:00.000Z', ...o,
+  refunded_amount: 0, currency: 'USD', fulfilment: 'ship', campaign: '', paid_at: '2026-11-03T15:00:00.000Z', created_at: '2026-11-03T14:50:00.000Z', ...o,
 }) as any;
 const range = { from: '2026-11-01', to: '2026-11-07' };
 
@@ -38,6 +38,19 @@ describe('summarizeOrders', () => {
     expect(s.discounts).toEqual([{ code: 'TEN', orders: 1, amount: 400 }]);
     expect(s.fulfilment).toEqual({ ship: 2, pickup: 1, none: 0 });
     expect(s.otherCurrency).toBe(1);
+  });
+  it('adds up sales by campaign', () => {
+    const s = summarizeOrders(
+      [order({ id: 1, campaign: 'spring|newsletter|email' }), order({ id: 2, campaign: 'spring|newsletter|email', total: 1000 }), order({ id: 3, campaign: '|facebook|' }), order({ id: 4 })],
+      range,
+      'USD',
+      'UTC',
+    );
+    expect(s.campaigns).toEqual([
+      { campaign: 'spring', source: 'newsletter', medium: 'email', orders: 2, sales: 3600 },
+      { campaign: '', source: 'facebook', medium: '', orders: 1, sales: 2600 },
+    ]);
+    expect(s.fromCampaigns).toBe(3);
   });
   it('counts an order on its day in the site’s time zone', () => {
     // 02:00 UTC on Nov 8 is still Nov 7 in New York.

@@ -16,6 +16,14 @@
       return [];
     }
   };
+  // The campaign this visit came from (kept by stats.js), sent with the order.
+  const visitCampaign = () => {
+    try {
+      return JSON.parse(sessionStorage.getItem('site.campaign') || 'null');
+    } catch {
+      return null;
+    }
+  };
   const write = (lines) => {
     try {
       localStorage.setItem(KEY, JSON.stringify(lines));
@@ -397,7 +405,7 @@
         const r = await fetch('/api/shop/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lines: read(), name: co.name, email: co.email, phone: co.phone, option: co.option, address, code: co.code || null }),
+          body: JSON.stringify({ lines: read(), name: co.name, email: co.email, phone: co.phone, option: co.option, address, code: co.code || null, campaign: visitCampaign() }),
           cache: 'no-store',
         });
         const answer = await r.json().catch(() => null);

@@ -149,6 +149,13 @@ describe('checkout with a discount', () => {
     const second = await db.rpc('shop_order_create', { p_order: { ...p_order, token: 'race-2', code: 'R2', email: 'b@example.org' }, p_limits: { discount: { id: one, max: 1, once: false } } });
     expect(second.data).toMatchObject({ ok: false, discount: true });
   });
+  it('keeps the campaign the visit came from', async () => {
+    const a = await product(1000);
+    await startShopCheckout({ lines: [{ product: a, variant: 'default', quantity: 1 }], name: 'Ada', email: 'ada@example.org', option: 'pickup:store', campaign: { c: 'spring|sale', s: 'newsletter', m: 'email' } }, 'http://localhost');
+    expect((await lastOrder()).campaign).toBe('spring sale|newsletter|email');
+    await startShopCheckout({ lines: [{ product: a, variant: 'default', quantity: 1 }], name: 'Bo', email: 'bo@example.org', option: 'pickup:store', campaign: 'not an object' }, 'http://localhost');
+    expect((await lastOrder()).campaign).toBe('');
+  });
   it('takes the automatic discount that fits without a code', async () => {
     const a = await product(2000);
     await discount({ automatic: true, kind: 'free_shipping' });
