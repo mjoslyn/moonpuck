@@ -921,8 +921,8 @@ Its settings:
 
 ### Shop
 
-Shown only while your site has a shop (an admin turns it on under **Settings**, **Shop**: see
-[Selling things](/admins/shop/)).
+Shown only while your site has a shop (an admin turns it on under **Settings**, **Shop**). Adding
+products and handling orders: see [The shop](/editors/shop/).
 
 #### Add to cart
 

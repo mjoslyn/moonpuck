@@ -16,3 +16,15 @@ describe('ancestorsOf', () => {
     expect(ancestorsOf('a', (id) => (id === 'a' ? 'b:children' : 'a:children'))).toEqual(['b']);
   });
 });
+
+describe("the editor's settings panel override", () => {
+  // An arrow made inside the editor's render is a new component on each render, so React remounts the
+  // whole settings panel on every keystroke in it, and the field being typed in loses its focus.
+  it('is a component of its own, not an arrow made in the render', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync(new URL('../src/puck/Editor.tsx', import.meta.url), 'utf8');
+    const overrides = src.slice(src.indexOf('overrides={{'));
+    const fields = overrides.match(/\n\s*fields:\s*([^\n]+)/)?.[1] ?? '';
+    expect(fields).toMatch(/^[A-Z]\w*,$/);
+  });
+});
