@@ -292,7 +292,7 @@ async function walk(items: PuckItem[], ctx: RenderCtx, state: WalkState) {
       }
       case 'product-price':
       case 'add-to-cart':
-      case 'product-gallery':
+      case 'shop-gallery':
       case 'cart':
       case 'cart-link':
         await prepareShop(ctx, type, attrs);
@@ -320,16 +320,16 @@ async function prepareShop(ctx: RenderCtx, type: string, attrs: Record<string, a
   if (!ctx.headScripts.includes(CART_SCRIPT)) ctx.headScripts.push(CART_SCRIPT);
   // A buyer's order on the cart's page (?order=<token>; such pages are never cached).
   if (type === 'cart' && !ctx.editor && ctx.queried.url.searchParams.has('order')) await renderHooks.shopOrder?.(ctx);
-  if (type !== 'product-price' && type !== 'add-to-cart' && type !== 'product-gallery') return;
-  if (type === 'product-gallery') {
+  if (type !== 'product-price' && type !== 'add-to-cart' && type !== 'shop-gallery') return;
+  if (type === 'shop-gallery') {
     // On any page: in a collection's cards the products (and their pictures, loadEntryMedia) are the cards'.
-    const tag = '<script src="/assets/js/product-gallery.js" defer></script>';
+    const tag = '<script src="/assets/js/shop-gallery.js" defer></script>';
     if (!ctx.headScripts.includes(tag)) ctx.headScripts.push(tag);
   }
   const named = Number(attrs.product) || 0;
   if (named) await ctx.loader.entriesByIds([named]);
   const e = named ? ctx.loader.entries.get(named) : ctx.queried.entry;
-  if (type === 'product-gallery') {
+  if (type === 'shop-gallery') {
     if (e?.type !== 'product') return;
     const ids = productImages(productOf(e.fields), e.featured_media_id);
     if (ids.length) await ctx.loader.loadMedia(ids);

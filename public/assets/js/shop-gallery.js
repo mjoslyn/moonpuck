@@ -4,9 +4,9 @@
 // picture, or the first again. One listener serves every gallery on the page.
 (() => {
   const galleries = new Map();
-  for (const g of document.querySelectorAll('[data-product-gallery]')) {
-    const slides = [...g.querySelectorAll('.c-product-gallery__slide')];
-    const thumbs = [...g.querySelectorAll('.c-product-gallery__thumb')];
+  for (const g of document.querySelectorAll('[data-shop-gallery]')) {
+    const slides = [...g.querySelectorAll('.c-shop-gallery__slide')];
+    const thumbs = [...g.querySelectorAll('.c-shop-gallery__thumb')];
     const show = (id) => {
       const slide = (id && slides.find((s) => s.dataset.media === String(id))) || slides[0];
       if (!slide) return;

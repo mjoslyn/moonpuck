@@ -255,7 +255,7 @@ export const GALLERY_ASPECTS: [string, string, number | null][] = [
 
 /**
  * The product's pictures: a large one (its featured image to begin with) and thumbnails below of the rest
- * (the gallery, then its variants' own), which show it large (public/assets/js/product-gallery.js; without
+ * (the gallery, then its variants' own), which show it large (public/assets/js/shop-gallery.js; without
  * it, they link to the picture). A variant chosen in Add to cart for the same product shows its picture.
  */
 const productGallery: Renderer = (b, env) => {
@@ -272,25 +272,25 @@ const productGallery: Renderer = (b, env) => {
   const shape = ratio ? `aspect-ratio:${aspect[0]};object-fit:cover;width:100%;height:auto` : '';
   // Each picture as the large one shows it (another image where the media library swaps one in for the
   // shape); its thumbnail shows, names and links to the same one.
-  const large = media.map((m) => mediaImage(m, 'large', { ratio, style: shape || undefined, className: 'c-product-gallery__image' }));
-  const slides = media.map((m, i) => `<figure class="c-product-gallery__slide" data-media="${m.id}"${i ? ' hidden' : ''}>${mediaImgTag(large[i], { loading: i ? 'lazy' : undefined })}</figure>`).join('');
+  const large = media.map((m) => mediaImage(m, 'large', { ratio, style: shape || undefined, className: 'c-shop-gallery__image' }));
+  const slides = media.map((m, i) => `<figure class="c-shop-gallery__slide" data-media="${m.id}"${i ? ' hidden' : ''}>${mediaImgTag(large[i], { loading: i ? 'lazy' : undefined })}</figure>`).join('');
   const thumbs =
     media.length > 1
-      ? `<ul class="c-product-gallery__thumbs">${media
+      ? `<ul class="c-shop-gallery__thumbs">${media
           .map((m, i) => {
-            const t = mediaImage(m, 'medium', { ratio, className: 'c-product-gallery__thumb-image' });
+            const t = mediaImage(m, 'medium', { ratio, className: 'c-shop-gallery__thumb-image' });
             const alt = large[i].alt;
-            return `<li><a class="c-product-gallery__thumb" href="${escAttr(large[i].src)}" data-media="${m.id}" aria-label="${escAttr(`Picture ${i + 1} of ${media.length}${alt ? `: ${alt}` : ''}`)}"${i ? '' : ' aria-current="true"'}>${mediaImgTag({ ...t, alt: '' }, { loading: 'lazy' })}</a></li>`;
+            return `<li><a class="c-shop-gallery__thumb" href="${escAttr(large[i].src)}" data-media="${m.id}" aria-label="${escAttr(`Picture ${i + 1} of ${media.length}${alt ? `: ${alt}` : ''}`)}"${i ? '' : ' aria-current="true"'}>${mediaImgTag({ ...t, alt: '' }, { loading: 'lazy' })}</a></li>`;
           })
           .join('')}</ul>`
       : '';
-  return `<div ${root(a, ['c-product-gallery'])} data-product-gallery data-product="${e.id}"><div class="c-product-gallery__main">${slides}</div>${thumbs}</div>`;
+  return `<div ${root(a, ['c-shop-gallery'])} data-shop-gallery data-product="${e.id}"><div class="c-shop-gallery__main">${slides}</div>${thumbs}</div>`;
 };
 
 export const SHOP_RENDERERS: Record<string, Renderer> = {
   'product-price': productPrice,
   'add-to-cart': addToCart,
-  'product-gallery': productGallery,
+  'shop-gallery': productGallery,
   cart,
   'cart-link': cartLink,
 };

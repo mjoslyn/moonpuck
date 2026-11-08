@@ -19,7 +19,7 @@ export const SHOP_TEMPLATES: Record<string, { title: string; content: PuckItem[]
       node('header', 'part', { slug: 'header' }),
       node('main', 'section', { tag: 'main', style: { padding: pad }, layout: { type: 'constrained', contentSize: '1280px' }, gap: 'var(--space-70)' }, [
         node('columns', 'columns', { gap: { row: 'var(--space-50)', column: 'var(--space-70)' } }, [
-          node('image-column', 'column', {}, [node('gallery', 'product-gallery', {})]),
+          node('image-column', 'column', {}, [node('gallery', 'shop-gallery', {})]),
           node('buy-column', 'column', {}, [
             node('buy', 'section', { layout: { type: 'flow' }, gap: 'var(--space-40)' }, [
               node('categories', 'entry-terms', { taxonomy: PRODUCT_CATEGORY.name, style: { fontSize: 'var(--text-sm)' } }),

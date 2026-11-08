@@ -63,10 +63,10 @@ answer 404 while the shop is off.
 
 ## Blocks
 
-`product-price`, `add-to-cart`, `product-gallery`, `cart` and `cart-link` (`src/render/c/shop.ts`),
+`product-price`, `add-to-cart`, `shop-gallery`, `cart` and `cart-link` (`src/render/c/shop.ts`),
 offered in the editor's **Shop** category while the shop is on and rendering nothing while it is off. The
 Product gallery shows the featured image, the `gallery` and the variants' own pictures
-(`productImages`), with `public/assets/js/product-gallery.js` switching them and following the variant
+(`productImages`), with `public/assets/js/shop-gallery.js` switching them and following the variant
 chosen in Add to cart (`c-product:variant`). The product card design
 (`product`) is added to the site's cards unless the site has its own.
 

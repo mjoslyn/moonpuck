@@ -75,8 +75,8 @@
     // (not one an Add to cart block names), the page's Featured image outside any card. Else none.
     const card = form.closest('.c-collection__items > li');
     const outside = () => [...document.querySelectorAll('.c-entry-image img')].find((i) => !i.closest('.c-collection__items'));
-    // A Product gallery for the same product on the page shows the variant's picture itself (product-gallery.js).
-    const gallery = !card && document.querySelector(`[data-product-gallery][data-product="${product}"]`);
+    // A Product gallery for the same product on the page shows the variant's picture itself (shop-gallery.js).
+    const gallery = !card && document.querySelector(`[data-shop-gallery][data-product="${product}"]`);
     let shownVariant = null;
     const img = gallery ? null : card ? card.querySelector('.c-entry-image img') : form.hasAttribute('data-own') ? outside() : null;
     const original = img && { src: img.getAttribute('src'), srcset: img.getAttribute('srcset'), sources: [...(img.closest('picture')?.querySelectorAll('source') ?? [])] };

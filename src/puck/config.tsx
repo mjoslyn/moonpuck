@@ -70,7 +70,7 @@ Object.assign(PANELS, {
       <p className="mb-2 text-xs text-admin-muted">The product's options (Size, Color...) are offered as choices; what's sold out can't be chosen. Prices, options and stock are in the product's settings, under Shop.</p>
     </>
   ),
-  'product-gallery': (a: Attrs, set: (p: Attrs) => void) => (
+  'shop-gallery': (a: Attrs, set: (p: Attrs) => void) => (
     <>
       <EntryField title="Product" entryType="product" value={a.product} onChange={(id) => set({ product: id || undefined })} />
       <p className="mb-3 text-xs text-admin-muted">Empty: the product whose page it is on.</p>
@@ -200,7 +200,7 @@ const LABELS: Record<string, string> = {
   'member-link': 'Member sign-in link',
   'product-price': 'Product price',
   'add-to-cart': 'Add to cart',
-  'product-gallery': 'Product gallery',
+  'shop-gallery': 'Product gallery',
   cart: 'Cart',
   'cart-link': 'Cart link',
   subscribe: 'Subscribe',
