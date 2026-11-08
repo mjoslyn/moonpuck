@@ -671,8 +671,10 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
         headerTitle={'\u200b'}
         overrides={{
           iframe: CanvasFrame,
-          // Page, then every block the selected one sits inside, above its settings.
-          fields: ({ children }) => <FieldsTrail>{children}</FieldsTrail>,
+          // Page, then every block the selected one sits inside, above its settings. The component
+          // itself, not an arrow made here: a new one each render remounted the settings panel on every
+          // keystroke in it (the field lost focus).
+          fields: FieldsTrail,
           // A page edited in layout mode: a line under the header saying the template is what's edited.
           header: ({ children }) => (
             <>
