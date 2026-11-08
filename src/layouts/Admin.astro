@@ -7,6 +7,7 @@ import { memberSettings } from '../lib/members/config';
 import { eventsOn } from '../lib/events/on';
 import { featuresOf, showsType } from '../lib/features';
 import { mailingOn } from '../lib/mailing/config';
+import { donationsOn } from '../lib/donations/config';
 import { helpUrl } from '../lib/help';
 import { adminNav, isGroup, navActive } from '../lib/admin/nav';
 // Admin chrome. Tailwind only; the public site's CSS never loads here.
@@ -30,7 +31,7 @@ const mailOn = mailingOn(siteSettings);
 const features = featuresOf(siteSettings);
 const types = CONTENT_TYPES.filter((c) => showsType(c.type, features)).map((c) => ({ type: c.type, label: c.label }));
 const composable = COMPOSABLE_TYPES.filter((c) => showsType(c.type, features)).map((c) => ({ type: c.type, singular: c.singular }));
-const nav = adminNav({ isAdmin, ticketsOn, mailOn, membersOn, shopOn: features.shop, types, composable });
+const nav = adminNav({ isAdmin, ticketsOn, mailOn, membersOn, shopOn: features.shop, donationsOn: donationsOn(siteSettings), types, composable });
 const url = Astro.url;
 const inSettings = path.startsWith('/admin/settings');
 const link = (on: boolean) => (on ? 'bg-admin-on-bar/15 text-admin-on-bar' : 'text-admin-on-bar/65 hover:bg-admin-on-bar/10 hover:text-admin-on-bar');

@@ -156,6 +156,8 @@ If you can't see something this guide mentions, it is probably for admins (see t
   or taking sign-ups.
 - [Mailing lists](/editors/mailing-lists/): writing and testing campaigns, the weekly digest, segments,
   sign-up forms, and how each email went.
+- [Donations](/editors/donations/): Donate forms, fundraising progress bars, and the gifts that came in.
+- [Members](/editors/members/): members-only pages and blocks, the account page, and member prices.
 - [Popups](/editors/popups/): changing what a popup or the cookie consent banner says.
 - [Stats](/editors/stats/): how many people visit, what they read and where they come from, and making
   campaign links.

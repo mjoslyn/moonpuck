@@ -1001,6 +1001,50 @@ Its settings:
 
 - **Label**.
 
+### Donations
+
+Shown only while your site takes donations (an admin turns them on: see
+[Turning features on](/admins/features/#donations)). See [Donations](/editors/donations/).
+
+#### Donate
+
+A donation form: once or monthly, preset amounts or another, covering the fees, a dedication, and the
+donor's name and email. Donors pay on Stripe's or Square's page and come back to a thank-you. The
+donation page at `/donate/` shows it on its own; a page you make with that address needs this block.
+
+![The Donate block on a page](../../../assets/guide/blocks/donate.png)
+
+Its settings:
+
+- **Heading**.
+- **Text**.
+- **Amounts**: separated by commas; empty, the site's.
+- **Chosen at first**.
+- **Offer monthly gifts**.
+- **Starts on**: **Give once** or **Monthly**.
+- **Cover the fees ticked at first**.
+- **Ask for a dedication**.
+- **Counts towards**: a fundraising goal.
+- **Button**.
+- **Thank-you heading**.
+- **Thank-you text**.
+- **Form style**.
+
+#### Donation progress
+
+A fundraising goal's total against its target, as a bar.
+
+![The Donation progress block on a page](../../../assets/guide/blocks/donation-progress.png)
+
+Its settings:
+
+- **Goal**.
+- **Heading**: empty, the goal's name.
+- **Show how many donors**.
+- **Show the percent**.
+- **Button label**.
+- **Button link**: empty, no button.
+
 ### Advanced
 
 #### HTML

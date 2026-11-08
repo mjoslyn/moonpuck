@@ -30,7 +30,8 @@ const SCHEDULES: Record<string, { name: string; run: () => Promise<string> }> = 
   '0 7 * * *': { name: 'scheduled snapshot', run: async () => (await import('./lib/sync')).scheduledSnapshot() },
   // Ticket reminders, follow-ups, expired holds, waitlists (src/lib/tickets/orders.ts), and yesterday's
   // visitor hashes and old site statistics pruned (src/lib/stats.ts), and the email log's old entries
-  // (src/lib/mail-log.ts), and the shop's expired holds (src/lib/shop/orders.ts); hourly.
+  // (src/lib/mail-log.ts), the shop's expired holds (src/lib/shop/orders.ts) and donations' unpaid
+  // checkouts (src/lib/donations/donations.ts); hourly.
   '0 * * * *': {
     name: 'hourly',
     run: async () => {
@@ -38,8 +39,9 @@ const SCHEDULES: Record<string, { name: string; run: () => Promise<string> }> = 
       const stats = await (await import('./lib/stats')).pruneStats(db).catch((e: Error) => `stats prune failed: ${e.message}`);
       const log = await (await import('./lib/mail-log')).pruneMailLog(db).catch((e: Error) => `mail log prune failed: ${e.message}`);
       const shop = await (await import('./lib/shop/orders')).expireShopHolds(db).then(() => 'shop holds expired', (e: Error) => `shop holds failed: ${e.message}`);
+      const donations = await (await import('./lib/donations/donations')).expireDonations(db).then((n) => `${n} gifts expired`, (e: Error) => `donations failed: ${e.message}`);
       const tracking = await (await import('./lib/shop/fulfilment')).refreshDueTracking().then((n) => `${n} parcels tracked`, (e: Error) => `tracking failed: ${e.message}`);
-      return `${await (await import('./lib/tickets/orders')).sendDueTicketEmails()}; ${stats}; ${log}; ${shop}; ${tracking}`;
+      return `${await (await import('./lib/tickets/orders')).sendDueTicketEmails()}; ${stats}; ${log}; ${shop}; ${tracking}; ${donations}`;
     },
   },
 };

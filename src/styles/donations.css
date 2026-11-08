@@ -1,0 +1,206 @@
+/* Donations (src/render/c/donations.ts): the Donate block and the Donation progress block. Role tokens only;
+   fields reuse the forms' .c-field, .c-input and .c-choice. */
+.c-donate {
+  --form-error: #b42318;
+  max-width: 36rem;
+}
+.c-donate__heading,
+.c-progress__heading {
+  margin: 0 0 0.75rem;
+}
+.c-donate__text {
+  margin: 0 0 1rem;
+}
+.c-donate__message {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-surface-alt);
+}
+.c-donate__message.is-error {
+  border-color: var(--form-error);
+}
+.c-donate__form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+.c-donate .c-field {
+  /* The forms' fields span a 12-column grid; here each is one cell. */
+  grid-column: auto;
+}
+.c-donate__frequency,
+.c-donate__amounts {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.c-donate__frequency {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: var(--form-border-width, 1px) solid var(--form-border, var(--color-muted));
+  border-radius: var(--form-radius, 2px);
+  overflow: hidden;
+}
+.c-donate__toggle,
+.c-donate__amount {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+.c-donate__toggle input,
+.c-donate__amount input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.c-donate__toggle span {
+  display: block;
+  padding: 0.65rem 0.5rem;
+  text-align: center;
+  font-weight: 600;
+}
+.c-donate__toggle input:checked + span {
+  background: var(--button-bg, var(--color-accent-fill, var(--color-accent)));
+  color: var(--button-color, var(--color-on-accent, #fff));
+}
+.c-donate__choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+.c-donate__amount span {
+  display: block;
+  padding: 0.75rem 0.5rem;
+  border: var(--form-border-width, 1px) solid var(--form-border, var(--color-muted));
+  border-radius: var(--form-radius, 2px);
+  background: var(--form-input-bg, #fff);
+  color: var(--form-input-text, #111);
+  text-align: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+.c-donate__amount input:checked + span {
+  border-color: var(--button-bg, var(--color-accent));
+  box-shadow: inset 0 0 0 2px var(--button-bg, var(--color-accent));
+}
+.c-donate__toggle input:focus-visible + span,
+.c-donate__amount input:focus-visible + span {
+  outline: 2px solid var(--form-focus, var(--color-accent));
+  outline-offset: 2px;
+}
+.c-donate__other {
+  margin-top: 0.75rem;
+}
+.c-donate__other[hidden] {
+  display: none;
+}
+.c-donate__fields {
+  display: grid;
+  gap: 0.75rem;
+}
+@media (min-width: 640px) {
+  .c-donate__fields {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.c-donate__ticks {
+  display: grid;
+  gap: 0.4rem;
+}
+.c-donate__ticks:empty {
+  display: none;
+}
+.c-donate .c-donate__submit,
+.c-donate .c-button__link {
+  width: auto;
+  min-width: 12rem;
+  border-radius: var(--form-button-radius, 2px);
+  cursor: pointer;
+}
+.c-donate__submit:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+.c-donate__secure {
+  margin: 0;
+  color: var(--form-muted, var(--color-muted));
+  font-size: 0.875rem;
+}
+.c-donate__plan {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+}
+.c-donate__plan div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-surface-alt);
+}
+.c-donate__plan dt {
+  color: var(--color-muted);
+}
+.c-donate__plan dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+.c-donate__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+.c-donate__action {
+  margin: 0;
+}
+.c-donate__cancel {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--form-error);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}
+
+.c-progress {
+  max-width: 40rem;
+}
+.c-progress__raised {
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
+}
+.c-progress__raised strong {
+  font-size: 1.75rem;
+}
+.c-progress__bar {
+  height: 0.75rem;
+  border-radius: 999px;
+  background: var(--color-surface-alt);
+  overflow: hidden;
+}
+.c-progress__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent-fill, var(--color-accent));
+}
+.c-progress__more {
+  margin: 0.5rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+.c-progress__cta {
+  margin: 1rem 0 0;
+}
+.c-progress .c-button__link {
+  display: inline-block;
+  width: auto;
+}

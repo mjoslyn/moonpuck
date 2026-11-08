@@ -22,11 +22,11 @@ export const contentHref = (type: string) => `/admin/?type=${type}`;
 
 /**
  * What the bar offers this person: Content's types (those shown, `types`), Taxonomies and, in a section
- * of its own, Templates; Compose, for each thing it makes (an entry of a type with a page, `composable`,
+ * of its own, Templates; Donations while it is on; Compose, for each thing it makes (an entry of a type with a page, `composable`,
  * then a form and, while Mailing is on, a campaign, then a template, part or pattern); optional features
  * only while they are on (the Shop's Orders among them); admin screens to admins.
  */
-export function adminNav(o: { isAdmin: boolean; ticketsOn: boolean; mailOn: boolean; membersOn: boolean; shopOn?: boolean; types: { type: string; label: string }[]; composable: { type: string; singular: string }[] }): NavItem[] {
+export function adminNav(o: { isAdmin: boolean; ticketsOn: boolean; mailOn: boolean; membersOn: boolean; shopOn?: boolean; donationsOn?: boolean; types: { type: string; label: string }[]; composable: { type: string; singular: string }[] }): NavItem[] {
   const people: NavLink[] = [
     ...(o.isAdmin ? [{ href: '/admin/users/', label: 'Users' }] : []),
     ...(o.isAdmin && o.membersOn ? [{ href: '/admin/members/', label: 'Members' }] : []),
@@ -54,6 +54,8 @@ export function adminNav(o: { isAdmin: boolean; ticketsOn: boolean; mailOn: bool
     },
     { href: '/admin/media/', label: 'Media' },
     { href: '/admin/stats/', label: 'Stats' },
+    // Gifts and monthly donors while donations are on (Settings > Donations).
+    ...(o.donationsOn ? [{ href: '/admin/donations/', label: 'Donations' }] : []),
     // A group of one is just its link.
     ...groups.filter((g) => g.items.length).map((g) => (g.items.length === 1 ? g.items[0] : g)),
   ];

@@ -1,6 +1,6 @@
 ---
 title: Turning features on
-description: "Events, tickets, members, mailing lists and the accessibility check before publishing."
+description: "Events, tickets, members, mailing lists, donations and the accessibility check before publishing."
 sidebar:
   order: 2
 ---
@@ -28,7 +28,7 @@ and sign-ups work as they are. For paid tickets, connect Stripe or Square first 
 
 **Settings > Members**: turn members on, name the membership levels, and choose how people join: only
 added by an admin, signing up and waiting for an admin to approve them, or signing up and joining at
-once. Members are then listed under **People**, **Members** (see [People and access](/admins/people/#members)).
+once. Members are then listed under **People**, **Members** (see [Members](/admins/members/)).
 
 ## Mailing lists
 
@@ -36,6 +36,13 @@ once. Members are then listed under **People**, **Members** (see [People and acc
 postal address every email must carry. Sending needs Mailgun connected (see
 [Connections](/admins/connections/)). **Mailing Lists** then appears under **People**. See
 [Mailing lists](/admins/mailing-lists/) for every setting, the lists, subscribers and sending.
+
+## Donations
+
+**Settings > Donations**: turn donations on, and set the amounts, monthly gifts, covering the fees, the
+receipt's details and fundraising goals. Gifts need Stripe or Square connected (see
+[Connections](/admins/connections/)); monthly gifts need Stripe. **Donations** then appears in the top
+bar. See [Donations](/admins/donations/).
 
 ## Checking accessibility before publishing
 

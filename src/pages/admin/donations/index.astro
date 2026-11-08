@@ -1,0 +1,170 @@
+---
+// Donations (src/lib/donations/donations.ts): the totals over a range (raised, gifts, donors, repeat donors,
+// fees covered, monthly donors and what they give a month, by goal and by campaign), each goal's progress,
+// and the gifts by tab (paid, monthly donors, not completed, refunded, all), searched by receipt number,
+// email or name, 50 a page, each linking to its page. Export CSV takes the tab, search and goal.
+import Admin from '../../../layouts/Admin.astro';
+import { SITE_TZ } from '../../../lib/site';
+import { formatMoney } from '../../../lib/payments/money';
+import { donationSettings } from '../../../lib/donations/config';
+import { DONATION_TABS, donationStats, donationsQuery, goalTotals, plansQuery, type Donation, type DonationPlan } from '../../../lib/donations/donations';
+import { STATS_RANGES, statsRange } from '../../../lib/stats';
+
+const PER_PAGE = 50;
+const db = Astro.locals.db;
+const params = Astro.url.searchParams;
+const tab = DONATION_TABS.some(([k]) => k === params.get('tab')) ? params.get('tab')! : 'paid';
+const search = (params.get('q') ?? '').slice(0, 100);
+const { data: siteRow } = await db.from('settings').select('value').eq('key', 'site').maybeSingle();
+const s = donationSettings(siteRow?.value as any);
+const goal = s.goals.some((g) => g.id === params.get('goal')) ? params.get('goal')! : '';
+const page = Math.max(1, Math.min(10_000, Math.floor(Number(params.get('page'))) || 1));
+const range = statsRange(params);
+const [stats, totals] = await Promise.all([donationStats(db, range, s), goalTotals(db, s.goals)]);
+const monthly = tab === 'monthly';
+const { data, count, error } = await (monthly ? plansQuery(db, search) : donationsQuery(db, tab, search, goal)).range((page - 1) * PER_PAGE, page * PER_PAGE - 1);
+if (error) throw error;
+const gifts = (monthly ? [] : data ?? []) as Donation[];
+const plans = (monthly ? data ?? [] : []) as DonationPlan[];
+const pages = Math.max(1, Math.ceil((count ?? 0) / PER_PAGE));
+const money = (n: number, cur = s.currency) => formatMoney(n, cur);
+const when = (x: string | null) => (x ? new Date(x).toLocaleString('en-US', { timeZone: SITE_TZ, month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '');
+const href = (patch: Record<string, string | number | null>) => {
+  const p = new URLSearchParams({ tab, ...(search ? { q: search } : {}), ...(goal ? { goal } : {}), ...(range.preset ? { days: String(range.preset) } : { from: range.from, to: range.to }) });
+  for (const [k, v] of Object.entries(patch)) v === null || v === '' ? p.delete(k) : p.set(k, String(v));
+  return `/admin/donations/?${p}`;
+};
+const STATUS: Record<string, [string, string]> = {
+  paid: ['Paid', 'bg-[#ecfdf5] text-[#047857]'],
+  pending: ['Not completed', 'bg-[#fffbeb] text-[#b45309]'],
+  cancelled: ['Cancelled', 'bg-[#f1f5f9] text-admin-muted'],
+  expired: ['Not completed', 'bg-[#f1f5f9] text-admin-muted'],
+  refunded: ['Refunded', 'bg-[#eff6ff] text-[#1d4ed8]'],
+  active: ['Active', 'bg-[#ecfdf5] text-[#047857]'],
+  past_due: ['Payment failed', 'bg-[#fffbeb] text-[#b45309]'],
+};
+const goalName = (id: string) => s.goals.find((g) => g.id === id)?.name ?? '';
+const csv = `/api/admin/donations.csv?${new URLSearchParams({ tab: monthly ? 'all' : tab, ...(search ? { q: search } : {}), ...(goal ? { goal } : {}) })}`;
+const tile = 'rounded bg-white p-4 shadow-[0_0_0_1px_rgba(26,26,46,0.08)]';
+---
+<Admin title="Donations">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-normal">Donations</h1>
+      <p class="mt-1 text-sm text-admin-muted">Every gift made with a Donate block, and your monthly donors. Amounts, goals and receipts are under <a class="underline hover:text-admin-accent" href="/admin/settings/donations/">Settings &gt; Donations</a>.</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <form method="get" class="flex items-center gap-2">
+        <input type="hidden" name="tab" value={tab} />
+        {s.goals.length > 0 && !monthly && (
+          <select name="goal" aria-label="Goal" class="rounded border border-admin-ink/15 bg-white px-2 py-1.5 text-sm" onchange="this.form.submit()">
+            <option value="">Any goal</option>
+            {s.goals.map((g) => <option value={g.id} selected={g.id === goal}>{g.name}</option>)}
+          </select>
+        )}
+        <input name="q" value={search} placeholder={monthly ? 'Email or name' : 'Receipt, email or name'} aria-label="Search gifts" class="w-56 rounded border border-admin-ink/15 bg-white px-2 py-1.5 text-sm" />
+        <button class="rounded border border-admin-ink/15 bg-white px-3 py-1.5 text-sm hover:border-admin-accent hover:text-admin-accent">Search</button>
+      </form>
+      <a href={csv} class="rounded border border-admin-ink/15 bg-white px-3 py-1.5 text-sm hover:border-admin-accent hover:text-admin-accent">Export CSV</a>
+    </div>
+  </div>
+  {!s.enabled && <p class="mt-4 rounded bg-admin-soft px-4 py-3 text-sm">Donations are off, so nobody can give. Monthly gifts already started keep going at Stripe; their gifts are still recorded here.</p>}
+
+  <section class="mt-6" aria-labelledby="totals">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h2 id="totals" class="text-lg font-medium">Totals</h2>
+      <nav class="flex flex-wrap gap-1 text-sm" aria-label="Range">
+        {STATS_RANGES.map((d) => <a href={href({ days: d, from: null, to: null, page: null })} class={`rounded px-2 py-1 ${range.preset === d ? 'bg-admin-accent text-white' : 'text-admin-muted hover:text-admin-ink'}`}>{d} days</a>)}
+      </nav>
+    </div>
+    <div class="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div class={tile}><div class="text-xs text-admin-muted">Raised</div><div class="text-2xl">{money(stats.raised)}</div><div class="text-xs text-admin-muted">{stats.gifts} {stats.gifts === 1 ? 'gift' : 'gifts'}, less refunds</div></div>
+      <div class={tile}><div class="text-xs text-admin-muted">Donors</div><div class="text-2xl">{stats.donors}</div><div class="text-xs text-admin-muted">{stats.repeat} gave more than once</div></div>
+      <div class={tile}><div class="text-xs text-admin-muted">Monthly donors now</div><div class="text-2xl">{stats.monthlyDonors}</div><div class="text-xs text-admin-muted">{money(stats.monthlyTotal)} a month</div></div>
+      <div class={tile}><div class="text-xs text-admin-muted">Fees donors covered</div><div class="text-2xl">{money(stats.fees)}</div></div>
+    </div>
+    {(s.goals.length > 0 || stats.byCampaign.length > 0) && (
+      <div class="mt-3 grid gap-3 md:grid-cols-2">
+        {s.goals.length > 0 && (
+          <div class={tile}>
+            <h3 class="mb-2 text-sm font-medium">Goals (all time, within each goal’s dates)</h3>
+            {s.goals.map((g) => {
+              const t = totals[g.id] ?? { raised: 0, donors: 0, gifts: 0 };
+              const pct = g.target ? Math.min(100, Math.round((t.raised / g.target) * 100)) : 0;
+              return (
+                <div class="mb-2">
+                  <div class="flex justify-between text-sm"><a class="hover:text-admin-accent" href={href({ goal: g.id, tab: 'paid', page: null })}>{g.name}</a><span>{money(t.raised)}{g.target ? ` of ${money(g.target)}` : ''}</span></div>
+                  {g.target > 0 && <div class="mt-1 h-2 rounded bg-admin-bg"><div class="h-2 rounded bg-admin-accent" style={`width:${pct}%`}></div></div>}
+                  <div class="text-xs text-admin-muted">{t.donors} {t.donors === 1 ? 'donor' : 'donors'}{g.start || g.end ? ` · ${g.start ?? '…'} to ${g.end ?? '…'}` : ''}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {stats.byCampaign.length > 0 && (
+          <div class={tile}>
+            <h3 class="mb-2 text-sm font-medium">By campaign</h3>
+            <table class="w-full text-sm">
+              {stats.byCampaign.slice(0, 15).map((c) => <tr><td class="py-1">{c.campaign}</td><td class="py-1 text-right text-admin-muted">{c.gifts}</td><td class="py-1 text-right">{money(c.raised)}</td></tr>)}
+            </table>
+          </div>
+        )}
+      </div>
+    )}
+  </section>
+
+  <nav class="mt-8 flex flex-wrap gap-1 border-b border-admin-ink/10 text-sm" aria-label="Gifts">
+    {DONATION_TABS.map(([k, label]) => (
+      <a href={href({ tab: k, page: null })} class={`-mb-px border-b-2 px-3 py-2 ${k === tab ? 'border-admin-accent text-admin-ink' : 'border-transparent text-admin-muted hover:text-admin-ink'}`} aria-current={k === tab ? 'page' : undefined}>{label}</a>
+    ))}
+  </nav>
+
+  <div class="mt-4 overflow-x-auto rounded bg-white shadow-[0_0_0_1px_rgba(26,26,46,0.08)]">
+    {monthly ? (
+      <table class="w-full text-sm">
+        <thead class="border-b border-admin-ink/10 text-left text-xs text-admin-muted">
+          <tr><th class="px-4 py-2 font-medium">Donor</th><th class="px-4 py-2 font-medium">Each month</th><th class="px-4 py-2 font-medium">Since</th><th class="px-4 py-2 font-medium">Status</th><th class="px-4 py-2 font-medium">Goal</th></tr>
+        </thead>
+        <tbody>
+          {plans.map((p) => (
+            <tr class="border-b border-admin-ink/5 last:border-0 hover:bg-admin-bg">
+              <td class="px-4 py-3"><a href={`/admin/donations/plan/${p.id}/`} class="font-medium hover:text-admin-accent">{p.name}</a><div class="text-xs text-admin-muted">{p.email}</div></td>
+              <td class="px-4 py-3">{money(p.total, p.currency)}</td>
+              <td class="px-4 py-3 whitespace-nowrap text-admin-muted">{when(p.started_at)}</td>
+              <td class="px-4 py-3"><span class={`rounded px-2 py-0.5 text-xs ${STATUS[p.status]?.[1] ?? ''}`}>{STATUS[p.status]?.[0] ?? p.status}</span></td>
+              <td class="px-4 py-3 text-admin-muted">{goalName(p.goal)}</td>
+            </tr>
+          ))}
+          {!plans.length && <tr><td colspan="5" class="px-4 py-10 text-center text-admin-muted">{search ? 'No monthly donors match.' : 'No monthly donors yet.'}</td></tr>}
+        </tbody>
+      </table>
+    ) : (
+      <table class="w-full text-sm">
+        <thead class="border-b border-admin-ink/10 text-left text-xs text-admin-muted">
+          <tr><th class="px-4 py-2 font-medium">Receipt</th><th class="px-4 py-2 font-medium">Date</th><th class="px-4 py-2 font-medium">Donor</th><th class="px-4 py-2 font-medium">Gift</th><th class="px-4 py-2 font-medium">Frequency</th><th class="px-4 py-2 font-medium">Status</th><th class="px-4 py-2 font-medium">Goal</th></tr>
+        </thead>
+        <tbody>
+          {gifts.map((d) => (
+            <tr class="border-b border-admin-ink/5 last:border-0 hover:bg-admin-bg">
+              <td class="px-4 py-3"><a href={`/admin/donations/${d.id}/`} class="font-medium hover:text-admin-accent">{d.code}</a></td>
+              <td class="px-4 py-3 whitespace-nowrap text-admin-muted">{when(d.paid_at ?? d.created_at)}</td>
+              <td class="px-4 py-3">{d.name}{d.anonymous && <span class="ml-1 text-xs text-admin-muted">(anonymous)</span>}<div class="text-xs text-admin-muted">{d.email}</div></td>
+              <td class="px-4 py-3">{money(d.amount, d.currency)}{d.fee > 0 && <div class="text-xs text-admin-muted">+ {money(d.fee, d.currency)} fees</div>}{d.refunded_amount > 0 && <div class="text-xs text-admin-muted">{money(d.refunded_amount, d.currency)} refunded</div>}</td>
+              <td class="px-4 py-3 text-admin-muted">{d.kind === 'monthly' ? 'Monthly' : 'One-time'}</td>
+              <td class="px-4 py-3"><span class={`rounded px-2 py-0.5 text-xs ${STATUS[d.status]?.[1] ?? ''}`}>{STATUS[d.status]?.[0] ?? d.status}</span></td>
+              <td class="px-4 py-3 text-admin-muted">{goalName(d.goal)}</td>
+            </tr>
+          ))}
+          {!gifts.length && <tr><td colspan="7" class="px-4 py-10 text-center text-admin-muted">{search ? 'No gifts match.' : 'No gifts here.'}</td></tr>}
+        </tbody>
+      </table>
+    )}
+  </div>
+  {pages > 1 && (
+    <nav class="mt-4 flex items-center gap-3 text-sm" aria-label="Pages">
+      {page > 1 && <a class="hover:text-admin-accent" href={href({ page: page - 1 })}>← Newer</a>}
+      <span class="text-admin-muted">Page {page} of {pages}</span>
+      {page < pages && <a class="hover:text-admin-accent" href={href({ page: page + 1 })}>Older →</a>}
+    </nav>
+  )}
+</Admin>

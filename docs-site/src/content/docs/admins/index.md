@@ -23,9 +23,11 @@ The **?** button at the top of every admin screen brings admins here, and editor
 ## What's in this guide
 
 - [Settings and the menu](/admins/settings/): the site's menu and every section of Settings.
-- [Turning features on](/admins/features/): events, tickets, members, mailing lists and the accessibility check.
+- [Turning features on](/admins/features/): events, tickets, members, mailing lists, donations and the accessibility check.
 - [Selling things](/admins/shop/): products, sizes and colors, stock and the cart (a preview).
 - [Mailing lists](/admins/mailing-lists/): lists, subscribers, sending campaigns and the weekly digest.
+- [Members](/admins/members/): membership levels, how people join, and adding, approving and removing members.
+- [Donations](/admins/donations/): amounts, monthly gifts, covering fees, receipts, goals, refunds and monthly donors.
 - [Connections](/admins/connections/): Claude, card payments and Mailgun.
 - [Kinds of content and taxonomies](/admins/content-types/): adding your own types of content and ways to sort it.
 - [People and access](/admins/people/): inviting editors and admins, and removing access.

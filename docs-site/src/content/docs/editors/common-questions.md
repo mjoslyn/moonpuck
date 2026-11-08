@@ -40,7 +40,7 @@ in again. Setting a new password from an emailed link also signs you out everywh
 Those are for admins. Ask an admin to make the change, or to give you the admin role. Admins can find
 how in the [Admin guide](/admins/).
 
-### I can't see Events, Tickets, Members or Mailing Lists.
+### I can't see Events, Tickets, Members, Mailing Lists or Donations.
 
 Each of these is a feature an admin turns on under **Settings** (see
 [Turning features on](/admins/features/)). **Members** and **Users** are only for admins.

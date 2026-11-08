@@ -1,0 +1,95 @@
+---
+// One gift (src/lib/donations/donations.ts): the gift, fees covered and what was charged, the donor, the
+// dedication and goal, where it was made, the payment, and the actions: resend the receipt and refund
+// (admins, all or part, at the provider; the donor is emailed). A monthly gift links to its donor's plan.
+// POST /api/admin/donations.
+import Admin from '../../../layouts/Admin.astro';
+import { SITE_TZ } from '../../../lib/site';
+import { formatMoney } from '../../../lib/payments/money';
+import { donationSettings } from '../../../lib/donations/config';
+import type { Donation } from '../../../lib/donations/donations';
+
+const id = Number(Astro.params.id) || 0;
+const { data } = await Astro.locals.db.from('donations').select('*').eq('id', id).maybeSingle();
+if (!data) return Astro.redirect('/admin/donations/');
+const d = data as Donation;
+const { data: siteRow } = await Astro.locals.db.from('settings').select('value').eq('key', 'site').maybeSingle();
+const s = donationSettings(siteRow?.value as any);
+const isAdmin = Astro.locals.user?.role === 'admin';
+const money = (n: number) => formatMoney(n, d.currency);
+const when = (x: string | null) => (x ? new Date(x).toLocaleString('en-US', { timeZone: SITE_TZ, month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '');
+const STATUS: Record<string, string> = { paid: 'Paid', pending: 'Not completed yet', cancelled: 'Cancelled by the donor', expired: 'Not completed', refunded: 'Refunded' };
+const left = d.total - d.refunded_amount;
+const canRefund = isAdmin && d.status === 'paid' && left > 0;
+const row = (k: string, v: string) => ({ k, v });
+const rows = [
+  row('Gift', money(d.amount)),
+  ...(d.fee ? [row('Fees covered', money(d.fee))] : []),
+  row('Charged', money(d.total)),
+  ...(d.refunded_amount ? [row('Refunded', money(d.refunded_amount))] : []),
+  row('Frequency', d.kind === 'monthly' ? 'Monthly' : 'One-time'),
+  ...(d.dedication ? [row('In honor or memory of', d.dedication)] : []),
+  ...(d.goal ? [row('Goal', s.goals.find((g) => g.id === d.goal)?.name ?? d.goal)] : []),
+  row('Given on', d.page),
+  ...(d.campaign ? [row('Campaign', d.campaign.split('|').filter(Boolean).join(' / '))] : []),
+  row('Payment', `${d.provider === 'stripe' ? 'Stripe' : 'Square'}${d.provider_payment ? `, ${d.provider_payment}` : ''}`),
+  row('Started', when(d.created_at)),
+  ...(d.paid_at ? [row('Paid', when(d.paid_at))] : []),
+];
+---
+<Admin title={`Gift ${d.code}`}>
+  <p class="text-sm"><a class="text-admin-muted hover:text-admin-accent" href="/admin/donations/">← Donations</a></p>
+  <h1 class="mt-2 text-3xl font-normal">Gift {d.code}</h1>
+  <p class="mt-1 text-sm text-admin-muted">{STATUS[d.status] ?? d.status}{d.note ? ` · ${d.note}` : ''}</p>
+
+  <div class="mt-6 grid gap-6 md:grid-cols-[2fr_1fr]">
+    <section class="rounded bg-white p-4 shadow-[0_0_0_1px_rgba(26,26,46,0.08)]">
+      <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+        {rows.map((r) => (<><dt class="text-admin-muted">{r.k}</dt><dd>{r.v}</dd></>))}
+      </dl>
+    </section>
+    <section class="rounded bg-white p-4 shadow-[0_0_0_1px_rgba(26,26,46,0.08)]">
+      <h2 class="mb-2 text-sm font-medium">Donor</h2>
+      <p class="text-sm">{d.name}{d.anonymous && <span class="text-admin-muted"> (asked to stay anonymous)</span>}</p>
+      <p class="text-sm"><a class="underline" href={`mailto:${d.email}`}>{d.email}</a></p>
+      {d.plan_id && <p class="mt-2 text-sm"><a class="underline hover:text-admin-accent" href={`/admin/donations/plan/${d.plan_id}/`}>Their monthly gift</a></p>}
+      <p class="mt-2 text-sm"><a class="underline hover:text-admin-accent" href={`/admin/donations/?tab=all&q=${encodeURIComponent(d.email)}`}>All their gifts</a></p>
+    </section>
+  </div>
+
+  <section class="mt-6 flex flex-wrap items-end gap-4">
+    {(d.status === 'paid' || d.status === 'refunded') && <button type="button" data-resend class="rounded border border-admin-ink/15 bg-white px-3 py-1.5 text-sm hover:border-admin-accent hover:text-admin-accent">Resend receipt</button>}
+    {canRefund && (
+      <form data-refund class="flex items-end gap-2">
+        <label class="text-sm">Refund ({d.currency})<input name="amount" inputmode="decimal" value={(left / 100).toFixed(2)} class="mt-1 block w-28 rounded border border-admin-ink/15 bg-white px-2 py-1.5 text-sm" /></label>
+        <button class="rounded border border-[#b3261e]/40 bg-white px-3 py-1.5 text-sm text-[#b3261e] hover:border-[#b3261e]">Refund</button>
+      </form>
+    )}
+  </section>
+  <p id="gift-status" role="status" class="mt-3 text-sm text-admin-muted"></p>
+</Admin>
+
+<script define:vars={{ giftId: d.id, currency: d.currency }}>
+  const status = document.getElementById('gift-status');
+  const post = async (body) => {
+    status.textContent = 'Working…';
+    const res = await fetch('/api/admin/donations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: giftId, ...body }) });
+    status.textContent = '';
+    if (!res.ok) {
+      alert(await res.text());
+      return null;
+    }
+    return res.json();
+  };
+  document.querySelector('[data-resend]')?.addEventListener('click', async () => {
+    if (await post({ action: 'resend' })) status.textContent = 'The receipt was sent again.';
+  });
+  document.querySelector('[data-refund]')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const amount = Math.round(Number(String(e.target.amount.value).replace(/[^\d.]/g, '')) * 100);
+    if (!amount) return;
+    const shown = new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount / 100);
+    if (!confirm(`Refund ${shown} to the donor’s card? They are emailed.`)) return;
+    if (await post({ action: 'refund', amount })) location.reload();
+  });
+</script>

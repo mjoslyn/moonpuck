@@ -539,7 +539,7 @@ its scripts run in order, once the visitor accepts in the consent banner (`snipp
 
 Settings > Email log (admins; `settings.site.mail_log` { enabled, days }, `src/lib/mail-log.ts`, migration
 `*_mail_log.sql`): while it is on, `sendMail` (`src/lib/forms/mail.ts`) keeps each email the site sends in
-`mail_log`, sent, failed (with the error) or not sent (no mail set up): its kind (`Mail.kind`: form, ticket, shop,
+`mail_log`, sent, failed (with the error) or not sent (no mail set up): its kind (`Mail.kind`: form, ticket, shop, donation,
 account, admin, other), recipients, sender, reply-to, subject, how it went out and its HTML and text. An
 email marked `secret` (account emails: password links, invitations, address confirmations, `sendLink` in
 `src/lib/auth/mail.ts`) is kept without its body (`withheld`), so nobody reading the log can use its link.
@@ -753,7 +753,7 @@ options, merge tags, canvas stand-ins, preview); a notification's is `formEmailK
 **Templates** (the builder's Templates panel, `src/forms/EmailTemplates.tsx`; table `email_templates`,
 editors only, migration `*_email_templates.sql`; `src/lib/email-templates.ts`): saved designs with their
 plain text, per kit (`templates` in `EmailKit`: `mailing` for campaigns and digests, `form`, `ticket`,
-`shop`; migration `*_email_templates_shop.sql` added the last),
+`shop`, `donation`; migrations `*_email_templates_shop.sql` and `*_donations.sql` added the last two),
 to save the email as, save over, start from (Use) or delete. A template can be the default for one kind
 of email (`default_for`, unique; `TEMPLATE_DEFAULTS`): new campaigns, digests, forms and form
 notifications start from theirs (`defaultTemplate`), and a ticket or order email nobody designed is sent
@@ -798,7 +798,7 @@ export adds payment columns.
 
 ### Payments
 
-Forms and tickets take payments through the same code, `src/lib/payments/`: `stripe.ts` (Checkout
+Forms, tickets, the shop and donations take payments through the same code, `src/lib/payments/`: `stripe.ts` (Checkout
 Sessions) and `square.ts` (payment links, an order each), over their REST APIs with no SDK, behind one
 `Provider` interface (`create` a hosted checkout, `check` where it stands, `close` an unpaid one,
 `refund` (the refund and its status), `refunded`, `webhookEvent` with the signature checked, `parseEvent`
@@ -1485,6 +1485,82 @@ answer 404.
   (`SHOP_TEMPLATES`, `ensureShopTemplates`, `src/lib/shop/templates.ts`) when no templates have those
   addresses; `npm run seed` does the same while it is on.
 
+## Donations
+
+An optional feature, on under Settings > Donations (`settings.site.donations`, `donationSettings`,
+`donationSettingsFrom`, `donationsOn`, `src/lib/donations/config.ts`, safe in the browser;
+`src/admin/DonationSettings.tsx`): one-time gifts through the site's payment provider (Stripe or Square,
+`pickProvider` with the setting's `provider`) and monthly gifts through Stripe subscriptions. Off, the
+blocks render nothing (a note in the editor), the editor doesn't offer them, `/donate/` is Not found, the
+checkout answers 404 and the admin bar has no Donations; gifts already started (monthly ones keep going
+at Stripe) are still recorded. A gift gives no membership.
+
+- **Settings**: currency, the provider for one-time gifts, `amounts` (minor units, up to 8), `minimum`
+  (at least `MIN_CHARGE`; default 500), `monthly` (default on), covering the fees (`feePercent`,
+  `feeFixed`; `coverFee`: the charge is (amount + fixed) / (1 − percent), so the whole gift arrives),
+  `dedication`, `anonymous`, the receipt's `legalName`, `taxId` and `receiptNote`, the Email me news tick
+  (`news`: lists and words; `signUp` with source `donation`, confirmed by email), fundraising `goals`
+  (`cleanGoals`: `{ id, name, target, start?, end? }`, the id made from the name and kept, local dates),
+  `notify` and the `emails`.
+- **Data** (migration `*_donations.sql`; editors read, the server writes): `donations`, one row per
+  payment (`token`, `code` the receipt number, `status` pending, paid, cancelled, expired or refunded,
+  `kind` once or monthly, `plan_id`, provider refs, `invoice` (unique: a monthly payment is recorded once),
+  `amount` the gift, `fee` covered, `total` charged, `refunded_amount`, `refund_attempt`, donor, anonymous,
+  dedication, goal, the page it was given on, the visit's `campaign`); `donation_plans`, one per monthly
+  gift (status incomplete, active, past_due or cancelled; Stripe's `customer` and `subscription`, and the
+  gift's details). Not synced or backed up: they stay on the copy where they were made.
+- **Blocks** (`src/render/c/donations.ts`; the editor's Donations category, `src/puck/DonationPanels.tsx`):
+  **Donate** (`donate`: Give once / Monthly, preset amounts (the block's `amounts` else the settings') and
+  Other, cover the fees, name, email, dedication, anonymous, news, a honeypot; the `goal` it counts
+  towards; `formStyle`) posts a plain form to `POST /api/donations/checkout` (`startDonation`), which
+  answers 303 to the provider's checkout or back with `?donate_error=`; `public/assets/js/donate.js`
+  shows the fee and the button's amount and adds the visit's campaign. With `?donation=<token>` the block
+  shows that gift's thank-you, with `?plan=<token>` that monthly gift with Update your card (Stripe's
+  customer portal) and Cancel (`POST /api/donations/manage`), loaded by a server hook
+  (`src/lib/donations/page-data.ts`); those pages and a checkout's outcome are personal (never cached).
+  **Donation progress** (`donation-progress`): a goal's total against its target as a bar, with donors
+  and percent and an optional button, from `goalTotals` (`src/lib/donations/totals.ts`: paid gifts in the
+  goal's dates, each counting `raised`, the gift less refunds, not the fee), read when the page renders
+  (cached with it). `/donate/` (`DONATE_PATH`) is a built-in page with a Donate block unless a page has
+  that address; monthly receipts link there.
+- **Checkout** (`src/lib/donations/donations.ts`): the amount checked against the minimum and
+  `MAX_GIFT`, 30 checkouts a minute in all and 5 unpaid an hour per email and per address; a one-time gift
+  through `Provider.create` (the gift and the fee as items), a monthly one through
+  `createSubscriptionCheckout` (`src/lib/payments/stripe.ts`: Checkout in subscription mode, a monthly
+  price made inline) with an incomplete plan. `/api/donations/return?d=<token>` asks the provider and
+  sends the donor back to the page they gave on (`?donation=`, or `?donate=cancelled` after Cancel).
+  `markDonationPaid` marks it paid once (an expired or cancelled one paid anyway too, with a note),
+  starts the plan (`checkSubscriptionCheckout`: its subscription, customer, first invoice and payment)
+  and claims `emailed_at` to send the receipt (the monthly receipt for a monthly gift) and the
+  organization's copy once. Unpaid checkouts older than a day expire hourly (`expireDonations`).
+- **Webhooks** (`donationsWebhook`, beside the others in `/api/payments/<provider>`): checkouts and
+  refunds as the other features; Stripe's `invoice.paid` and `invoice.payment_failed` (`PaymentEvent`
+  kind `invoice`) and `customer.subscription.updated` and `.deleted` (kind `subscription`), read in both
+  of Stripe's invoice shapes (`invoiceSubscription`, `invoicePayment`, which falls back to
+  `/v1/invoice_payments`). A later month's paid invoice makes a donation row of its own (the first,
+  `subscription_create`, is the checkout's) and sends the monthly receipt; a failed one marks the plan
+  past_due and emails the donor once until it is paid again; the subscription's end marks it cancelled
+  and emails the donor once (`planEnded`). `STRIPE_EVENTS` includes these, so connecting Stripe again
+  adds them to an existing endpoint.
+- **Emails** (`src/lib/donations/email.ts`, safe in the browser; kit `src/admin/donation-email.ts`):
+  receipt, monthly receipt, failed, cancelled, refunded and the organization's copy
+  (`DONATIONS_NOTIFY_EMAIL`, else `FORMS_ADMIN_EMAIL`, else the config's `adminEmail`), each a subject,
+  design and plain text as the shop's, with `DONATION_MERGE_TAGS`, a Donation details block
+  (`DONATION_DETAILS`: the gift, the receipt details with the legal name, tax number and note, the
+  dedication, refund, contact) and the Payment block; sent from the site's design, else the default
+  template for its kind (`donation:<kind>`, kit `donation`), else `DEFAULT_DONATION_EMAILS`. Email log
+  kind `donation`.
+- **The Donations screen** (`/admin/donations/`, editors, in the admin bar while on;
+  `src/pages/admin/donations/`): totals over the Stats screen's ranges (`donationStats`: raised, gifts,
+  donors, repeat donors, fees covered, monthly donors now and their monthly total, by goal and by
+  campaign), each goal's progress, and the gifts by tab (paid, monthly donors, not completed, refunded,
+  all), searched by receipt number, email or name and filtered by goal, 50 a page, with Export CSV
+  (`GET /api/admin/donations.csv`, formulas guarded). A gift's page resends its receipt and refunds it
+  (admins; `refundDonation`, its own idempotency key while the outcome is unknown, the donor emailed); a
+  monthly donor's page (`/admin/donations/plan/<id>/`) lists their gifts, checks the plan at Stripe
+  (`refreshPlan`) and cancels it (admins; `cancelPlan`). `POST /api/admin/donations`; its writes don't
+  clear the page cache.
+
 ## Editor
 
 `/admin/` (a session, see Accounts; `profiles.role`: editor, admin, or viewer = no access). The admin bar's **?**
@@ -1558,7 +1634,7 @@ of its own, `section`; the content list has no tabs of its own for the types), a
 (each type with a page, at `/admin/compose/?type=<type>`; then Form and, while Mailing is on, Campaign;
 then Template, Template part and Pattern), Media, Stats, a **Forms** dropdown (Forms, Submissions), a **People** dropdown (Users and Members
 for admins, Mailing Lists and Tickets, each while its feature is on; a group of one shows as its link)
-and a **Shop** dropdown (Orders, Discounts, Stock, Stats) while the shop is on,
+Donations while it is on, and a **Shop** dropdown (Orders, Discounts, Stock, Stats) while the shop is on,
 then a gear for Settings (admins), **?**, View site and the account menu. Below 1024px it all sits behind
 one menu button, the groups as headings. The dropdowns are `details[data-menu]`: one open at a time, closed
 by a click elsewhere or Escape.
@@ -1584,7 +1660,7 @@ builder's and campaign editor's Compose dialogs, or the editor's panel, whose co
 
 **Settings** (admins; `src/puck/SiteSettings.tsx`, page `src/pages/admin/settings/[...section].astro`): a side
 menu of sections in groups (`SETTINGS_GROUPS`, `src/lib/admin/settings-sections.ts`): Site (General, Menu,
-Social, Search, Types, the site's own options, Popups, Stats, Code snippets), Features (Events, Tickets, Members, Mailing Lists, Shop,
+Social, Search, Types, the site's own options, Popups, Stats, Code snippets), Features (Events, Tickets, Members, Mailing Lists, Shop, Donations,
 marked On or Off), Services (Connections), Admin (Accessibility, Appearance) and Upkeep (Redirects, Email log, Sync,
 Backups); a Section dropdown on phones. Each section has its own address, `/admin/settings/<section>/`
 (General `/admin/settings/`; `sectionOf`, `settingsPath`); the screen moves between them in place, so
@@ -1721,7 +1797,7 @@ only add; one that switches block types or settings goes out with `npm run deplo
 - Bindings: `DB` (D1), `BUCKET` (R2), `IMAGES` (Cloudflare Images), `JOBS` (a queue: Compose turns, campaign
   sending runs and restores, each run once with up to 15 minutes, `src/lib/jobs.ts`),
   `CF_VERSION_METADATA` (the page cache's validators). The Cron Triggers: mailing every 5 minutes and at
-  06:20 UTC, snapshots at 07:00 UTC, ticket emails, the shop's expired holds and parcels' tracking, and the statistics' and email log's pruning
+  06:20 UTC, snapshots at 07:00 UTC, ticket emails, the shop's expired holds and parcels' tracking, donations' unpaid checkouts, and the statistics' and email log's pruning
   hourly (`SCHEDULES`).
 - Variables and secrets reach the code as `process.env` (`nodejs_compat`); secrets are set with
   `npx wrangler secret put`. Code reads them with `env()` (`src/lib/env.ts`), which reads `.env` through
