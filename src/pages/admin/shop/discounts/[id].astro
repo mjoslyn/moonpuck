@@ -1,0 +1,40 @@
+---
+// One discount's form (src/admin/DiscountForm.tsx), or a new one at /admin/shop/discounts/new/.
+import Admin from '../../../../layouts/Admin.astro';
+import DiscountForm from '../../../../admin/DiscountForm';
+import { categoryOf } from '../../../../lib/site';
+import { memberSettings } from '../../../../lib/members/config';
+import { asDiscount } from '../../../../lib/shop/discount-lookup';
+import type { Discount } from '../../../../lib/shop/discounts';
+
+const db = Astro.locals.db;
+const isNew = Astro.params.id === 'new';
+let discount: Discount | null = null;
+if (!isNew) {
+  const { data } = await db.from('shop_discounts').select('*').eq('id', Number(Astro.params.id) || 0).maybeSingle();
+  if (!data) return Astro.redirect('/admin/shop/discounts/');
+  discount = asDiscount(data);
+}
+const taxonomy = categoryOf('product')?.[0];
+const [{ data: siteRow }, { data: terms }] = await Promise.all([
+  db.from('settings').select('value').eq('key', 'site').maybeSingle(),
+  taxonomy ? db.from('terms').select('id, name, parent_id').eq('taxonomy', taxonomy).order('sort').order('name') : Promise.resolve({ data: [] as { id: number; name: string; parent_id: number | null }[] }),
+]);
+// Categories in tree order, the ones under another named after it.
+const all = (terms ?? []) as { id: number; name: string; parent_id: number | null }[];
+const categories: { id: number; name: string }[] = [];
+const walk = (parent: number | null, prefix: string) => {
+  for (const t of all.filter((x) => (x.parent_id ?? null) === parent)) {
+    categories.push({ id: t.id, name: prefix + t.name });
+    walk(t.id, `${prefix}${t.name} › `);
+  }
+};
+walk(null, '');
+const members = memberSettings(siteRow?.value);
+const title = isNew ? 'New discount' : discount!.code ?? (discount!.name || 'Automatic discount');
+---
+<Admin title={`${title} · Discounts`}>
+  <p class="text-sm"><a href="/admin/shop/discounts/" class="text-admin-muted hover:text-admin-accent">← Discounts</a></p>
+  <h1 class="mt-2 mb-6 text-3xl font-normal">{title}</h1>
+  <DiscountForm client:load discount={discount} categories={categories} levels={members.levels} membersOn={members.enabled} />
+</Admin>

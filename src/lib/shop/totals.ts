@@ -4,6 +4,7 @@
 // Safe in the browser.
 import type { CheckoutSettings, PickupLocation, ShippingRate, ShippingZone, TaxSettings } from './checkout-settings';
 import { covers, ELSEWHERE, specificity, type Destination } from './places';
+import { discountLabel, pickDiscount, type Discount } from './discounts';
 
 /** What totals need of a cart line (src/lib/shop/cart.ts QuoteLine). */
 export interface CartFactLine {
@@ -201,11 +202,13 @@ export function orderTotals(input: {
   where: Destination | null;
   shipping?: number;
   discount?: number;
+  /** The lines the discount is spread over (all when left out). */
+  discountLines?: boolean[];
   freeShipping?: boolean;
 }): Totals {
   const amounts = input.lines.map((l) => Math.max(0, l.total));
   const subtotal = amounts.reduce((a, b) => a + b, 0);
-  const lineDiscounts = spreadDiscount(amounts, input.discount ?? 0);
+  const lineDiscounts = spreadDiscount(input.discountLines ? amounts.map((a, i) => (input.discountLines![i] ? a : 0)) : amounts, input.discount ?? 0);
   const goodsDiscount = lineDiscounts.reduce((a, b) => a + b, 0);
   const shippingFull = Math.max(0, Math.round(input.shipping ?? 0));
   const shipping = input.freeShipping ? 0 : shippingFull;
@@ -225,6 +228,10 @@ export interface CartTotals {
   /** The option chosen, if it is offered (else none: the buyer picks one). */
   chosen: ShipOption | null;
   totals: Totals;
+  /** The discount taken, if any. */
+  discount: { id: number; code: string | null; label: string; amount: number; freeShipping: boolean } | null;
+  /** Why the code typed takes nothing off. */
+  discountProblem?: string;
 }
 
 /**
@@ -232,9 +239,19 @@ export interface CartTotals {
  * be had count. Tax is at the chosen pickup location's place, else the address's, else the store's rate.
  */
 export async function cartTotals(
-  quote: { lines: (CartFactLine & { problem?: string })[]; subtotal: number },
+  quote: { lines: (CartFactLine & { problem?: string; product?: number; terms?: number[] })[]; subtotal: number; currency?: string },
   settings: CheckoutSettings,
-  input: { destination?: Destination | null; option?: string | null; sources?: ShippingSource[] },
+  input: {
+    destination?: Destination | null;
+    option?: string | null;
+    sources?: ShippingSource[];
+    /** The code's discount, or the automatic ones, as the server found them for this buyer. */
+    discounts?: Discount[];
+    /** The code the buyer typed. */
+    code?: string | null;
+    /** Why the server found no discount for that code (unknown, used up, members only...). */
+    codeProblem?: string;
+  },
 ): Promise<CartTotals> {
   const lines = quote.lines.filter((l) => l.quantity > 0 && l.problem !== 'members-only' && l.problem !== 'sold-out' && l.problem !== 'gone');
   const cart: CartFacts = { lines, subtotal: quote.subtotal };
@@ -242,6 +259,15 @@ export async function cartTotals(
   const shipping = await shippingChoices(settings, cart, dest, input.sources);
   const chosen = shipping.options.find((o) => o.id === input.option) ?? null;
   const where = chosen?.kind === 'pickup' ? placeDestination(chosen.place) : dest;
-  const totals = orderTotals({ lines, tax: settings.tax, where, shipping: chosen?.price ?? 0 });
-  return { shipping, chosen, totals };
+  const picked = pickDiscount(input.discounts ?? [], input.code ?? null, lines.map((l) => ({ product: l.product ?? 0, total: l.total, terms: l.terms })), quote.subtotal, chosen?.price ?? 0, undefined, quote.currency);
+  const a = picked.applied;
+  const totals = orderTotals({ lines, tax: settings.tax, where, shipping: chosen?.price ?? 0, discount: a?.amount ?? 0, discountLines: a?.lines, freeShipping: a?.freeShipping && !!chosen });
+  const problem = input.codeProblem ?? picked.problem;
+  return {
+    shipping,
+    chosen,
+    totals,
+    discount: a ? { id: a.discount.id, code: a.discount.code, label: discountLabel(a.discount), amount: totals.discount, freeShipping: a.freeShipping } : null,
+    ...(problem ? { discountProblem: problem } : {}),
+  };
 }

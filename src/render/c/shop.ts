@@ -174,7 +174,7 @@ function orderView(o: ShopOrder, a: Record<string, any>): string {
     .map((l) => `<tr><td class="c-cart__item">${esc(l.title)}${l.label ? `<small>${esc(l.label)}</small>` : ''}</td><td>${l.quantity}</td><td class="c-cart__total">${money(l.total)}</td></tr>`)
     .join('');
   const totals = [
-    o.discount ? ['Discount', `−${money(o.discount)}`] : null,
+    o.discount ? [`Discount${o.discount_code ? ` (${esc(o.discount_code)})` : ''}`, `−${money(o.discount)}`] : null,
     o.shipping ? [`${o.shipping.kind === 'pickup' ? 'Pickup' : 'Shipping'}: ${esc(o.shipping.name)}`, o.shipping_total ? money(o.shipping_total) : 'Free'] : null,
     o.tax ? ['Tax', money(o.tax)] : null,
     ['Total', `<strong>${money(o.total)}</strong>`],

@@ -949,7 +949,7 @@ Its settings:
 #### Cart
 
 What the visitor has added, with quantities to change and the subtotal, and below it the checkout:
-their details, shipping or pickup, the total and **Pay**. After paying, it shows their order. The cart at
+their details, shipping or pickup, a discount code, the total and **Pay**. After paying, it shows their order. The cart at
 `/cart/` shows it on its own; a page you make with that address needs this block.
 
 ![The Cart block](../../../assets/guide/shop-cart.png)

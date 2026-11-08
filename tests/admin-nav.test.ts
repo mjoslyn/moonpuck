@@ -17,8 +17,8 @@ describe('admin nav', () => {
   });
 
   it("offers the shop's Orders while the shop is on", () => {
-    expect(labels({ isAdmin: false, ticketsOn: false, mailOn: false, membersOn: false, shopOn: true }).at(-1)).toBe('Orders');
-    expect(labels({ isAdmin: false, ticketsOn: false, mailOn: false, membersOn: false }).includes('Orders')).toBe(false);
+    expect(labels({ isAdmin: false, ticketsOn: false, mailOn: false, membersOn: false, shopOn: true }).at(-1)).toBe('Shop: Orders, Discounts');
+    expect(labels({ isAdmin: false, ticketsOn: false, mailOn: false, membersOn: false }).some((l) => l.startsWith('Shop'))).toBe(false);
   });
 
   it('marks the screen shown, and a group holding it', () => {

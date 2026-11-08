@@ -78,6 +78,8 @@ export const POLICIES: Record<string, TablePolicy> = {
   ticket_orders: readOnly(editors),
   // Shop orders: editors read; the server writes (checkout, payment, the Orders screen's actions).
   shop_orders: readOnly(editors),
+  // Discounts: editors make and change them (Shop > Discounts).
+  shop_discounts: all(editors, editors),
   ticket_waitlist: readOnly(editors),
   mail_suppressions: readOnly(admins),
   mail_log: readOnly(admins),

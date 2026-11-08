@@ -196,7 +196,7 @@
         const r = await fetch('/api/shop/quote', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lines, destination: co.country ? { country: co.country, state: co.state || '' } : null, option: co.option || null }),
+          body: JSON.stringify({ lines, destination: co.country ? { country: co.country, state: co.state || '' } : null, option: co.option || null, code: co.code || null }),
           cache: 'no-store',
         });
         quote = r.ok ? await r.json() : null;
@@ -332,9 +332,37 @@
       form.append(how);
     }
 
+    // A discount code: applied by pricing the cart again with it; the server says what it takes off, or why not.
+    const codeBox = el('div', { className: 'c-checkout__code' });
+    const codeInput = el('input', { type: 'text', value: co.code || '', autocomplete: 'off', placeholder: 'Code' });
+    codeInput.setAttribute('aria-label', 'Discount code');
+    const apply = el('button', { type: 'button', className: 'c-checkout__apply', textContent: co.code ? 'Change' : 'Apply' });
+    apply.addEventListener('click', () => {
+      co.code = codeInput.value.trim();
+      keepCo();
+      renderCart();
+    });
+    codeInput.addEventListener('keydown', (e) => e.key === 'Enter' && (e.preventDefault(), apply.click()));
+    codeBox.append(field('Discount code', codeInput), apply);
+    if (co.code) {
+      const remove = el('button', { type: 'button', className: 'c-cart__remove', textContent: 'Remove code' });
+      remove.addEventListener('click', () => {
+        co.code = '';
+        keepCo();
+        renderCart();
+      });
+      codeBox.append(remove);
+    }
+    form.append(codeBox);
+    if (quote.discountProblem) form.append(el('p', { className: 'c-cart__problem', role: 'alert', textContent: quote.discountProblem }));
+
     const sum = el('div', { className: 'c-checkout__totals' });
     const line = (label, value, strong) => sum.append(el('p', { className: 'c-cart__subtotal' }, [el('span', { textContent: label }), ' ', strong ? el('strong', { textContent: value }) : el('span', { textContent: value })]));
-    if (totals.discount) line('Discount', `−${money(totals.discount, currency)}`);
+    const d = quote.discount;
+    // Its name, with the code when the name isn't the code.
+    const named = d ? `${d.label}${d.code && d.label !== d.code ? ` (${d.code})` : ''}` : '';
+    if (d && totals.discount) line(named, `−${money(totals.discount, currency)}`);
+    else if (d?.freeShipping && chosen) line(named, '✓');
     if (chosen) line(chosen.kind === 'pickup' ? 'Pickup' : 'Shipping', totals.shipping ? money(totals.shipping, currency) : 'Free');
     if (totals.tax === null) line('Tax', 'Worked out at payment');
     else if (totals.tax) line('Tax', money(totals.tax, currency));
@@ -369,7 +397,7 @@
         const r = await fetch('/api/shop/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lines: read(), name: co.name, email: co.email, phone: co.phone, option: co.option, address }),
+          body: JSON.stringify({ lines: read(), name: co.name, email: co.email, phone: co.phone, option: co.option, address, code: co.code || null }),
           cache: 'no-store',
         });
         const answer = await r.json().catch(() => null);

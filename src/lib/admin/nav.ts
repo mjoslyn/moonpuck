@@ -36,8 +36,8 @@ export function adminNav(o: { isAdmin: boolean; ticketsOn: boolean; mailOn: bool
   const groups: NavGroup[] = [
     { label: 'Forms', items: [{ href: '/admin/forms/', label: 'Forms' }, { href: '/admin/submissions/', label: 'Submissions' }] },
     { label: 'People', items: people },
-    // The shop's orders while it is on (Settings > Shop); products stay under Content.
-    { label: 'Shop', items: o.shopOn ? [{ href: '/admin/shop/', label: 'Orders' }] : [] },
+    // The shop's orders and discounts while it is on (Settings > Shop); products stay under Content.
+    { label: 'Shop', items: o.shopOn ? [{ href: '/admin/shop/', label: 'Orders' }, { href: '/admin/shop/discounts/', label: 'Discounts' }] : [] },
   ];
   return [
     { label: 'Content', items: [...o.types.map((t) => ({ href: contentHref(t.type), label: t.label })), { href: contentHref('terms'), label: 'Taxonomies' }, { href: '/admin/templates/', label: 'Templates', section: true }], also: ['/admin/content', '/admin/edit'] },

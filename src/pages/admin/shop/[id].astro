@@ -54,7 +54,7 @@ const canRefund = isAdmin && o.status === 'paid' && o.provider !== 'free' && lef
       </table>
       <dl class="mt-3 grid grid-cols-[1fr_auto] gap-x-6 gap-y-1 text-sm">
         <dt class="text-admin-muted">Subtotal</dt><dd class="text-right">{money(o.subtotal)}</dd>
-        {o.discount > 0 && <><dt class="text-admin-muted">Discount</dt><dd class="text-right">−{money(o.discount)}</dd></>}
+        {o.discount > 0 && <><dt class="text-admin-muted">Discount{o.discount_code ? ` (${o.discount_code})` : ''}</dt><dd class="text-right">−{money(o.discount)}</dd></>}
         {o.shipping && <><dt class="text-admin-muted">{o.shipping.kind === 'pickup' ? 'Pickup' : 'Shipping'}: {o.shipping.name}</dt><dd class="text-right">{o.shipping_total ? money(o.shipping_total) : 'Free'}</dd></>}
         <dt class="text-admin-muted">Tax{o.tax_by === 'stripe' ? ' (Stripe Tax)' : ''}</dt><dd class="text-right">{money(o.tax)}</dd>
         <dt class="font-medium">Total</dt><dd class="text-right font-medium">{money(o.total)}</dd>

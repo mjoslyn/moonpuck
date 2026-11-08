@@ -1,0 +1,89 @@
+---
+// Shop > Discounts (src/lib/shop/discounts.ts): every discount with its code (or Automatic), what it gives
+// and on what, its dates, its uses (paid orders, against its limit), the sales it was part of and what it
+// took off, and whether it is on. Each opens its form; New discount makes one.
+import Admin from '../../../../layouts/Admin.astro';
+import { SITE_TZ } from '../../../../lib/site';
+import { formatMoney } from '../../../../lib/payments/money';
+import { shopSettings } from '../../../../lib/shop/config';
+import { asDiscount } from '../../../../lib/shop/discount-lookup';
+import { discountLabel, running, type Discount } from '../../../../lib/shop/discounts';
+
+const db = Astro.locals.db;
+const [{ data: rows, error }, { data: siteRow }, { data: used }] = await Promise.all([
+  db.from('shop_discounts').select('*').order('id', { ascending: false }),
+  db.from('settings').select('value').eq('key', 'site').maybeSingle(),
+  db.from('shop_orders').select('discount_id, discount, total').eq('status', 'paid').not('discount_id', 'is', null).limit(20000),
+]);
+if (error) throw error;
+const currency = shopSettings(siteRow?.value).currency;
+const discounts = (rows ?? []).map(asDiscount) as Discount[];
+const stats = new Map<number, { uses: number; sales: number; off: number }>();
+for (const o of used ?? []) {
+  const s = stats.get(o.discount_id) ?? { uses: 0, sales: 0, off: 0 };
+  s.uses++;
+  s.sales += o.total;
+  s.off += o.discount;
+  stats.set(o.discount_id, s);
+}
+const money = (n: number) => formatMoney(n, currency);
+const day = (s: string) => new Date(s).toLocaleDateString('en-US', { timeZone: SITE_TZ, month: 'short', day: 'numeric', year: 'numeric' });
+const gives = (d: Discount) => (d.kind === 'free_shipping' ? 'Free shipping' : d.kind === 'percent' ? `${d.value}% off` : `${money(d.value)} off`);
+const on = (d: Discount) => (d.kind === 'free_shipping' || d.applies === 'all' ? 'The order' : d.applies === 'products' ? `${d.products.length} product${d.products.length === 1 ? '' : 's'}` : `${d.categories.length} categor${d.categories.length === 1 ? 'y' : 'ies'}`);
+const dates = (d: Discount) => (d.starts_at || d.ends_at ? `${d.starts_at ? day(d.starts_at) : 'Now'} to ${d.ends_at ? day(d.ends_at) : 'no end'}` : 'Always');
+const now = new Date().toISOString();
+const state = (d: Discount): [string, string] =>
+  !d.active ? ['Off', 'bg-[#f1f5f9] text-admin-muted'] : running(d, now) ? ['Running', 'bg-[#ecfdf5] text-[#047857]'] : d.starts_at && d.starts_at > now ? ['Scheduled', 'bg-[#eff6ff] text-[#1d4ed8]'] : ['Ended', 'bg-[#f1f5f9] text-admin-muted'];
+---
+<Admin title="Discounts">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-normal">Discounts</h1>
+      <p class="mt-1 text-sm text-admin-muted">Codes buyers type at checkout, and automatic discounts. An order takes one: a code it fits, else the automatic one that saves the most.</p>
+    </div>
+    <a href="/admin/shop/discounts/new/" class="rounded bg-admin-accent px-4 py-2 text-sm text-white hover:bg-admin-accent-dark">New discount</a>
+  </div>
+
+  <div class="mt-6 overflow-x-auto rounded bg-white shadow-[0_0_0_1px_rgba(26,26,46,0.08)]">
+    <table class="w-full text-sm">
+      <thead class="border-b border-admin-ink/10 text-left text-xs text-admin-muted">
+        <tr>
+          <th class="px-4 py-2 font-medium">Discount</th>
+          <th class="px-4 py-2 font-medium">Gives</th>
+          <th class="px-4 py-2 font-medium">On</th>
+          <th class="px-4 py-2 font-medium">Dates</th>
+          <th class="px-4 py-2 font-medium">Uses</th>
+          <th class="px-4 py-2 font-medium">Sales</th>
+          <th class="px-4 py-2 font-medium">Taken off</th>
+          <th class="px-4 py-2 font-medium">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {discounts.map((d) => {
+          const s = stats.get(d.id) ?? { uses: 0, sales: 0, off: 0 };
+          const [label, cls] = state(d);
+          return (
+            <tr class="border-b border-admin-ink/5 last:border-0 hover:bg-admin-bg">
+              <td class="px-4 py-3">
+                <a href={`/admin/shop/discounts/${d.id}/`} class="font-medium hover:text-admin-accent">{d.code ?? 'Automatic'}</a>
+                {(d.name || !d.code) && <div class="text-xs text-admin-muted">{discountLabel(d)}</div>}
+              </td>
+              <td class="px-4 py-3">{gives(d)}{d.min_subtotal > 0 && <div class="text-xs text-admin-muted">over {money(d.min_subtotal)}</div>}</td>
+              <td class="px-4 py-3 text-admin-muted">{on(d)}{d.members_only && <div class="text-xs">Members only</div>}</td>
+              <td class="px-4 py-3 whitespace-nowrap text-admin-muted">{dates(d)}</td>
+              <td class="px-4 py-3">{s.uses}{d.max_uses != null && ` of ${d.max_uses}`}{d.once_per_email && <div class="text-xs text-admin-muted">once per email</div>}</td>
+              <td class="px-4 py-3">{money(s.sales)}</td>
+              <td class="px-4 py-3">{money(s.off)}</td>
+              <td class="px-4 py-3"><span class={`rounded px-2 py-0.5 text-xs ${cls}`}>{label}</span></td>
+            </tr>
+          );
+        })}
+        {!discounts.length && (
+          <tr>
+            <td colspan="8" class="px-4 py-10 text-center text-admin-muted">No discounts yet.</td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+</Admin>

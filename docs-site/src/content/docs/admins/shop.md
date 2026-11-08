@@ -96,8 +96,9 @@ Under the cart, visitors check out:
 2. They choose how to get the order: one of your shipping rates for their country (and state, in the US),
    or a pickup location. Only rates that fit their order are offered.
 3. For shipping, they give their address.
-4. They see the shipping, tax and total, and click **Pay**. Payment is on Stripe's or Square's own page.
-5. They come back to a page with their order, and get a receipt by email.
+4. If they have a discount code, they type it under **Discount code** and click **Apply**.
+5. They see the discount, shipping, tax and total, and click **Pay**. Payment is on Stripe's or Square's own page.
+6. They come back to a page with their order, and get a receipt by email.
 
 Each order is emailed to the site's admin address too (or the address set as `SHOP_NOTIFY_EMAIL`), and
 listed under **Orders**.
@@ -110,7 +111,7 @@ An order with nothing to pay (everything free) is placed at once, without the pa
 
 ## Orders
 
-Click **Orders** in the admin bar (it shows while the shop is on). The tabs:
+Click **Shop** in the admin bar (it shows while the shop is on), then **Orders**. The tabs:
 
 - **To send or hand over**: paid orders still to ship or to be picked up.
 - **Paid**, **Awaiting payment**, **Cancelled and expired**, **Refunded** and **All orders**.
@@ -134,6 +135,35 @@ Click an order to see what was bought, the totals, the buyer, where it goes and 
 
 A refund made in Stripe's or Square's own dashboard shows on the order too, but puts nothing back in
 stock: do that on the order's page.
+
+## Discounts
+
+Click **Shop** in the admin bar, then **Discounts**. The list shows each discount's code (or Automatic),
+what it gives, its dates, how many paid orders used it, their sales, how much it took off, and whether it
+is running.
+
+Click **New discount**, or a discount to change it. Its settings:
+
+- **Automatic**: on, it has no code and applies by itself to orders it fits; off, buyers type its code.
+- **Code**: letters and numbers, such as SUMMER10. Buyers can type it in small letters.
+- **Name**: shown in the cart. Empty: the code.
+- **It gives**: a percent off, an amount off, or free shipping.
+- **On**: the whole order, some products, or some product categories (and the categories under them).
+- **Only on orders of at least**: a smallest order. Empty: any.
+- **Starts** and **Ends**: empty, it starts now and never ends.
+- **Uses in all**: how many orders may use it. Empty: no limit.
+- **Once per email address**: each buyer uses it once.
+- **Members only** (while Members is on): and, with several levels, which levels may use it.
+- **On**: off, nobody can use it.
+
+Click **Make discount** or **Save discount**. **Delete** removes it; orders that used it keep its code.
+
+An order takes one discount: the code the buyer typed, if the order fits it, else the automatic discount
+that saves the most. A code that doesn't fit says why (too small an order, expired, used up, members
+only). Uses count paid orders and orders waiting to be paid, so the last use can't be taken twice.
+
+The discount is shared out over the items it applies to, and tax is worked out after it. A refund gives
+back what was paid, after the discount.
 
 ## Blocks for the shop
 

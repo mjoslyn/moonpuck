@@ -19,6 +19,7 @@ import { quoteCart, type QuoteLine } from './cart';
 import { checkoutSettings, taxInForce } from './checkout-settings';
 import { cleanPlace, placeName, US_STATES } from './places';
 import { cartTotals, type ShipOption } from './totals';
+import { discountCandidates } from './discount-lookup';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** Orders the shop takes in a minute (all buyers together), against floods. */
@@ -86,6 +87,9 @@ export interface ShopOrder {
   total: number;
   currency: string;
   refunded_amount: number;
+  /** The discount it took (Shop > Discounts) and its code ('' for an automatic one). */
+  discount_id: number | null;
+  discount_code: string;
   stock_taken: boolean;
   fulfilled: '' | 'shipped' | 'picked_up';
   tracking: string;
@@ -101,7 +105,7 @@ export interface ShopOrder {
 /** What a checkout answers the cart's script: where to go next, or why not (with the cart priced again). */
 export type CheckoutResult = { redirect: string } | { error: CheckoutError; message: string; line?: { product: number; variant: string; left: number } };
 
-export type CheckoutError = 'closed' | 'invalid' | 'empty' | 'changed' | 'sold-out' | 'shipping' | 'address' | 'below-minimum' | 'payments-off' | 'limit' | 'busy' | 'payment-error';
+export type CheckoutError = 'closed' | 'invalid' | 'empty' | 'changed' | 'sold-out' | 'shipping' | 'address' | 'discount' | 'below-minimum' | 'payments-off' | 'limit' | 'busy' | 'payment-error';
 
 const MESSAGES: Record<CheckoutError, string> = {
   closed: 'The shop is closed.',
@@ -111,6 +115,7 @@ const MESSAGES: Record<CheckoutError, string> = {
   'sold-out': 'Something in your cart sold out just now. Check it and try again.',
   shipping: 'Choose how to get your order.',
   address: 'Check your address.',
+  discount: 'That discount code can’t be used. Take it out or try another.',
   'below-minimum': `An order has to come to at least ${formatMoney(MIN_CHARGE)} to be paid online.`,
   'payments-off': "The shop can't take payments right now.",
   limit: 'Too many orders were started from here. Try again in an hour.',
@@ -179,7 +184,10 @@ export async function startShopCheckout(body: any, origin: string, viewer: Viewe
   // half-written address says so rather than seeming to have no rates.
   const country = /^[A-Za-z]{2}$/.test(String(body?.address?.country ?? '')) ? String(body.address.country).toUpperCase() : '';
   const destination = address ?? (country ? { country, state: String(body?.address?.state ?? '').toUpperCase() || undefined } : null);
-  const { shipping, chosen, totals } = await cartTotals(quote, { ...settings, tax }, { destination, option: typeof body?.option === 'string' ? body.option : null });
+  // The code typed (checked now with the buyer's email), else the automatic discounts they may take.
+  const found = await discountCandidates(db, { code: typeof body?.code === 'string' ? body.code : null, email, member: viewer?.member });
+  const { shipping, chosen, totals, discount, discountProblem } = await cartTotals(quote, { ...settings, tax }, { destination, option: typeof body?.option === 'string' ? body.option : null, discounts: found.discounts, code: found.code, codeProblem: found.problem });
+  if (found.code && discountProblem) return { error: 'discount', message: discountProblem };
   if (shipping.problem) return fail('shipping');
   if (shipping.needs !== 'none' && !chosen) return fail('shipping');
   if (chosen?.kind === 'ship' && !address) return fail('address');
@@ -208,14 +216,20 @@ export async function startShopCheckout(body: any, origin: string, viewer: Viewe
       address: chosen?.kind === 'ship' ? address : null, fulfilment: chosen ? chosen.kind : 'none', shipping: chosen, lines,
       subtotal: totals.subtotal, discount: totals.discount, shipping_total: totals.shipping, tax: totals.tax ?? 0, total,
       currency, member_id: isActive(member) ? member.user_id : null, ip: buyerAddress(ip),
+      discount_id: discount?.id ?? null, discount_code: discount?.code ?? '',
       // A paid order holds its stock a little longer than its checkout takes payment.
       expires_at: free ? null : new Date(Date.now() + hold + 2 * 60_000).toISOString(),
       paid_at: free ? new Date().toISOString() : null,
     },
-    p_limits: { client: { orders: BUYER_ORDERS_PER_HOUR } },
+    p_limits: {
+      client: { orders: BUYER_ORDERS_PER_HOUR },
+      // The discount's uses, counted again in the statement that makes the order.
+      ...(discount ? { discount: { id: discount.id, max: found.discounts.find((d) => d.id === discount.id)?.max_uses ?? null, once: !!found.discounts.find((d) => d.id === discount.id)?.once_per_email } } : {}),
+    },
   });
   if (error) throw error;
   if (made?.client) return fail('limit');
+  if (made?.discount) return { error: 'discount', message: 'That discount was used up just now. Take it out or try another.' };
   if (!made?.ok) return fail('sold-out', made?.line ? { line: made.line } : {});
   if (tax.mode === 'stripe') await db.from('shop_orders').update({ tax_by: 'stripe' }).eq('id', made.id);
   const orderPage = `${CART_PATH}?order=${token}`;
@@ -225,7 +239,9 @@ export async function startShopCheckout(body: any, origin: string, viewer: Viewe
   }
   try {
     const returnUrl = `${origin}/api/shop/return?order=${token}`;
-    const items = lines.map((l) => ({ name: l.label ? `${l.title} (${l.label})` : l.title, unit: l.unit, quantity: l.quantity, ...(tax.mode === 'stripe' && !quote.lines.find((q) => q.product === l.product && q.variant === l.variant)?.taxable ? { taxCode: NONTAXABLE_TAX_CODE } : {}) }));
+    // A line with a share of a discount goes as one item at its total less that share (the providers take
+    // no negative lines, and the share needn't divide by the quantity).
+    const items = lines.map((l) => ({ name: `${l.label ? `${l.title} (${l.label})` : l.title}${l.discount ? ` × ${l.quantity}` : ''}`, unit: l.discount ? l.total - l.discount : l.unit, quantity: l.discount ? 1 : l.quantity, ...(tax.mode === 'stripe' && !quote.lines.find((q) => q.product === l.product && q.variant === l.variant)?.taxable ? { taxCode: NONTAXABLE_TAX_CODE } : {}) }));
     if (totals.shipping > 0) items.push({ name: `${chosen?.kind === 'pickup' ? 'Pickup' : 'Shipping'}: ${chosen?.name ?? ''}`, unit: totals.shipping, quantity: 1, ...(tax.mode === 'stripe' ? { taxCode: SHIPPING_TAX_CODE } : {}) });
     if ((totals.tax ?? 0) > 0) items.push({ name: 'Tax', unit: totals.tax!, quantity: 1 });
     const checkout = await PROVIDERS[providerName!].create({
@@ -377,7 +393,7 @@ export function orderSummaryHtml(o: ShopOrder, origin: string): string {
         : '';
   return (
     `<table role="presentation" style="width:100%;border-collapse:collapse">${lines}` +
-    (o.discount ? row('Discount', `−${money(o.discount)}`) : '') +
+    (o.discount ? row(`Discount${o.discount_code ? ` (${esc(o.discount_code)})` : ''}`, `−${money(o.discount)}`) : '') +
     ship +
     (o.tax ? row('Tax', money(o.tax)) : '') +
     row('Total', money(o.total), true) +

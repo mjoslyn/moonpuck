@@ -611,7 +611,7 @@ conversation.
   in the Workers cache, tagged `pages` (and each page's path). A successful admin write
   (POST, PUT, PATCH or DELETE under `/api/admin/`) clears that tag from the middleware
   (`cache.invalidate`; a 2xx answer, or the 303 a form post such as a bulk action answers with), so edits show at once; previews (and the email builder's event lookups), Claude drafting, accessibility marks,
-  submissions, users, the attendee list and sync requests other than a sync into this copy or a restore don't
+  submissions, users, the attendee list, the shop's orders and discounts and sync requests other than a sync into this copy or a restore don't
   (`changesPages`). A failed purge is logged and the edit shows within the minute. Pages that depend on
   who views them (see Members) aren't cached. Under `astro dev`
   nothing is cached. The first cover or hero image on a page loads at high priority (`optimizeImages`).
@@ -1225,7 +1225,7 @@ never subscribes anyone again); the settings are, with the others. Migration `*_
 An optional feature, on under Settings > Shop (`settings.site.shop`: `enabled`, `currency`, `weightUnit`;
 `shopSettings`, `shopOn`, `src/lib/shop/config.ts`), built in phases on a preview branch: phase 1 has
 products, options, variants, stock and the cart; phase 2, checkout (payments, manual shipping rates and
-pickup, tax, orders and the Orders screen), is built, with discounts next. Off, nothing is deleted: the admin hides the core's product type and
+pickup, tax, orders, the Orders screen and discounts), is built, with order emails in the email builder next. Off, nothing is deleted: the admin hides the core's product type and
 product categories (`showsType`, `showsTaxonomy`, `src/lib/features.ts`), the site serves none of them
 (`resolve`, the loader's `off` types), the shop's blocks render nothing (`SHOP_BLOCKS`) and its endpoints
 answer 404.
@@ -1265,7 +1265,8 @@ answer 404.
   script builds the checkout (the Cart block's `data-checkout`: the countries the zones cover, US states,
   the country to begin on): name, email and phone, the country and state (re-quoting the cart for them and
   the option chosen: `destination`, `option`), the shipping and pickup options, the address for a shipped
-  order, the totals and Pay; what the buyer typed is kept for the visit (`sessionStorage`).
+  order, a discount code (`code`, re-quoted on Apply), the totals and Pay; what the buyer typed is kept
+  for the visit (`sessionStorage`).
 - **Orders** (`src/lib/shop/orders.ts`, table `shop_orders`, migration `*_shop_orders.sql`; editors read,
   the server writes): `POST /api/shop/checkout` (`startShopCheckout`) prices the cart again as the visitor
   sees the site (a line with any problem answers `changed`), checks the option and address (`cleanAddress`:
@@ -1289,7 +1290,7 @@ answer 404.
   Cart block, loaded by a server hook, `src/lib/shop/page-data.ts`; never cached, noindex): paid, being
   confirmed, or not completed; a paid one empties the buyer's cart. `/cart/?checkout=cancelled` after the
   provider's Cancel.
-- **The Orders screen** (the admin bar's Orders while the shop is on, `/admin/shop/`; editors): orders by
+- **The Orders screen** (the admin bar's Shop > Orders while the shop is on, `/admin/shop/`; editors): orders by
   tab (to send or hand over: paid, not yet fulfilled, with something to send; paid; awaiting payment;
   cancelled and expired; refunded; all), searched by code, email or name (`ordersQuery`), 50 a page, and
   Export CSV (`GET /api/admin/shop/orders.csv`, a row per line, formulas guarded; `ordersCsvRows`). An
@@ -1302,6 +1303,25 @@ answer 404.
   `refund_attempt`, as ticket refunds) and put lines back in stock (`restockOrder`, `shop_restock`: each
   line at most what was bought, checked in the statement that records it, `lines[].restocked`; only once
   the order's stock was taken off). Cancel and refund take the lines to put back with them.
+- **Discounts** (`src/lib/shop/discounts.ts`, safe in the browser; `src/lib/shop/discount-lookup.ts`;
+  table `shop_discounts`, migration `*_shop_discounts.sql`, editors write): a code (`cleanCode`: letters,
+  digits, dashes and underscores, matched without regard to case; unique) or automatic (`code` null);
+  percent off, an amount off in cents or free shipping; on the whole order, some products or some product
+  categories (with the categories under them, `widen`); a minimum subtotal, start and end, uses in all
+  (`max_uses`), once per email, members only (of `levels`), on or off. Saved from Shop > Discounts
+  (`/admin/shop/discounts/`, a list with each one's uses, sales and what it took off from paid orders;
+  `/admin/shop/discounts/<id>/` and `new/`, `src/admin/DiscountForm.tsx`; POST
+  `/api/admin/shop/discounts`, cleaned by `cleanDiscount`, which doesn't clear the page cache). One per order: the code typed when the cart
+  fits it (`applyDiscount` says why not: dates, minimum, nothing it applies to), else the automatic one
+  that saves the most, shipping included (`pickDiscount`). `discountCandidates` finds them for the buyer:
+  the code's (unknown, not running, members only, used up, or already used by that email) or the
+  automatic ones they may take; uses are paid orders and unexpired holds. The quote takes `code` and
+  answers `discount` and `discountProblem`; checkout refuses a code that doesn't fit (`error: 'discount'`)
+  and `shop_order_create` counts the uses and the email's again in the statement that makes the order
+  (`p_limits.discount`; a use taken meanwhile answers `{ ok: false, discount }`). The discount is spread
+  over the lines it applies to (`orderTotals`' `discountLines`), tax after it; a line with a share goes to
+  the provider as one item at its total less the share. The order keeps `discount_id` (null once the
+  discount is deleted) and `discount_code`, shown on its page, emails and the order view.
 - **Member pricing** (while Members is on; the product's Shop settings, Members): per level, a percent
   off every variant's price (`memberDiscounts`) or a price of their own (`memberPrices`, which a variant
   can set for itself, its `memberPrices`), and members only (`membersOnly`, of `levels`; none: any level).
@@ -1411,7 +1431,7 @@ of its own, `section`; the content list has no tabs of its own for the types), a
 (each type with a page, at `/admin/compose/?type=<type>`; then Form and, while Mailing is on, Campaign;
 then Template, Template part and Pattern), Media, Stats, a **Forms** dropdown (Forms, Submissions), a **People** dropdown (Users and Members
 for admins, Mailing Lists and Tickets, each while its feature is on; a group of one shows as its link)
-and the Shop's **Orders** while it is on,
+and a **Shop** dropdown (Orders, Discounts) while the shop is on,
 then a gear for Settings (admins), **?**, View site and the account menu. Below 1024px it all sits behind
 one menu button, the groups as headings. The dropdowns are `details[data-menu]`: one open at a time, closed
 by a click elsewhere or Escape.

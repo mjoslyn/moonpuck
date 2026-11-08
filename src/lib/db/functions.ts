@@ -293,8 +293,9 @@ export const FUNCTIONS: Record<string, Fn> = {
    * A shop order (src/lib/shop/orders.ts), inserted only if every line whose stock is counted has that
    * many left (on hand less what unexpired holds and paid orders not yet taken off have) and the buyer is
    * within their share, in the one statement that inserts it: two checkouts can't both take the last one.
-   * Refused: `{ ok: false, client }` for the buyer's share, else `{ ok: false, line }` (the first line
-   * short, and how many are left of it).
+   * With `p_limits.discount`, the discount's uses are checked in it too. Refused: `{ ok: false, client }`
+   * for the buyer's share, `{ ok: false, discount }` for a discount used up, else `{ ok: false, line }` (the
+   * first line short, and how many are left of it).
    */
   shop_order_create: {
     async run(exec, a) {
@@ -307,8 +308,20 @@ export const FUNCTIONS: Record<string, Fn> = {
         quantity: lines.reduce((n, l) => n + l.quantity, 0), subtotal: Math.trunc(Number(order.subtotal)), discount: Math.trunc(Number(order.discount ?? 0)),
         shipping_total: Math.trunc(Number(order.shipping_total ?? 0)), tax: Math.trunc(Number(order.tax ?? 0)), total: Math.trunc(Number(order.total)), currency: order.currency ?? 'USD',
         member_id: order.member_id || null, ip: String(order.ip ?? ''), expires_at: order.expires_at || null, paid_at: order.paid_at || null,
+        discount_id: order.discount_id || null, discount_code: String(order.discount_code ?? ''),
       };
       const client = limits.client as { orders: number } | undefined;
+      const discount = limits.discount as { id: number; max: number | null; once: boolean } | undefined;
+      // A discount's uses: its paid orders and unexpired holds, in all and (once per email) by this buyer.
+      const discountConds = (add: (v: unknown) => string) => {
+        // Nothing bound unless a condition uses it: a value bound to no placeholder is an error.
+        if (!discount || (discount.max == null && !discount.once)) return [];
+        const used = `o.discount_id = ${add(discount.id)} AND (o.status = 'paid' OR (o.status = 'pending' AND o.expires_at > ${add(now())}))`;
+        return [
+          ...(discount.max != null ? [`(SELECT count(*) FROM shop_orders AS o WHERE ${used}) < ${add(discount.max)}`] : []),
+          ...(discount.once ? [`NOT EXISTS (SELECT 1 FROM shop_orders AS o WHERE ${used} AND lower(o.email) = lower(${add(row.email)}))`] : []),
+        ];
+      };
       const clientConds = (add: (v: unknown) => string) => {
         if (!client) return [];
         const hour = add(ago(3600_000));
@@ -325,13 +338,20 @@ export const FUNCTIONS: Record<string, Fn> = {
         return `(${onHand} - ${taken})`;
       };
       const tracked = lines.filter((l) => l.track);
-      const made = await exec.as(SERVICE).insertIf('shop_orders', row, (add) => ['1', ...clientConds(add), ...tracked.map((l) => `${left(add, l.product, l.variant)} >= ${add(l.quantity)}`)].join(' AND '));
+      const made = await exec.as(SERVICE).insertIf('shop_orders', row, (add) => ['1', ...clientConds(add), ...discountConds(add), ...tracked.map((l) => `${left(add, l.product, l.variant)} >= ${add(l.quantity)}`)].join(' AND '));
       if (made) return { ok: true, id: made.id as number };
       if (client) {
         const values: unknown[] = [];
         const add = (v: unknown) => (values.push(v), `?${values.length}`);
         const [r] = await exec.rows<{ ok: number }>(`SELECT ${clientConds(add).join(' AND ')} AS ok`, values);
         if (!r?.ok) return { ok: false, client: true };
+      }
+      if (discount) {
+        const values: unknown[] = [];
+        const add = (v: unknown) => (values.push(v), `?${values.length}`);
+        const conds = discountConds(add);
+        const [r] = conds.length ? await exec.rows<{ ok: number }>(`SELECT ${conds.join(' AND ')} AS ok`, values) : [{ ok: 1 }];
+        if (!r?.ok) return { ok: false, discount: true };
       }
       for (const l of tracked) {
         const values: unknown[] = [];

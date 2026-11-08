@@ -301,6 +301,24 @@
 .c-checkout__price {
   font-weight: 600;
 }
+.c-checkout__code {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem 0.75rem;
+}
+.c-checkout__code .c-checkout__field {
+  flex: 0 1 14rem;
+}
+.c-checkout__apply {
+  padding: 0.625rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--color-text) 35%, transparent);
+  border-radius: var(--form-radius, 2px);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
 .c-checkout__totals .c-cart__subtotal {
   margin: 0.25rem 0;
 }

@@ -7,8 +7,8 @@ sidebar:
 
 The shop is optional and is being built in phases. Phase 1: products, options and variants, stock, the
 shop's blocks and the cart. Phase 2 so far: checkout settings, shipping, pickup, tax, member pricing,
-checkout and orders. Then the Orders screen. Next: order emails in the email builder, discounts, and orders and stock in sync
-and backups.
+checkout and orders, the Orders screen and discounts. Next: order emails in the email builder, and orders
+and stock in sync and backups.
 
 Turn it on under **Settings > Shop** (admins). It brings the `product` type under Content, product pages,
 the shop at `/shop/`, product categories, the cart at `/cart/` and the shop blocks.

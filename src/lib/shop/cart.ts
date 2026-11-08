@@ -38,6 +38,8 @@ export interface QuoteLine extends CartLine {
   weight: number | null;
   /** Its stock is counted (an order holds it). */
   track: boolean;
+  /** The product's terms (its categories among them), for discounts on categories. */
+  terms: number[];
   /** gone: no longer sold; sold-out; fewer: cut to what is left; members-only: not for this buyer. */
   problem?: 'gone' | 'sold-out' | 'fewer' | 'members-only';
 }
@@ -108,6 +110,7 @@ export async function quoteCart(db: Db, raw: unknown, scope: LoaderScope, site: 
       taxable: !!p?.taxable,
       weight: v?.weight ?? null,
       track: !!p?.trackStock,
+      terms: e?.term_ids ?? [],
     };
     if (!e || !p || !v) return { ...base, quantity: 0, problem: 'gone' };
     if (!mayBuyProduct(p, member)) return { ...base, quantity: 0, problem: 'members-only' };
