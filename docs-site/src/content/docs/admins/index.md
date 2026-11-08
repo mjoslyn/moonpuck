@@ -24,7 +24,7 @@ The **?** button at the top of every admin screen brings admins here, and editor
 
 - [Settings and the menu](/admins/settings/): the site's menu and every section of Settings.
 - [Turning features on](/admins/features/): events, tickets, members, mailing lists, donations and the accessibility check.
-- [Selling things](/admins/shop/): products, sizes and colors, stock and the cart (a preview).
+- [Setting up the shop](/admins/shop/): turning it on, payments, shipping, tax, order emails and statuses, labels and refunds.
 - [Mailing lists](/admins/mailing-lists/): lists, subscribers, sending campaigns and the weekly digest.
 - [Members](/admins/members/): membership levels, how people join, and adding, approving and removing members.
 - [Donations](/admins/donations/): amounts, monthly gifts, covering fees, receipts, goals, refunds and monthly donors.

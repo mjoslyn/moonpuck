@@ -68,6 +68,6 @@ The **Member sign-in link** block (for a header or footer) links to the account 
 - **Tickets**: in a ticket type's settings, under **Members**, set a price for each level, or turn on
   **Members only** so only members can buy it (see [Events and tickets](/editors/events-and-tickets/)).
 - **Products**: in a product's **Shop** settings, under **Members**, set a percent off or a price of their
-  own for each level, or **Members only** (see [Selling things](/admins/shop/)).
+  own for each level, or **Members only** (see [The shop](/editors/shop/)).
 
 Everyone sees what members pay, with a sign-in link; signed-in members are charged their price.

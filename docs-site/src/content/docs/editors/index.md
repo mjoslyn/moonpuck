@@ -109,12 +109,14 @@ The bar across the top of every admin screen takes you to each part of the site:
 | **Stats** | How many people visit, and what they read. See [Stats](/editors/stats/). |
 | **Forms** ▾ | **Forms** (contact forms, sign-up forms and the like) and **Submissions** (what people sent through them). See [Forms](/editors/forms/). |
 | **People** ▾ | **Mailing Lists** and **Tickets**, each only when your site uses it; for admins also **Users** and **Members**. With only one of these, it shows as that link instead of a menu; with none, it isn't there. |
+| **Shop** ▾ | **Orders**, **Discounts**, **Stock** and **Stats**, only when your site has a shop. See [The shop](/editors/shop/). |
 | ⚙ (the gear) | **Settings**: site-wide settings, such as the menu. Admins only. |
 | **?** | This guide, in a new tab. |
 | **View site** | Your public website in a new tab, to see your changes as visitors will. |
 | Your initial and name | Your email address, your role and **Sign out**. |
 
-Click **Content**, **Compose**, **Forms** or **People** to open its menu, then click the screen you want.
+Click **Content**, **Compose**, **Forms**, **People** or **Shop** to open its menu, then click the
+screen you want.
 Only one menu is open at a time; click anywhere else or press Escape to close it. The menu you are in is
 highlighted.
 
@@ -156,6 +158,8 @@ If you can't see something this guide mentions, it is probably for admins (see t
   or taking sign-ups.
 - [Mailing lists](/editors/mailing-lists/): writing and testing campaigns, the weekly digest, segments,
   sign-up forms, and how each email went.
+- [The shop](/editors/shop/): products with sizes, colors, sales and stock, showing them on pages, and
+  orders, discounts and the shop's stats.
 - [Donations](/editors/donations/): Donate forms, fundraising progress bars, and the gifts that came in.
 - [Members](/editors/members/): members-only pages and blocks, the account page, and member prices.
 - [Popups](/editors/popups/): changing what a popup or the cookie consent banner says.

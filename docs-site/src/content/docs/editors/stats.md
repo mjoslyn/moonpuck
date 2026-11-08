@@ -2,7 +2,7 @@
 title: Stats
 description: "How many people visit the site, which pages they read, which links they follow, where they come from and which campaigns bring them."
 sidebar:
-  order: 11
+  order: 12
 ---
 
 **Stats** in the top bar shows how the site is used: how many pages were viewed, by how many people,
