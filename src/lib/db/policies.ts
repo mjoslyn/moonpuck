@@ -79,6 +79,9 @@ export const POLICIES: Record<string, TablePolicy> = {
   // Shop orders: editors read; the server writes (checkout, payment, the Orders screen's actions).
   shop_orders: readOnly(editors),
   shop_order_events: readOnly(editors),
+  // Donations and monthly gifts: written by the server (checkout, webhooks, the Donations screen's API).
+  donations: readOnly(editors),
+  donation_plans: readOnly(editors),
   // Discounts: editors make and change them (Shop > Discounts).
   shop_discounts: all(editors, editors),
   ticket_waitlist: readOnly(editors),

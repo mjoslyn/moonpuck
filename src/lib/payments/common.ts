@@ -64,7 +64,11 @@ export interface Refund {
  */
 export type PaymentEvent =
   | { kind: 'checkout'; ref?: string; order?: string; failed?: boolean; expired?: boolean }
-  | { kind: 'refund'; payment: string; refunded: number };
+  | { kind: 'refund'; payment: string; refunded: number }
+  /** A subscription's invoice paid or failed (Stripe; monthly gifts): `reason` is Stripe's billing_reason. */
+  | { kind: 'invoice'; invoice: string; subscription: string; reason: string; failed: boolean }
+  /** A subscription changed or ended (Stripe; monthly gifts), as its Stripe status. */
+  | { kind: 'subscription'; subscription: string; status: string };
 
 export interface Provider {
   label: string;
@@ -85,7 +89,7 @@ export interface Provider {
   refunded(paymentId: string): Promise<number>;
   /** A webhook's event if it is signed by the provider; null if not. */
   webhookEvent(body: string, headers: Headers, url: string): Promise<any | null>;
-  /** What a signed event reports; null for events neither feature uses. */
+  /** What a signed event reports; null for events no feature uses. */
   parseEvent(event: any): Promise<PaymentEvent | null>;
 }
 

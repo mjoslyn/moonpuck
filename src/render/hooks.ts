@@ -9,4 +9,6 @@ export const renderHooks: {
   mailPreferences?: (ctx: RenderCtx) => Promise<void>;
   /** The shop's order page: the order a Cart block shows for the page's ?order=<token>. */
   shopOrder?: (ctx: RenderCtx) => Promise<void>;
+  /** The Donate block's donor views: the gift for ?donation=<token> (its thank-you), the monthly gift for ?plan=<token>. */
+  donation?: (ctx: RenderCtx) => Promise<void>;
 } = {};

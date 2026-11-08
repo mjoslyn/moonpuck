@@ -5,7 +5,7 @@ const FONTS =
 // The share card (public/og.png), also on every docs page (astro.config.mjs).
 const SHARE_ALT = 'Moonpuck, the open source website builder: Hand it the flyer. Get the page.';
 const description =
-  'Moonpuck is an open source website builder for small organisations, with Claude built in. Events, tickets, members, mailing lists and a shop come with it, on your own Cloudflare account.';
+  'Moonpuck is an open source website builder for small organizations, with Claude built in. Events, tickets, members, mailing lists, donations and a shop come with it, on your own Cloudflare account.';
 // Turnstile's site key for the contact form (public; its secret is the Worker's). Cloudflare's always-passing
 // test key under astro dev.
 const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || (import.meta.env.DEV ? '1x00000000000000000000AA' : '');
@@ -150,9 +150,9 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 </svg>
 </div>
 <div style="flex: 1 1 520px; min-width: 0">
-<p class="mp-label" style="margin: 0 0 18px; color: #FFA5FF">The open source website builder for small organisations</p>
+<p class="mp-label" style="margin: 0 0 18px; color: #FFA5FF">The open source website builder for small organizations</p>
 <p class="mp-serif mp-lead" style="margin: 0; font-size: 34px; line-height: 1.22; color: #F7F0F5">Moonpuck is a visual editor with Claude built in. Drop in a PDF, a few photos and a link, and get a finished page in your house style, every block still yours to edit.</p>
-<p class="mp-serif mp-lead" style="margin: 26px 0 0; font-size: 34px; line-height: 1.22; color: #F7F0F5">Events, tickets, members, mailing lists and a shop come with it, running on your own Cloudflare account.</p>
+<p class="mp-serif mp-lead" style="margin: 26px 0 0; font-size: 34px; line-height: 1.22; color: #F7F0F5">Events, tickets, members, mailing lists, donations and a shop come with it, running on your own Cloudflare account.</p>
 <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 40px">
 <a href="/docs/local-setup/" class="mp-pill" style="background: #F5D8EF; color: #120C1F">Get started</a>
 <a href="#compose" class="mp-pill" style="background: #1B2A6B; color: #DCD8FF">How Compose works</a>
@@ -226,7 +226,7 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 <div class="mp-wrap">
 <p class="mp-label" style="margin: 0 0 10px; color: #120C1F">What's on board</p>
 <h2 class="mp-serif mp-h2" style="margin: 0 0 18px; font-size: 80px; line-height: 1; color: #120C1F">Everything in one orbit</h2>
-<p style="margin: 0 0 48px; font-size: 19px; line-height: 1.55; max-width: 620px">What a small organisation runs on. Turn on what you need under Settings: nothing to install, no plugins to keep up to date.</p>
+<p style="margin: 0 0 48px; font-size: 19px; line-height: 1.55; max-width: 620px">What a small organization runs on. Turn on what you need under Settings: nothing to install, no plugins to keep up to date.</p>
 <div class="mp-cards">
 <div class="mp-card" style="background: #C5E975"><p class="mp-label" style="margin: 0; font-size: 12px">Editing</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Visual editor</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Edit on the page. Templates, patterns, autosave and revisions.</p></div>
 <div class="mp-card" style="background: #FEA903"><p class="mp-label" style="margin: 0; font-size: 12px">Events</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Events calendar</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Recurring events, venues, month and day views, calendar feeds.</p></div>
@@ -243,7 +243,7 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 <div class="mp-card" style="background: #FDF152"><p class="mp-label" style="margin: 0; font-size: 12px">Care</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Redirects</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Moved pages redirect themselves. Missing addresses are logged.</p></div>
 <div class="mp-card" style="background: #F5D8EF"><p class="mp-label" style="margin: 0; font-size: 12px">Editing</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Media library</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Focal points per screen size, AVIF and WebP, alt text written for you.</p></div>
 <div class="mp-card" style="background: #C5E975"><p class="mp-label" style="margin: 0; font-size: 12px">Care</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Popups and consent</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Dialogs and bars from your own blocks, and a cookie banner that holds scripts until people agree.</p></div>
-<div class="mp-card" style="background: #FEA903"><p class="mp-label" style="margin: 0; font-size: 12px">Services</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Connections</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Paste a key for Stripe, Square, Mailgun or Claude. Webhooks are set up for you.</p></div>
+<div class="mp-card" style="background: #FEA903"><p class="mp-label" style="margin: 0; font-size: 12px">Giving</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Donations</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">One-time and monthly gifts, receipts, fundraising goals with a progress bar.</p></div>
 </div>
 </div>
 </section>
@@ -315,19 +315,19 @@ src/site/
 <div style="flex: 1 1 440px; min-width: 0">
 <p class="mp-label" style="margin: 0 0 18px">Rather not do it yourself?</p>
 <h2 class="mp-serif mp-h2" style="margin: 0; font-size: 80px; line-height: 1">We'll build it for you</h2>
-<p class="mp-serif mp-lead" style="margin: 28px 0 0; font-size: 30px; line-height: 1.25">Tell us about your organisation and we'll set up your moonpuck site, move your content over, and launch it on your own domain. Then it's yours to run.</p>
+<p class="mp-serif mp-lead" style="margin: 28px 0 0; font-size: 30px; line-height: 1.25">Tell us about your organization and we'll set up your moonpuck site, move your content over, and launch it on your own domain. Then it's yours to run.</p>
 <ul class="mp-build-list">
-<li><strong>Your design:</strong> your colours, fonts and logo, as page templates your team can keep using.</li>
+<li><strong>Your design:</strong> your colors, fonts and logo, as page templates your team can keep using.</li>
 <li><strong>Your content:</strong> pages, posts, events and pictures brought over from your old site.</li>
 <li><strong>The features you need:</strong> events and tickets, members, mailing lists or a shop, set up and ready.</li>
-<li><strong>Launched and handed over:</strong> on your own Cloudflare account and domain, with your editors shown round.</li>
+<li><strong>Launch and handed over or we'll host it for you:</strong> on your own Cloudflare account and domain, or on ours, with a walkthrough for your editors so they can update it on day one.</li>
 </ul>
 </div>
 <form class="mp-form" method="post" action="/api/contact" data-contact style="flex: 1 1 420px; min-width: 0">
 <p class="mp-form-note" data-contact-outcome role="status" aria-live="polite" hidden></p>
 <label class="mp-field"><span>Email <em>(needed)</em></span><input type="email" name="email" required autocomplete="email" maxlength="200"></label>
 <label class="mp-field"><span>Name</span><input type="text" name="name" autocomplete="name" maxlength="100"></label>
-<label class="mp-field"><span>Organisation</span><input type="text" name="organisation" autocomplete="organization" maxlength="150"></label>
+<label class="mp-field"><span>Organization</span><input type="text" name="organization" autocomplete="organization" maxlength="150"></label>
 <label class="mp-field"><span>Your site now</span><input type="text" name="site" inputmode="url" autocomplete="url" maxlength="300" placeholder="example.org"></label>
 <label class="mp-field"><span>Message</span><textarea name="message" rows="5" maxlength="5000" placeholder="What you do, what the site needs, and when."></textarea></label>
 <label class="mp-trap" aria-hidden="true">Leave this empty <input type="text" name="nickname" tabindex="-1" autocomplete="off"></label>
@@ -356,7 +356,7 @@ src/site/
 <div style="display: flex; align-items: center; gap: 8px">
 <svg width="26" height="26" viewBox="0 0 34 34" aria-hidden="true"><path d="M22 3 A14 14 0 1 0 31 22 A11 11 0 0 1 22 3 Z" fill="#FFA5FF"></path></svg>
 <span class="mp-serif" style="font-size: 28px; line-height: 1; color: #FFA5FF">moonpuck</span>
-<span class="mp-serif" style="font-size: 18px; font-style: italic; margin-left: 12px">made on Earth, for small organisations</span>
+<span class="mp-serif" style="font-size: 18px; font-style: italic; margin-left: 12px">made on Earth, for small organizations</span>
 </div>
 <nav aria-label="Footer" style="display: flex; flex-wrap: wrap; gap: 24px">
 <a href="/docs/" class="mp-nav-link mp-label" style="font-size: 13px">Docs</a>

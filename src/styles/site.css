@@ -13,6 +13,7 @@
 @import './members.css';
 @import './mailing.css';
 @import './shop.css';
+@import './donations.css';
 
 @source '../render';
 @source '../lib/forms';

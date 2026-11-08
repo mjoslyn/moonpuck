@@ -8,6 +8,8 @@ import { NewsletterPanel, SubscribePanel } from './SubscribePanel';
 import { FormStylePanel } from './FormStyle';
 import { EVENT_BLOCKS } from '../lib/events/on';
 import { SHOP_BLOCKS } from '../lib/shop/config';
+import { DONATION_BLOCKS } from '../lib/donations/config';
+import { DonatePanel, DonationProgressPanel } from './DonationPanels';
 import { GALLERY_ASPECTS, PRODUCT_LAYOUTS } from '../render/c/shop';
 import { SITE_BLOCKS } from '../lib/site/render';
 import { taxonomiesOf } from '../lib/site';
@@ -113,6 +115,8 @@ Object.assign(PANELS, {
     </>
   ),
   subscribe: (a: Attrs, set: (p: Attrs) => void) => <SubscribePanel a={a} set={set} />,
+  donate: (a: Attrs, set: (p: Attrs) => void) => <DonatePanel a={a} set={set} />,
+  'donation-progress': (a: Attrs, set: (p: Attrs) => void) => <DonationProgressPanel a={a} set={set} />,
   newsletter: (a: Attrs, set: (p: Attrs) => void) => <NewsletterPanel a={a} set={set} />,
   'mail-preferences': (a: Attrs, set: (p: Attrs) => void) => (
     <>
@@ -216,6 +220,8 @@ const LABELS: Record<string, string> = {
   'shop-gallery': 'Product gallery',
   cart: 'Cart',
   'cart-link': 'Cart link',
+  donate: 'Donate',
+  'donation-progress': 'Donation progress',
   subscribe: 'Subscribe',
   newsletter: 'Newsletter signup',
   'mail-preferences': 'Email preferences',
@@ -267,7 +273,7 @@ const APPLIES_TO: Record<string, string[]> = {
  * The editor's blocks. With `entryType` (editing an entry), the block list leaves out blocks that don't
  * apply to that type; they stay defined, so any already on the page still show and can be edited.
  */
-export function buildConfig(types: string[], entryType?: string, opts: { members?: boolean; events?: boolean; mailing?: boolean; shop?: boolean } = {}): Config {
+export function buildConfig(types: string[], entryType?: string, opts: { members?: boolean; events?: boolean; mailing?: boolean; shop?: boolean; donations?: boolean } = {}): Config {
   // Event and ticket blocks are offered while events are on (Settings > Events).
   const applies = (t: string) => (!entryType || !APPLIES_TO[t] || APPLIES_TO[t].includes(entryType)) && (opts.events !== false || !EVENT_BLOCKS.includes(t));
   const offered = (cats: Record<string, { title?: string; components?: string[]; visible?: boolean }>) =>
@@ -311,6 +317,8 @@ export function buildConfig(types: string[], entryType?: string, opts: { members
       ...(opts.mailing ? { mailing: { title: 'Mailing Lists', components: ['newsletter', 'subscribe', 'mail-preferences'] } } : {}),
       // Offered while the shop is on (Settings > Shop).
       ...(opts.shop ? { shop: { title: 'Shop', components: SHOP_BLOCKS } } : {}),
+      // Offered while donations are on (Settings > Donations).
+      ...(opts.donations ? { donations: { title: 'Donations', components: DONATION_BLOCKS } } : {}),
       advanced: { title: 'Advanced', components: withSite('advanced', ['html', 'part', 'entry-content']) },
       // Collection internals (items, empty state, pagination) are managed from the collection's settings.
       other: { visible: false },
@@ -326,6 +334,7 @@ export const EDITABLE_TYPES = [
   'members', 'member-account', 'member-link',
   'subscribe', 'newsletter', 'mail-preferences',
   ...SHOP_BLOCKS,
+  ...DONATION_BLOCKS,
   'entry-field', 'form', 'pattern',
   ...Object.keys(SITE_BLOCKS),
 ];

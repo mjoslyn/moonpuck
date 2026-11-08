@@ -5,7 +5,7 @@ import { ProviderError, env, hmac, sameString, type CheckoutRequest, type Checko
 
 const API = 'https://api.stripe.com/v1';
 
-async function call(method: 'GET' | 'POST', path: string, body?: URLSearchParams, idempotencyKey?: string) {
+async function call(method: 'GET' | 'POST' | 'DELETE', path: string, body?: URLSearchParams, idempotencyKey?: string) {
   const key = env('STRIPE_SECRET_KEY');
   if (!key) throw new ProviderError('Stripe is not set up (STRIPE_SECRET_KEY).');
   const res = await fetch(`${API}${path}`, {
@@ -102,6 +102,105 @@ export async function stripeTaxReadiness() {
   return taxReadiness(await call('GET', '/tax/settings'));
 }
 
+// ---- Subscriptions (monthly gifts, src/lib/donations) ------------------------------------------
+// Stripe Checkout in subscription mode: a price made inline, charged each month until cancelled. Both
+// shapes of Stripe's invoices are read: before API version 2025-03-31 an invoice names its subscription
+// and payment intent itself; since then under `parent.subscription_details` and its invoice payments.
+
+export interface SubscriptionRequest {
+  reference: string;
+  idempotencyKey: string;
+  /** The monthly charge, in minor units. */
+  unit: number;
+  name: string;
+  currency: string;
+  email?: string;
+  description?: string;
+  returnUrl: string;
+  cancelUrl?: string;
+  /** Kept on the subscription (Stripe metadata). */
+  metadata?: Record<string, string>;
+}
+
+export interface SubscriptionCheckoutState {
+  status: CheckoutState['status'];
+  subscription?: string;
+  customer?: string;
+  invoice?: string;
+  paymentId?: string;
+  amount?: number;
+}
+
+/** A subscription's invoice's subscription id, in either of Stripe's shapes. */
+export const invoiceSubscription = (inv: any): string | undefined => id(inv?.subscription) ?? id(inv?.parent?.subscription_details?.subscription) ?? undefined;
+
+/** A Checkout Session that starts a monthly subscription. */
+export async function createSubscriptionCheckout(req: SubscriptionRequest) {
+  const p = new URLSearchParams({
+    mode: 'subscription',
+    success_url: req.returnUrl,
+    cancel_url: req.cancelUrl ?? req.returnUrl,
+    client_reference_id: req.reference,
+    'metadata[reference]': req.reference,
+    'subscription_data[metadata][reference]': req.reference,
+    'line_items[0][quantity]': '1',
+    'line_items[0][price_data][currency]': req.currency.toLowerCase(),
+    'line_items[0][price_data][unit_amount]': String(req.unit),
+    'line_items[0][price_data][recurring][interval]': 'month',
+    'line_items[0][price_data][product_data][name]': req.name.slice(0, 250),
+  });
+  for (const [k, v] of Object.entries(req.metadata ?? {})) p.set(`subscription_data[metadata][${k}]`, v.slice(0, 500));
+  if (req.description) p.set('subscription_data[description]', req.description.slice(0, 500));
+  if (req.email) p.set('customer_email', req.email);
+  const s = await call('POST', '/checkout/sessions', p, req.idempotencyKey);
+  return { ref: String(s.id), url: String(s.url) };
+}
+
+/** An invoice's payment intent and amount paid, in either of Stripe's shapes. */
+export async function invoicePayment(invoiceId: string): Promise<{ paymentId?: string; amount: number; subscription?: string; reason: string; paid: boolean }> {
+  const inv = await call('GET', `/invoices/${encodeURIComponent(invoiceId)}`);
+  let paymentId = id(inv.payment_intent) ?? undefined;
+  if (!paymentId) {
+    const list = await call('GET', `/invoice_payments?invoice=${encodeURIComponent(invoiceId)}`).catch(() => null);
+    const paidOne = (list?.data ?? []).find((x: any) => x?.status === 'paid') ?? list?.data?.[0];
+    paymentId = id(paidOne?.payment?.payment_intent) ?? undefined;
+  }
+  return { paymentId, amount: Number(inv.amount_paid) || 0, subscription: invoiceSubscription(inv), reason: String(inv.billing_reason ?? ''), paid: inv.status === 'paid' };
+}
+
+/** Where a subscription's checkout stands: paid once its first invoice is. */
+export async function checkSubscriptionCheckout(ref: string): Promise<SubscriptionCheckoutState> {
+  const s = await call('GET', `/checkout/sessions/${encodeURIComponent(ref)}`);
+  if (s.status !== 'complete') return { status: s.status === 'expired' ? 'cancelled' : 'pending' };
+  const invoice = id(s.invoice) ?? undefined;
+  const pay = invoice ? await invoicePayment(invoice) : null;
+  return {
+    status: s.payment_status === 'paid' || pay?.paid ? 'paid' : 'processing',
+    subscription: id(s.subscription) ?? undefined,
+    customer: id(s.customer) ?? undefined,
+    invoice,
+    paymentId: pay?.paymentId,
+    amount: pay?.amount ?? s.amount_total,
+  };
+}
+
+/** A subscription's status at Stripe (active, past_due, canceled, unpaid, incomplete...). */
+export async function subscriptionStatus(subscription: string): Promise<string> {
+  return String((await call('GET', `/subscriptions/${encodeURIComponent(subscription)}`)).status ?? '');
+}
+
+/** End a subscription now: no more charges. */
+export async function cancelSubscription(subscription: string) {
+  const s = await call('DELETE', `/subscriptions/${encodeURIComponent(subscription)}`);
+  return String(s.status ?? '');
+}
+
+/** A Stripe customer portal session (to update the card), back to `returnUrl`. Needs the portal set up in Stripe's dashboard. */
+export async function portalUrl(customer: string, returnUrl: string): Promise<string> {
+  const s = await call('POST', '/billing_portal/sessions', new URLSearchParams({ customer, return_url: returnUrl }));
+  return String(s.url);
+}
+
 export const provider: Provider = {
   label: 'Stripe',
   keys: ['STRIPE_SECRET_KEY'],
@@ -125,6 +224,14 @@ export const provider: Provider = {
     // charge.refunded, and a refund's updates (one that fails comes off the charge's amount_refunded).
     const refundEvent = type === 'charge.refunded' || type === 'charge.refund.updated' || type === 'refund.updated' || type === 'refund.failed';
     if (refundEvent && o.payment_intent) return { kind: 'refund', payment: id(o.payment_intent)!, refunded: await refunded(id(o.payment_intent)!) };
+    // Subscriptions (monthly gifts, src/lib/donations): each month's invoice, and the subscription's changes.
+    if ((type === 'invoice.paid' || type === 'invoice.payment_failed') && o.object === 'invoice' && o.id) {
+      const subscription = invoiceSubscription(o);
+      if (subscription) return { kind: 'invoice', invoice: String(o.id), subscription, reason: String(o.billing_reason ?? ''), failed: type === 'invoice.payment_failed' };
+    }
+    if ((type === 'customer.subscription.updated' || type === 'customer.subscription.deleted') && o.object === 'subscription' && o.id) {
+      return { kind: 'subscription', subscription: String(o.id), status: type === 'customer.subscription.deleted' ? 'canceled' : String(o.status ?? '') };
+    }
     return null;
   },
 };

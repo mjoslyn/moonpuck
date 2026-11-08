@@ -7,6 +7,7 @@ import { memberSettings, type MemberSettings } from '../lib/members/config';
 import { eventsOn } from '../lib/events/on';
 import { mailingOn } from '../lib/mailing/config';
 import { shopOn } from '../lib/shop/config';
+import { donationsOn } from '../lib/donations/config';
 
 let loading: Promise<Record<string, any> | null> | null = null;
 
@@ -45,4 +46,10 @@ export function useMailingOn(): boolean | null {
 export function useShopOn(): boolean | null {
   const site = useSite();
   return site === undefined ? null : shopOn(site);
+}
+
+/** Whether donations are on (null while loading). */
+export function useDonationsOn(): boolean | null {
+  const site = useSite();
+  return site === undefined ? null : donationsOn(site);
 }

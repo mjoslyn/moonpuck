@@ -30,7 +30,7 @@ import type { Env, RenderCtx } from '../render/env';
 import type { PuckItem } from '../lib/puck/types';
 import type { Entry } from '../lib/types';
 import { buildConfig, EDITABLE_TYPES } from './config';
-import { useEventsOn, useMailingOn, useMemberSettings, useShopOn } from './member-settings';
+import { useDonationsOn, useEventsOn, useMailingOn, useMemberSettings, useShopOn } from './member-settings';
 import { EnvContext, StaticHtml } from './BlockView';
 import { EntryForm, type EntryState } from './entry-fields';
 import { inlinePatterns } from './patterns';
@@ -295,8 +295,9 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
   const eventsAreOn = useEventsOn();
   const mailingIsOn = useMailingOn();
   const shopIsOn = useShopOn();
+  const donationsAreOn = useDonationsOn();
   const config = useMemo(() => {
-    const c = buildConfig(EDITABLE_TYPES, entryType, { members: !!members?.enabled, events: eventsAreOn === true, mailing: mailingIsOn === true, shop: shopIsOn === true });
+    const c = buildConfig(EDITABLE_TYPES, entryType, { members: !!members?.enabled, events: eventsAreOn === true, mailing: mailingIsOn === true, shop: shopIsOn === true, donations: donationsAreOn === true });
     c.root = {
       fields: state
         ? {
@@ -311,7 +312,7 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
       render: ({ children, ...props }: { children: ReactNode } & Record<string, any>) => <ChromeFromContext content={children} slots={props} />,
     } as any;
     return c;
-  }, [state === null, entryType, areaList.join(), !!members?.enabled, eventsAreOn === true, mailingIsOn === true, shopIsOn === true]);
+  }, [state === null, entryType, areaList.join(), !!members?.enabled, eventsAreOn === true, mailingIsOn === true, shopIsOn === true, donationsAreOn === true]);
 
   // Compose panel: docked beside the editor; pinned keeps it open (per browser).
   const puckRef = useRef<ReturnType<typeof useGetPuck> | null>(null);

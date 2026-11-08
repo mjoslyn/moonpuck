@@ -36,6 +36,7 @@ import { ACCOUNT_PATH, memberSettings, type Viewer } from '../lib/members/config
 import { eventsOn } from '../lib/events/on';
 import { featuresOf, offTypes } from '../lib/features';
 import { CART_PATH, shopOn } from '../lib/shop/config';
+import { DONATE_PATH, donationsOn } from '../lib/donations/config';
 import { PREFERENCES_PATH, SUBSCRIBE_PATH, UNSUBSCRIBE_PATH, mailingOn } from '../lib/mailing/config';
 
 
@@ -160,6 +161,8 @@ export async function resolve(url: URL, loader: Loader): Promise<Queried> {
   if (mailing && mailingOn(settings.site)) return { ...base, kind: 'singular', entry: builtInPage(mailing.slug, mailing.title, mailing.block) };
   // The shop's cart, unless a page has its address.
   if (`/${parts.join('/')}/` === CART_PATH && shopOn(settings.site)) return { ...base, kind: 'singular', entry: cartPage() };
+  // The donation page, unless a page has its address.
+  if (`/${parts.join('/')}/` === DONATE_PATH && donationsOn(settings.site)) return { ...base, kind: 'singular', entry: donatePage() };
   return base;
 }
 
@@ -189,6 +192,19 @@ function cartPage(): Entry {
     { type: 'section', props: { id: 'cart-page', attrs: { layout: { type: 'constrained', contentSize: '960px' }, style: { padding: pad }, gap: 'var(--space-50)' }, children: [
       { type: 'heading', props: { id: 'cart-title', attrs: { content: 'Your cart', level: 1 } } },
       { type: 'cart', props: { id: 'cart', attrs: {} } },
+    ] } },
+  ];
+  return page;
+}
+
+/** The donation page when no page has its address: a heading and a Donate block, in a padded column. */
+function donatePage(): Entry {
+  const page = builtInPage(DONATE_PATH.split('/').filter(Boolean).pop()!, 'Donate', { type: 'donate', attrs: {} });
+  const pad = { top: 'var(--space-70)', right: 'var(--space-50)', bottom: 'var(--space-80)', left: 'var(--space-50)' };
+  (page.content as any).content = [
+    { type: 'section', props: { id: 'donate-page', attrs: { layout: { type: 'constrained', contentSize: '640px' }, style: { padding: pad }, gap: 'var(--space-50)' }, children: [
+      { type: 'heading', props: { id: 'donate-title', attrs: { content: 'Donate', level: 1 } } },
+      { type: 'donate', props: { id: 'donate', attrs: {} } },
     ] } },
   ];
   return page;

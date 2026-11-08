@@ -20,7 +20,7 @@ export interface Connected {
 
 export class ConnectError extends Error {}
 
-export const STRIPE_EVENTS = ['checkout.session.completed', 'checkout.session.async_payment_succeeded', 'checkout.session.async_payment_failed', 'checkout.session.expired', 'charge.refunded', 'charge.refund.updated', 'refund.updated', 'refund.failed'];
+export const STRIPE_EVENTS = ['checkout.session.completed', 'checkout.session.async_payment_succeeded', 'checkout.session.async_payment_failed', 'checkout.session.expired', 'charge.refunded', 'charge.refund.updated', 'refund.updated', 'refund.failed', 'invoice.paid', 'invoice.payment_failed', 'customer.subscription.updated', 'customer.subscription.deleted'];
 export const SQUARE_EVENTS = ['payment.created', 'payment.updated', 'refund.created', 'refund.updated'];
 export const MAILGUN_EVENTS = ['delivered', 'opened', 'permanent_fail', 'complained', 'unsubscribed'];
 

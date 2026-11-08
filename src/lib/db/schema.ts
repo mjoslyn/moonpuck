@@ -94,6 +94,22 @@ export const SCHEMA: Record<string, TableSchema> = {
     defaults: {"name":"Weekly digest","list_ids":[],"audience":{},"weekday":4,"send_time":"09:00","subject":"","from_name":"","reply_to":"","text":"","mode":"review","review_hours":24,"skip_when_empty":true,"min_items":1,"track_links":true,"utm":true,"enabled":false},
     touch: true,
   },
+  donation_plans: {
+    pk: ["id"],
+    columns: {"id":"int8","token":"text","status":"text","provider":"text","customer":"text","subscription":"text","amount":"int8","fee":"int8","total":"int8","currency":"text","name":"text","email":"text","anonymous":"bool","dedication":"text","goal":"text","page":"text","campaign":"text","started_at":"timestamptz","cancelled_at":"timestamptz","failed_at":"timestamptz","created_at":"timestamptz","updated_at":"timestamptz"},
+    generated: [],
+    fks: [],
+    defaults: {"status":"incomplete","provider":"stripe","fee":0,"currency":"USD","anonymous":false,"dedication":"","goal":"","page":"","campaign":""},
+    touch: true,
+  },
+  donations: {
+    pk: ["id"],
+    columns: {"id":"int8","token":"text","code":"text","status":"text","kind":"text","plan_id":"int8","provider":"text","provider_ref":"text","provider_order":"text","provider_payment":"text","invoice":"text","amount":"int8","fee":"int8","total":"int8","currency":"text","refunded_amount":"int8","refund_attempt":"jsonb","name":"text","email":"text","anonymous":"bool","dedication":"text","goal":"text","page":"text","campaign":"text","note":"text","ip":"text","paid_at":"timestamptz","emailed_at":"timestamptz","created_at":"timestamptz","updated_at":"timestamptz"},
+    generated: [],
+    fks: [[["plan_id"],"donation_plans",["id"]]],
+    defaults: {"status":"pending","kind":"once","fee":0,"currency":"USD","refunded_amount":0,"anonymous":false,"dedication":"","goal":"","page":"","campaign":"","note":"","ip":""},
+    touch: true,
+  },
   email_templates: {
     pk: ["id"],
     columns: {"id":"int8","kit":"text","name":"text","design":"jsonb","text":"text","default_for":"text","created_at":"timestamptz","updated_at":"timestamptz"},

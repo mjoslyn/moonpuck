@@ -12,6 +12,7 @@ export const MAIL_KINDS = {
   form: 'Form notification',
   ticket: 'Ticket',
   shop: 'Shop order',
+  donation: 'Donation',
   account: 'Account',
   admin: 'Notice to admins',
   other: 'Other',

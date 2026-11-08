@@ -8,7 +8,7 @@
 // destination address.
 import { EmailMessage } from 'cloudflare:email';
 
-const LIMITS = { name: 100, email: 200, organisation: 150, site: 300, message: 5000 };
+const LIMITS = { name: 100, email: 200, organization: 150, site: 300, message: 5000 };
 const EMAIL = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/;
 
 export default {
@@ -42,7 +42,7 @@ async function contact(request, env) {
   // Only the email address is needed; the rest helps.
   const email = line(form.get('email'), LIMITS.email);
   const name = line(form.get('name'), LIMITS.name);
-  const organisation = line(form.get('organisation'), LIMITS.organisation);
+  const organization = line(form.get('organization'), LIMITS.organization);
   const site = line(form.get('site'), LIMITS.site);
   const message = String(form.get('message') ?? '').replace(/\r\n?/g, '\n').trim().slice(0, LIMITS.message);
   if (!EMAIL.test(email)) return answer(400, 'invalid', 'Please give a valid email address.');
@@ -58,7 +58,7 @@ async function contact(request, env) {
   const to = env.CONTACT_TO || 'info@moonpuck.com';
   const body = [
     `From: ${name ? `${name} <${email}>` : email}`,
-    ...(organisation ? [`Organisation: ${organisation}`] : []),
+    ...(organization ? [`Organization: ${organization}`] : []),
     ...(site ? [`Their site: ${site}`] : []),
     '',
     message || '(No message.)',
@@ -67,7 +67,7 @@ async function contact(request, env) {
     'Sent from the "We\'ll build it for you" form on moonpuck.com.',
   ].join('\n');
   try {
-    await env.CONTACT.send(new EmailMessage(from, to, mime({ from, to, replyTo: email, replyName: name, subject: `Build my moonpuck site: ${organisation || name || site || email}`, text: body })));
+    await env.CONTACT.send(new EmailMessage(from, to, mime({ from, to, replyTo: email, replyName: name, subject: `Build my moonpuck site: ${organization || name || site || email}`, text: body })));
   } catch (e) {
     console.error(`contact: sending failed: ${e?.message ?? e}`);
     return answer(502, 'unavailable', 'Your message could not be sent just now. Please email info@moonpuck.com.');

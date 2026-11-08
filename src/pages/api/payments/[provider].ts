@@ -1,7 +1,8 @@
-// The payment providers' webhooks, for forms, tickets and the shop alike: one endpoint per provider, so one
+// The payment providers' webhooks, for forms, tickets, the shop and donations alike: one endpoint per provider, so one
 // signing secret each. Stripe: Developers > Webhooks, <site>/api/payments/stripe, events
 // checkout.session.completed, .async_payment_succeeded, .async_payment_failed, .expired and
-// charge.refunded and charge.refund.updated; its signing secret is STRIPE_WEBHOOK_SECRET. Square: Developer Console > Webhooks,
+// charge.refunded and charge.refund.updated, and for monthly gifts invoice.paid, invoice.payment_failed,
+// customer.subscription.updated and .deleted; its signing secret is STRIPE_WEBHOOK_SECRET. Square: Developer Console > Webhooks,
 // <site>/api/payments/square, events payment.created, payment.updated, refund.created and
 // refund.updated; its signature key is SQUARE_WEBHOOK_SIGNATURE_KEY (and SQUARE_WEBHOOK_URL the address
 // given to Square, when the site sees another). Each handler ignores checkouts that aren't its own.
@@ -11,6 +12,7 @@ import { env } from '../../../lib/payments/common';
 import { formsWebhook } from '../../../lib/forms/checkout';
 import { ticketsWebhook } from '../../../lib/tickets/orders';
 import { shopWebhook } from '../../../lib/shop/orders';
+import { donationsWebhook } from '../../../lib/donations/donations';
 
 const SECRET: Record<PaymentProvider, string> = { stripe: 'STRIPE_WEBHOOK_SECRET', square: 'SQUARE_WEBHOOK_SIGNATURE_KEY' };
 
@@ -29,6 +31,7 @@ export const POST: APIRoute = async ({ params, request, url }) => {
       await formsWebhook(name, reported);
       await ticketsWebhook(name, reported, url.origin);
       await shopWebhook(name, reported, url.origin);
+      await donationsWebhook(name, reported, url.origin);
     }
   } catch (e) {
     // A failure answers 500, so the provider tries again later.

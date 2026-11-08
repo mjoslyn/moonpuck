@@ -428,6 +428,7 @@ export async function ticketsWebhook(provider: PaymentProvider, event: PaymentEv
     if (order?.provider === provider) await recordRefund(db, order, event.refunded, origin);
     return;
   }
+  if (event.kind !== 'checkout') return;
   const order = event.ref ? await orderBy(db, 'provider_ref', event.ref) : await orderBy(db, 'provider_order', event.order);
   // A cancelled or expired order is looked at too: a payment that completed anyway is recorded.
   if (!order || order.provider !== provider || !UNPAID.includes(order.status)) return;

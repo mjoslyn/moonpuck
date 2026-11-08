@@ -19,6 +19,7 @@ import { MEMBERS_RENDERERS } from '../c/members';
 import { MAILING_RENDERERS } from '../c/mailing';
 import { SHOP_RENDERERS } from '../c/shop';
 import { SHOP_BLOCKS, shopOn } from '../../lib/shop/config';
+import { DONATION_RENDERERS } from '../c/donations';
 import { embedForm } from '../forms/embed';
 import { formStyleClass, formStyleDecls } from '../forms/style';
 import { attrs } from '../c/style';
@@ -51,6 +52,7 @@ register(
     ...MEMBERS_RENDERERS,
     ...MAILING_RENDERERS,
     ...SHOP_RENDERERS,
+    ...DONATION_RENDERERS,
     // The site's own blocks (src/site/render.ts).
     ...Object.fromEntries(Object.entries(SITE_BLOCKS).map(([type, def]) => [type, def.render])),
   },

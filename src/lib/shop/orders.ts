@@ -404,6 +404,7 @@ export async function shopWebhook(provider: PaymentProvider, event: PaymentEvent
     if (order?.provider === provider) await recordRefund(db, order, event.refunded);
     return;
   }
+  if (event.kind !== 'checkout') return;
   const order = event.ref ? await orderBy(db, 'provider_ref', event.ref) : await orderBy(db, 'provider_order', event.order);
   if (!order || order.provider !== provider || !UNPAID.includes(order.status)) return;
   if (event.failed || event.expired) {

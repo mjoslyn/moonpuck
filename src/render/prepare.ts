@@ -24,6 +24,9 @@ import { prepareNavigation } from './c/navigation';
 import { isPageTickets, prepareTickets, prepareTicketsBlock } from './c/tickets';
 import { EVENT_BLOCKS, eventsOn } from '../lib/events/on';
 import { SHOP_BLOCKS, productImages, productOf, shopOn } from '../lib/shop/config';
+import { DONATION_BLOCKS, donationSettings, donationsOn, goalOf } from '../lib/donations/config';
+import { goalTotals } from '../lib/donations/totals';
+import { DONATE_SCRIPT, GOALS_KEY } from './c/donations';
 import { loadStock } from '../lib/shop/stock';
 import { CART_SCRIPT, STOCK_KEY } from './c/shop';
 import { LISTS_KEY } from './c/mailing';
@@ -142,6 +145,8 @@ async function walk(items: PuckItem[], ctx: RenderCtx, state: WalkState) {
     if (EVENT_BLOCKS.includes(type) && !eventsOn(ctx.settings.site)) continue;
     // Shop off (Settings > Shop): the same.
     if (SHOP_BLOCKS.includes(type) && !shopOn(ctx.settings.site)) continue;
+    // Donations off (Settings > Donations): the same.
+    if (DONATION_BLOCKS.includes(type) && !donationsOn(ctx.settings.site)) continue;
     switch (type) {
       case 'part':
         await loadDoc(ctx, `part:${attrs.slug}`, async () => (await ctx.loader.template('part', attrs.slug))?.content as PuckItem[], state);
@@ -268,6 +273,21 @@ async function walk(items: PuckItem[], ctx: RenderCtx, state: WalkState) {
         // A sign-up's outcome is for that visitor only.
         if (['subscribe', 'subscribe_error'].some((k) => ctx.queried.url.searchParams.has(k))) ctx.personal = true;
         break;
+      case 'donate': {
+        ctx.headScripts ??= [];
+        if (!ctx.headScripts.includes(DONATE_SCRIPT)) ctx.headScripts.push(DONATE_SCRIPT);
+        const q = ctx.queried.url.searchParams;
+        // A donor's own views (their thank-you, their monthly gift) and a checkout's outcome are theirs only.
+        if (['donation', 'plan', 'donate', 'donate_error', 'plan_msg'].some((k) => q.has(k))) ctx.personal = true;
+        if (!ctx.editor && (q.has('donation') || q.has('plan'))) await renderHooks.donation?.(ctx);
+        break;
+      }
+      case 'donation-progress': {
+        // Every goal's total at once, the first time a page needs one (cached with the page for a minute).
+        const goal = goalOf(donationSettings(ctx.settings.site), attrs.goal);
+        if (goal && !ctx.data.get(GOALS_KEY)?.[goal.id]) ctx.data.set(GOALS_KEY, { ...(ctx.data.get(GOALS_KEY) ?? {}), ...(await goalTotals(ctx.loader.db, [goal]).catch(() => ({}))) });
+        break;
+      }
       case 'mail-preferences':
         // Whose subscription it shows comes from the page's signed link or the visitor.
         ctx.personal = true;

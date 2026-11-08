@@ -1,13 +1,13 @@
 // Saved email templates (table email_templates): designs, with their own plain text, that the email
 // builder offers to start an email from (src/forms/EmailTemplates.tsx). Each belongs to the builder kit
 // that made it, since its blocks are that kit's: mailing (campaigns and digests), form (form
-// notifications), ticket (ticket emails) or shop (order emails). A template can be the default for one
+// notifications), ticket (ticket emails), shop (order emails) or donation (donation emails). A template can be the default for one
 // kind of email: new campaigns, digests and form notifications start from it, and a ticket or order email
 // nobody has changed is sent from it. Safe in the browser.
 import type { Db } from './db/query';
 import type { EmailDoc } from './forms/email';
 
-export type TemplateKit = 'mailing' | 'form' | 'ticket' | 'shop';
+export type TemplateKit = 'mailing' | 'form' | 'ticket' | 'shop' | 'donation';
 
 /** A saved template. */
 export interface EmailTemplate {
@@ -40,6 +40,14 @@ export const TEMPLATE_DEFAULTS: Record<TemplateKit, [string, string][]> = {
     ['shop:delivered', 'Shop delivered emails'],
     ['shop:refunded', 'Shop refund emails'],
     ['shop:admin', 'Shop order copies'],
+  ],
+  donation: [
+    ['donation:receipt', 'Donation receipts'],
+    ['donation:monthly', 'Monthly donation receipts'],
+    ['donation:failed', 'Monthly payments that failed'],
+    ['donation:cancelled', 'Monthly gifts cancelled'],
+    ['donation:refunded', 'Donation refunds'],
+    ['donation:admin', 'Donation copies'],
   ],
 };
 
