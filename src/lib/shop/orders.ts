@@ -9,6 +9,8 @@ import { isActive, type Viewer } from '../members/config';
 import { offTypes, featuresOf } from '../features';
 import { PROVIDERS, closeCheckout, pickProvider, providerOf, type CheckoutState, type PaymentEvent, type PaymentProvider } from '../payments';
 import { MIN_CHARGE, formatMoney } from '../payments/money';
+import { claimRefund, type RefundAttempt } from '../payments/claim';
+import { atHome, homeHere, notHome } from '../payments/home';
 import { sendMail } from '../forms/mail';
 import type { EmailDoc } from '../forms/email';
 import { carrierName } from './tracking';
@@ -108,6 +110,8 @@ export interface ShopOrder {
   /** The discount it took (Shop > Discounts) and its code ('' for an automatic one). */
   discount_id: number | null;
   discount_code: string;
+  /** The copy of the site it was made on (src/lib/payments/home.ts). */
+  home?: string;
   /** The campaign the buyer's visit came from: `campaign|source|medium` (src/lib/stats.ts), '' for none. */
   campaign: string;
   /** The carrier a shipped order went with (`usps`, `ups`, `fedex`, `dhl_express`, or '' when not known). */
@@ -180,7 +184,8 @@ async function siteSettings(db: Db) {
 
 /** Expired holds: marked expired, and their checkouts closed (Square's payment links don't expire). */
 export async function expireShopHolds(db: Db = serviceClient()) {
-  const { data } = await db.from('shop_orders').update({ status: 'expired' }).eq('status', 'pending').lt('expires_at', new Date().toISOString()).select('id, provider, provider_ref');
+  // This copy's own only: another copy's holds and checkouts are that copy's.
+  const { data } = await db.from('shop_orders').update({ status: 'expired' }).eq('status', 'pending').lt('expires_at', new Date().toISOString()).in('home', ['', homeHere()]).select('id, provider, provider_ref');
   for (const o of data ?? []) await logOrder(db, o.id, 'expired', 'Expired: not paid in time; its stock went back on sale.');
   for (const o of data ?? []) await closeCheckout(o.provider, o.provider_ref).catch((e) => console.warn(`shop: closing checkout of order ${o.id}: ${(e as Error).message}`));
 }
@@ -243,7 +248,7 @@ export async function startShopCheckout(body: any, origin: string, viewer: Viewe
   }));
   const { data: made, error } = await db.rpc('shop_order_create', {
     p_order: {
-      token, code, status: free ? 'paid' : 'pending', provider: free ? 'free' : providerName, name, email, phone,
+      token, code, status: free ? 'paid' : 'pending', provider: free ? 'free' : providerName, name, email, phone, home: homeHere(origin),
       // An address only when the order is posted.
       address: chosen?.kind === 'ship' ? address : null, fulfilment: chosen ? chosen.kind : 'none', shipping: chosen, lines,
       subtotal: totals.subtotal, discount: totals.discount, shipping_total: totals.shipping, tax: totals.tax ?? 0, total,
@@ -406,7 +411,8 @@ export async function shopWebhook(provider: PaymentProvider, event: PaymentEvent
   }
   if (event.kind !== 'checkout') return;
   const order = event.ref ? await orderBy(db, 'provider_ref', event.ref) : await orderBy(db, 'provider_order', event.order);
-  if (!order || order.provider !== provider || !UNPAID.includes(order.status)) return;
+  // Another copy's order, here through a sync: that copy marks it paid and sends its emails.
+  if (!order || order.provider !== provider || !UNPAID.includes(order.status) || !atHome(order, origin)) return;
   if (event.failed || event.expired) {
     const { data } = await db.from('shop_orders').update({ status: 'expired' }).eq('id', order.id).eq('status', 'pending').select('id');
     if (data?.length) await logOrder(db, order.id, 'expired', event.failed ? 'Expired: the payment failed.' : 'Expired: the payment page closed without payment.');
@@ -559,6 +565,7 @@ export async function cancelShopOrder(db: Db, id: number, restock: Restock = {},
   if (!['pending', 'paid', 'expired', 'refunded'].includes(o.status)) throw new Error('This order is already cancelled.');
   const provider = providerOf(o.provider);
   if ((o.status === 'pending' || o.status === 'expired') && provider && o.provider_ref) {
+    if (!atHome(o, origin)) throw new Error(notHome(o, 'This order'));
     const state = await paymentState(o).catch((e) => {
       throw new Error(`Could not check the payment at ${provider.label} (${(e as Error).message}), so the order was not cancelled. Try again in a moment.`);
     });
@@ -585,6 +592,7 @@ export async function cancelShopOrder(db: Db, id: number, restock: Restock = {},
 export async function refundShopOrder(db: Db, id: number, amount: number, restock: Restock = {}, origin?: string, by = ''): Promise<{ refunded: number; full: boolean; restocked: Restock }> {
   const o = await loadOrder(db, id);
   if (o.status !== 'paid' && o.status !== 'refunded') throw new Error('Only paid orders can be refunded.');
+  if (amount > 0 && !atHome(o, origin)) throw new Error(notHome(o, 'This order'));
   const left = o.total - o.refunded_amount;
   if (amount < 0 || amount > left) throw new Error('Refund at most what is left of the order.');
   let total = o.refunded_amount;
@@ -592,9 +600,7 @@ export async function refundShopOrder(db: Db, id: number, amount: number, restoc
     const provider = providerOf(o.provider);
     if (!provider) throw new Error('Free orders have nothing to refund.');
     if (!o.provider_payment) throw new Error('This order has no payment recorded at the provider; refund it from its dashboard.');
-    const last = (o as ShopOrder & { refund_attempt?: { key: string; amount: number; from: number } | null }).refund_attempt;
-    const key = last && last.amount === amount && last.from === o.refunded_amount ? last.key : `shop-${o.id}-${newToken().slice(0, 12)}`;
-    await db.from('shop_orders').update({ refund_attempt: { key, amount, from: o.refunded_amount, at: new Date().toISOString() } }).eq('id', id);
+    const key = await claimRefund(db, 'shop_orders', o as ShopOrder & { updated_at?: string; refund_attempt?: RefundAttempt | null }, amount, () => `shop-${o.id}-${newToken().slice(0, 12)}`);
     const made = await provider.refund(o.provider_payment, amount, o.currency, key);
     await db.from('shop_orders').update({ refund_attempt: null }).eq('id', id);
     if (made.status === 'failed') throw new Error(`${provider.label} did not make the refund${made.reason ? ` (${made.reason})` : ''}. Nothing was recorded.`);

@@ -834,6 +834,19 @@ Connections): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
 `src/lib/forms/email.ts`, offered by a kit's `payment`) shows a payment's items, total, status,
 provider, payment id and date in form notifications and ticket emails alike, as does `{payment_summary}`.
 
+Refunds of gifts, shop orders and ticket orders claim their row first (`claimRefund`,
+`src/lib/payments/claim.ts`): the idempotency key goes onto the row (`refund_attempt`) only if the row is as
+it was read (its `updated_at`) and no other refund started in the last ten minutes (`REFUND_HOLD_MS`) is
+unanswered, so two people refunding at once can't both refund; a retry of the same refund (amount and
+refunded total) reuses its key. Gifts, monthly gifts and shop orders keep the copy of the site they were
+made on (`home`, `src/lib/payments/home.ts`; migrations `*_donation_plans_home.sql` and
+`*_payments_home.sql`): rows reach other copies through sync, and a copy with its own webhook on the same
+provider account gets their events too, so only the home copy acts on them (`atHome`: marks them paid,
+records monthly payments, sends their emails, expires their checkouts, cancels or refunds them at the
+provider); other copies refuse to change them at the provider (`notHome`). Rows from before have no home,
+and any copy looks after them. Donations and the shop take only the currencies in `CURRENCIES` (all with
+cents, which amounts assume).
+
 ## Events
 
 `src/lib/events/model.ts` loads events (occurrences included) as `CalEvent`s;
@@ -964,7 +977,7 @@ tickets (30-120 minutes), and the emails with the reminder's and follow-up's tim
   (`recordRefund`). A full refund the webhook reports (one made in the provider's dashboard) frees the
   tickets and runs an `auto` waitlist, as one from the attendee list does. Each refund has its own
   idempotency key (`refund_attempt`), reused only by a retry
-  whose outcome is unknown; the provider's answer is checked, and a failed refund isn't recorded.
+  whose outcome is unknown (`claimRefund`, see Payments); the provider's answer is checked, and a failed refund isn't recorded.
   `markPaid` is idempotent and sends the confirmation
   once. An expired or cancelled order that is paid anyway is still marked paid, with a note in the
   attendee list (an admin can refund it). Cancelling an unpaid order, from the attendee list or the
@@ -1519,7 +1532,8 @@ at Stripe) are still recorded. A gift gives no membership.
   payment (`token`, `code` the receipt number, `status` pending, paid, cancelled, expired or refunded,
   `kind` once or monthly, `plan_id`, provider refs, `invoice` (unique: a monthly payment is recorded once),
   `amount` the gift, `fee` covered, `total` charged, `refunded_amount`, `refund_attempt`, donor, anonymous,
-  dedication, goal, the page it was given on, the visit's `campaign`); `donation_plans`, one per monthly
+  dedication, goal, the page it was given on, the visit's `campaign`, the copy it was made on, `home`, see
+  Payments); `donation_plans`, one per monthly
   gift (status incomplete, active, past_due or cancelled; Stripe's `customer` and `subscription`, the copy
   it started on, `home`, and the gift's details).
 - **Sync and backups** (`src/lib/sync.ts`; Settings > Sync): groups `donations:plans` (Monthly donors)
@@ -1552,7 +1566,8 @@ at Stripe) are still recorded. A gift gives no membership.
   (cached with it). `/donate/` (`DONATE_PATH`) is a built-in page with a Donate block unless a page has
   that address; monthly receipts link there.
 - **Checkout** (`src/lib/donations/donations.ts`): the amount checked against the minimum and
-  `MAX_GIFT`, 30 checkouts a minute in all and 5 unpaid an hour per email and per address; a one-time gift
+  `MAX_GIFT`, 30 checkouts started a minute in all (unpaid ones: monthly payments and gifts already
+  through don't count) and 5 unpaid an hour per email and per address; a one-time gift
   through `Provider.create` (the gift and the fee as items), a monthly one through
   `createSubscriptionCheckout` (`src/lib/payments/stripe.ts`: Checkout in subscription mode, a monthly
   price made inline) with an incomplete plan. `/api/donations/return?d=<token>` asks the provider and

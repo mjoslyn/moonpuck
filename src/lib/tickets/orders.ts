@@ -17,6 +17,7 @@ import { emailEvents } from '../events/email';
 import { SITE_TZ, site } from '../site';
 import { sendMail } from '../forms/mail';
 import { emailToSend, mayBuy, priceFor, localNow, maxFor, offSale, offeredTypes, remaining, ticketEmailFrom, ticketSettings, ticketsOf, timedEmail, TICKET_KEY, DEFAULT_MAX_PER_ORDER, type EmailKind, type EventEmail, type EventTickets, type TicketSettings } from './config';
+import { claimRefund } from '../payments/claim';
 import { PROVIDERS, ProviderError, closeCheckout, pickProvider, providerOf, type CheckoutState, type PaymentEvent, type PaymentProvider } from '../payments';
 import { ticketEmail, type EventView, type OrderView } from './email';
 import type { EmailPayment } from '../forms/email';
@@ -483,9 +484,9 @@ export async function refundOrder(db: Db, id: number, amount: number) {
   // Each refund has its own idempotency key, kept with the order while its outcome is unknown: retrying
   // a refund whose request got no answer reuses it (so it is made once), and any other refund gets a new
   // one, so the provider never replays an earlier refund's answer (one that failed, say) for it.
-  const last = order.refund_attempt;
-  const key = last && last.amount === amount && last.from === order.refunded_amount ? last.key : `${order.id}-${randomBytes(9).toString('base64url')}`;
-  await db.from('ticket_orders').update({ refund_attempt: { key, amount, from: order.refunded_amount, at: new Date().toISOString() } }).eq('id', id);
+  const key = await claimRefund(db, 'ticket_orders', order as OrderRow & { updated_at?: string }, amount, () => `${order.id}-${randomBytes(9).toString('base64url')}`).catch((e) => {
+    throw new ProviderError((e as Error).message);
+  });
   const made = await provider.refund(order.provider_payment, amount, order.currency, key);
   await db.from('ticket_orders').update({ refund_attempt: null }).eq('id', id);
   if (made.status === 'failed') throw new ProviderError(`${provider.label} did not make the refund${made.reason ? ` (${made.reason})` : ''}. Nothing was recorded.`);

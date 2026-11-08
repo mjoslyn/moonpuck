@@ -164,3 +164,7 @@ marks the order refunded. A refund gives back what was paid, after any discount.
 
 A refund made in Stripe's or Square's own dashboard shows on the order too, but puts nothing back in
 stock and sends no email: put things back on the order's page.
+
+If two people refund the same order at once, only one refund goes through; the other is told to reload
+and try again. An order copied from another copy of the site (Settings > Sync) can only be refunded or
+cancelled on the copy it was made on.

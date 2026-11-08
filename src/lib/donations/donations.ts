@@ -20,6 +20,8 @@ import { emailEvents } from '../events/email';
 import { DEFAULT_NEWS_LABEL, DONATE_PATH, MAX_GIFT, coverFee, coversFees, donationSettings, donationsOn, goalOf, type DonateError, type DonationEmailKind, type DonationGoal, type DonationSettings } from './config';
 import { donationEmail, donationEmailToSend } from './email';
 import { raised } from './totals';
+import { claimRefund } from '../payments/claim';
+import { atHome, homeHere, notHome } from '../payments/home';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** Checkouts started in a minute (all donors together), against floods. */
@@ -49,7 +51,8 @@ export interface Donation {
   total: number;
   currency: string;
   refunded_amount: number;
-  refund_attempt?: { key: string; amount: number; from: number } | null;
+  refund_attempt?: { key: string; amount: number; from: number; at?: string } | null;
+  updated_at?: string;
   name: string;
   email: string;
   anonymous: boolean;
@@ -57,6 +60,8 @@ export interface Donation {
   goal: string;
   page: string;
   campaign: string;
+  /** The copy of the site it was made on (src/lib/payments/home.ts). */
+  home: string;
   note: string;
   paid_at: string | null;
   emailed_at: string | null;
@@ -150,7 +155,8 @@ export async function startDonation(body: Record<string, unknown>, origin: strin
   const total = amount + fee;
 
   const since = new Date(Date.now() - 3600_000).toISOString();
-  const { count: recent } = await db.from('donations').select('id', { count: 'exact', head: true }).gte('created_at', new Date(Date.now() - 60_000).toISOString());
+  // Checkouts started (still unpaid), not monthly payments recorded or gifts already through.
+  const { count: recent } = await db.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'pending').gte('created_at', new Date(Date.now() - 60_000).toISOString());
   if ((recent ?? 0) >= MAX_PER_MINUTE) return fail('busy');
   const address = buyerAddress(ip);
   const byEmail = await db.from('donations').select('id', { count: 'exact', head: true }).eq('email', email).eq('status', 'pending').gte('created_at', since);
@@ -167,13 +173,13 @@ export async function startDonation(body: Record<string, unknown>, origin: strin
   const code = newCode();
   let planId: number | null = null;
   if (monthly) {
-    const { data: plan, error } = await db.from('donation_plans').insert({ token: newToken(), amount, fee, total, currency: s.currency, home: siteOrigin(origin), ...details }).select('id').single();
+    const { data: plan, error } = await db.from('donation_plans').insert({ token: newToken(), amount, fee, total, currency: s.currency, home: homeHere(origin), ...details }).select('id').single();
     if (error) throw error;
     planId = plan.id as number;
   }
   const { data: made, error } = await db
     .from('donations')
-    .insert({ token, code, kind: monthly ? 'monthly' : 'once', plan_id: planId, provider: providerName, amount, fee, total, currency: s.currency, ip: address, ...details })
+    .insert({ token, code, kind: monthly ? 'monthly' : 'once', plan_id: planId, provider: providerName, amount, fee, total, currency: s.currency, ip: address, home: homeHere(origin), ...details })
     .select('id')
     .single();
   if (error) throw error;
@@ -300,9 +306,9 @@ export async function planByToken(db: Db, token: string): Promise<DonationPlan |
  * that was kept). A copy that has the plan through a sync, and a webhook of its own on the same Stripe
  * account, leaves it alone: no gifts recorded, no emails, no changes at Stripe.
  */
-export const atHome = (plan: Pick<DonationPlan, 'home'>, origin?: string) => !plan.home || plan.home === siteOrigin(origin);
+export { atHome } from '../payments/home';
 
-const NOT_HOME = (plan: Pick<DonationPlan, 'home'>) => `This monthly gift started on ${plan.home}; change it there.`;
+const NOT_HOME = (row: Pick<DonationPlan, 'home'>, what = 'This monthly gift') => notHome(row, what);
 
 /**
  * A provider's webhook (signature checked by the route): a checkout's payment asked of the provider, its
@@ -326,7 +332,8 @@ export async function donationsWebhook(provider: PaymentProvider, event: Payment
     return;
   }
   const d = event.ref ? await donationBy(db, 'provider_ref', event.ref) : await donationBy(db, 'provider_order', event.order);
-  if (!d || d.provider !== provider || !UNPAID.includes(d.status)) return;
+  // Another copy's gift, here through a sync: that copy marks it paid and sends its receipt.
+  if (!d || d.provider !== provider || !UNPAID.includes(d.status) || !atHome(d, origin)) return;
   if (event.failed || event.expired) {
     await db.from('donations').update({ status: 'expired' }).eq('id', d.id).eq('status', 'pending');
     return;
@@ -357,7 +364,7 @@ async function invoiceEvent(db: Db, event: Extract<PaymentEvent, { kind: 'invoic
   const { data: made, error } = await db
     .from('donations')
     .insert({
-      token: newToken(), code: newCode(), status: 'paid', kind: 'monthly', plan_id: plan.id, provider: 'stripe', provider_ref: event.invoice, invoice: event.invoice, provider_payment: pay.paymentId ?? null,
+      token: newToken(), code: newCode(), status: 'paid', kind: 'monthly', plan_id: plan.id, home: plan.home, provider: 'stripe', provider_ref: event.invoice, invoice: event.invoice, provider_payment: pay.paymentId ?? null,
       // What Stripe charged this month (less than the plan with a coupon or the customer's balance).
       amount: Math.min(plan.amount, pay.amount), fee: Math.max(0, pay.amount - plan.amount), total: pay.amount, currency: plan.currency, name: plan.name, email: plan.email, anonymous: plan.anonymous, dedication: plan.dedication, goal: plan.goal, page: plan.page, campaign: plan.campaign, paid_at: at,
     })
@@ -408,7 +415,8 @@ export async function refreshPlan(db: Db, plan: DonationPlan, origin?: string) {
 /** Unpaid checkouts older than a day: marked expired, and their checkouts closed (Square's payment links don't expire). */
 export async function expireDonations(db: Db = serviceClient()) {
   const before = new Date(Date.now() - PENDING_HOURS * 3600_000).toISOString();
-  const { data } = await db.from('donations').update({ status: 'expired' }).eq('status', 'pending').lt('created_at', before).select('id, kind, provider, provider_ref, plan_id');
+  // This copy's own only: another copy's checkout is that copy's to close.
+  const { data } = await db.from('donations').update({ status: 'expired' }).eq('status', 'pending').lt('created_at', before).in('home', ['', homeHere()]).select('id, kind, provider, provider_ref, plan_id');
   for (const d of data ?? []) {
     await closeCheckout(d.provider, d.provider_ref);
     if (d.plan_id) await db.from('donation_plans').update({ status: 'cancelled', cancelled_at: new Date().toISOString() }).eq('id', d.plan_id).eq('status', 'incomplete');
@@ -468,14 +476,13 @@ async function loadDonation(db: Db, id: number): Promise<Donation> {
 export async function refundDonation(db: Db, id: number, amount: number, origin?: string): Promise<{ refunded: number; full: boolean }> {
   const d = await loadDonation(db, id);
   if (d.status !== 'paid' && d.status !== 'refunded') throw new Error('Only paid gifts can be refunded.');
+  if (!atHome(d, origin)) throw new Error(notHome(d, 'This gift'));
   const left = d.total - d.refunded_amount;
   if (!(amount > 0) || amount > left) throw new Error('Refund at most what is left of the gift.');
   const provider = providerOf(d.provider);
   if (!provider) throw new Error('No payment provider for this gift.');
   if (!d.provider_payment) throw new Error('This gift has no payment recorded at the provider; refund it from its dashboard.');
-  const last = d.refund_attempt;
-  const key = last && last.amount === amount && last.from === d.refunded_amount ? last.key : `donation-${d.id}-${newToken().slice(0, 12)}`;
-  await db.from('donations').update({ refund_attempt: { key, amount, from: d.refunded_amount, at: new Date().toISOString() } }).eq('id', id);
+  const key = await claimRefund(db, 'donations', d, amount, () => `donation-${d.id}-${newToken().slice(0, 12)}`);
   const made = await provider.refund(d.provider_payment, amount, d.currency, key);
   await db.from('donations').update({ refund_attempt: null }).eq('id', id);
   if (made.status === 'failed') throw new Error(`${provider.label} did not make the refund${made.reason ? ` (${made.reason})` : ''}. Nothing was recorded.`);

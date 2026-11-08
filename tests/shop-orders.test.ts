@@ -25,6 +25,8 @@ Object.assign(PROVIDERS.stripe, {
 });
 
 const db = siteDb();
+// The site's address (SITE_URL): where its orders are made, and so which ones this copy looks after.
+vi.stubEnv('SITE_URL', 'http://localhost');
 const setSite = async (value: Record<string, unknown>) => {
   const { data } = await db.from('settings').select('value').eq('key', 'site').maybeSingle();
   await db.from('settings').upsert({ key: 'site', value: { ...((data?.value as object) ?? {}), ...value } });
@@ -203,5 +205,26 @@ describe('the Orders screen', () => {
     const rows = ordersCsvRows([await order(o.id)]);
     expect(rows[0][0]).toBe('Order');
     expect(rows[1]).toEqual(expect.arrayContaining([o.code, 'ship-mug', '1Z999']));
+  });
+});
+
+describe('another copy’s order', () => {
+  it('is left alone here: not marked paid, not expired, not refunded or cancelled at the provider', async () => {
+    const base = { provider: 'stripe', name: 'E', email: 'e@example.org', lines: [], quantity: 1, subtotal: 500, total: 500, currency: 'USD', home: 'https://other-copy.example' };
+    await db.from('shop_orders').insert({ ...base, token: 'shop-else-1-xxxxxxxxxxxxxxxxxxxx', code: 'ELSE-S001', status: 'pending', provider_ref: 'cs_shop_else', expires_at: new Date(Date.now() - 3600_000).toISOString() });
+    paid.add('cs_shop_else');
+    await shopWebhook('stripe', { kind: 'checkout', ref: 'cs_shop_else' }, 'http://localhost');
+    await expireShopHolds(db);
+    const o = (await db.from('shop_orders').select('*').eq('token', 'shop-else-1-xxxxxxxxxxxxxxxxxxxx').single<ShopOrder>()).data!;
+    expect(o.status).toBe('pending');
+    await expect(cancelShopOrder(db, o.id, {}, 'http://localhost')).rejects.toThrow(/made on https:\/\/other-copy\.example/);
+    await db.from('shop_orders').update({ status: 'paid', provider_payment: 'pi_shop_else' }).eq('id', o.id);
+    await expect(refundShopOrder(db, o.id, 100, {}, 'http://localhost')).rejects.toThrow(/made on/);
+  });
+
+  it('takes only the currencies it offers', async () => {
+    const { shopSettings } = await import('../src/lib/shop/config');
+    expect(shopSettings({ shop: { currency: 'jpy' } }).currency).toBe('USD');
+    expect(shopSettings({ shop: { currency: 'gbp' } }).currency).toBe('GBP');
   });
 });

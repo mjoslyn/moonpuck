@@ -3,7 +3,7 @@
 // Square) and, through Stripe, monthly gifts; the Donation progress block shows a fundraising goal's
 // total. Amounts are in minor units (cents). Safe in the browser.
 import type { PaymentProvider } from '../payments';
-import { MIN_CHARGE, formatMoney } from '../payments/money';
+import { CURRENCIES, MIN_CHARGE, formatMoney } from '../payments/money';
 import { ticketEmailFrom, type TicketEmail } from '../tickets/config';
 
 /** The donation blocks: offered in the editor, and shown on the site, only while donations are on. */
@@ -119,7 +119,8 @@ export function donationSettings(site: Record<string, any> | null | undefined): 
     .filter((a: number) => a >= MIN_CHARGE);
   return {
     enabled: s.enabled === true,
-    currency: /^[A-Za-z]{3}$/.test(String(s.currency ?? '')) ? String(s.currency).toUpperCase() : 'USD',
+    // Only the currencies offered: amounts are in cents, which a currency without them would read as 100 times more.
+    currency: CURRENCIES.some(([c]) => c === String(s.currency ?? '').toUpperCase()) ? String(s.currency).toUpperCase() : 'USD',
     provider: s.provider === 'stripe' || s.provider === 'square' ? s.provider : undefined,
     amounts: [...new Set<number>(amounts)].sort((a, b) => a - b).slice(0, MAX_AMOUNTS),
     minimum: num(s.minimum, MIN_CHARGE, MAX_GIFT, 500),

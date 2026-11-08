@@ -7,6 +7,7 @@ import { checkoutSettingsFrom, type CheckoutSettings } from './checkout-settings
 import { shopEmailsFrom, type ShopEmail, type ShopEmailKind } from './email';
 import { orderStatusesFrom, type ShopStatus } from './statuses';
 import { byLevel, isActive, type MemberRow } from '../members/config';
+import { CURRENCIES } from '../payments/money';
 
 /** The shop's blocks: offered in the editor, and shown on the site, only while the shop is on. */
 export const SHOP_BLOCKS = ['shop-product', 'product-price', 'add-to-cart', 'shop-gallery', 'cart', 'cart-link'];
@@ -44,7 +45,8 @@ export function shopSettings(site: Record<string, any> | null | undefined): Shop
   const s = site?.shop ?? {};
   return {
     enabled: s.enabled === true,
-    currency: /^[A-Za-z]{3}$/.test(String(s.currency ?? '')) ? String(s.currency).toUpperCase() : 'USD',
+    // Only the currencies offered: prices are in cents, which a currency without them would read as 100 times more.
+    currency: CURRENCIES.some(([c]) => c === String(s.currency ?? '').toUpperCase()) ? String(s.currency).toUpperCase() : 'USD',
     weightUnit: WEIGHT_UNITS.some(([u]) => u === s.weightUnit) ? s.weightUnit : 'lb',
   };
 }

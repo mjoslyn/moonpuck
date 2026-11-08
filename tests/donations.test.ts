@@ -46,6 +46,9 @@ const plan = async (id: number) => (await db.from('donation_plans').select('*').
 let n = 0;
 const donor = (more: Record<string, unknown> = {}) => ({ amount: '5000', name: 'Ada Lovelace', email: `ada${++n}@example.org`, page: '/give/', ...more });
 
+// The site's address (SITE_URL): where its gifts are made, and so which ones this copy looks after.
+vi.stubEnv('SITE_URL', 'http://localhost');
+
 beforeEach(async () => {
   await setSite({ donations: DONATIONS });
   sent.length = 0;
@@ -226,6 +229,36 @@ describe('security review fixes', () => {
   });
 });
 
+describe('security review fixes 6 and 7', () => {
+  it('lets one of two refunds started at once through, and a retry of the same refund reuse its key', async () => {
+    await startDonation(donor(), 'http://localhost');
+    const d = await latest();
+    paid.add(d.provider_ref!);
+    await returnFromDonation(d.token, false, 'http://localhost');
+    const before = refunds.length;
+    const both = await Promise.allSettled([refundDonation(db, d.id, 1000, 'http://localhost'), refundDonation(db, d.id, 2000, 'http://localhost')]);
+    expect(both.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    expect(String((both.find((r) => r.status === 'rejected') as PromiseRejectedResult).reason)).toMatch(/under way|changed while/);
+    expect(refunds.length).toBe(before + 1);
+  });
+
+  it('leaves another copy’s one-time gift alone: no marking paid, no refund, no expiring', async () => {
+    await db.from('donations').insert({ token: 'gift-elsewhere-xxxxxxxxxxxxxxxxx', code: 'ELSE-0001', status: 'pending', kind: 'once', provider: 'stripe', provider_ref: 'cs_else', amount: 2500, total: 2500, currency: 'USD', name: 'E', email: 'e@example.org', home: 'https://other-copy.example', created_at: new Date(Date.now() - 48 * 3600_000).toISOString() });
+    paid.add('cs_else');
+    await donationsWebhook('stripe', { kind: 'checkout', ref: 'cs_else' }, 'http://localhost');
+    await expireDonations(db);
+    const row = (await db.from('donations').select('id, status').eq('token', 'gift-elsewhere-xxxxxxxxxxxxxxxxx').single()).data!;
+    expect(row.status).toBe('pending');
+    await db.from('donations').update({ status: 'paid', provider_payment: 'pi_else' }).eq('id', row.id);
+    await expect(refundDonation(db, row.id, 100, 'http://localhost')).rejects.toThrow(/made on https:\/\/other-copy\.example/);
+  });
+
+  it('takes only the currencies it offers', () => {
+    expect(donationSettings({ donations: { currency: 'jpy' } }).currency).toBe('USD');
+    expect(donationSettings({ donations: { currency: 'cad' } }).currency).toBe('CAD');
+  });
+});
+
 describe('a monthly donor from another copy', () => {
   it('is left alone here: no gifts recorded, no emails, no changes at Stripe', async () => {
     const id = (await db.from('donation_plans').insert({ token: 'plan-elsewhere-xxxxxxxxxxxxxxx', status: 'active', subscription: 'sub_elsewhere', amount: 2500, total: 2500, name: 'E', email: 'e@example.org', home: 'https://other-copy.example' }).select('id').single()).data!.id as number;
@@ -238,7 +271,7 @@ describe('a monthly donor from another copy', () => {
     expect(sent).toEqual([]);
     expect((await plan(id)).status).toBe('active');
     const before = subs.cancelled.length;
-    await expect(cancelPlan(db, await plan(id), 'http://localhost')).rejects.toThrow(/started on https:\/\/other-copy\.example/);
+    await expect(cancelPlan(db, await plan(id), 'http://localhost')).rejects.toThrow(/made on https:\/\/other-copy\.example/);
     expect(subs.cancelled.length).toBe(before);
   });
 });
