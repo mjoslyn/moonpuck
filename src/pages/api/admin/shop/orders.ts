@@ -4,7 +4,8 @@
 //   label-rates                         the carrier service's rates for the order's label
 //   label-buy { rate }                  buy a label at one of them: marks it shipped, emails the buyer
 //   track                               read the parcel's tracking again
-//   notes { notes }                     the shop's own notes
+//   note { note }                       a note for the shop, in the order's history
+//   status { status, email? }           the shop's own status ('' for none), emailing the buyer when it says so
 //   resend                              send a paid order's confirmation again
 //   cancel { restock }                  cancel an unpaid order (its hold goes), or a free or fully
 //                                       refunded one, its lines back in stock as `restock` says
@@ -16,7 +17,7 @@
 // The order's writes don't clear the page cache (what's left is asked live).
 import type { APIRoute } from 'astro';
 import { serviceClient } from '../../../../lib/db/site';
-import { cancelShopOrder, fulfilOrder, refundShopOrder, resendShopConfirmation, restockOrder, saveNotes, type Restock, type ShopOrder } from '../../../../lib/shop/orders';
+import { addNote, cancelShopOrder, fulfilOrder, refundShopOrder, resendShopConfirmation, restockOrder, setOrderStatus, type Restock, type ShopOrder } from '../../../../lib/shop/orders';
 import { buyLabel, labelRates, refreshTracking } from '../../../../lib/shop/fulfilment';
 
 const restockOf = (v: unknown): Restock =>
@@ -26,18 +27,20 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   const body = await request.json().catch(() => ({}));
   const id = Number(body.id) || 0;
   const db = serviceClient();
+  // Who did it, for the order's history.
+  const by = locals.user?.name || locals.user?.email || '';
   try {
     switch (body.action) {
       case 'fulfil': {
         const kind = body.kind === 'shipped' || body.kind === 'picked_up' ? body.kind : '';
-        await fulfilOrder(db, id, kind, String(body.tracking ?? ''), url.origin, String(body.carrier ?? ''));
+        await fulfilOrder(db, id, kind, String(body.tracking ?? ''), url.origin, String(body.carrier ?? ''), { by });
         return Response.json({ ok: true });
       }
       case 'label-rates':
         return Response.json({ ok: true, ...(await labelRates(db, id)) });
       case 'label-buy': {
         const r = body.rate ?? {};
-        const o = await buyLabel(db, id, { rateId: String(r.rateId ?? ''), carrier: String(r.carrier ?? ''), carrierName: String(r.carrierName ?? ''), service: String(r.service ?? ''), serviceName: String(r.serviceName ?? ''), amount: Number(r.amount) || 0, currency: String(r.currency ?? '') }, url.origin);
+        const o = await buyLabel(db, id, { rateId: String(r.rateId ?? ''), carrier: String(r.carrier ?? ''), carrierName: String(r.carrierName ?? ''), service: String(r.service ?? ''), serviceName: String(r.serviceName ?? ''), amount: Number(r.amount) || 0, currency: String(r.currency ?? '') }, url.origin, by);
         return Response.json({ ok: true, label: o.label, tracking: o.tracking });
       }
       case 'track': {
@@ -45,24 +48,26 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
         const t = o ? await refreshTracking(db, o as ShopOrder, url.origin) : null;
         return t ? Response.json({ ok: true, status: t }) : new Response('This order has no carrier tracking to read (connect Shippo, and mark it shipped with a carrier and number).', { status: 400 });
       }
-      case 'notes':
-        await saveNotes(db, id, String(body.notes ?? ''));
+      case 'note':
+        await addNote(db, id, String(body.note ?? ''), by);
         return Response.json({ ok: true });
+      case 'status':
+        return Response.json({ ok: true, ...(await setOrderStatus(db, id, String(body.status ?? ''), by, url.origin, body.email !== false)) });
       case 'resend':
         await resendShopConfirmation(db, id, url.origin);
         return Response.json({ ok: true });
       case 'cancel': {
-        const r = await cancelShopOrder(db, id, restockOf(body.restock), url.origin);
+        const r = await cancelShopOrder(db, id, restockOf(body.restock), url.origin, by);
         if (r.paid) return Response.json({ ok: true, message: 'This order was paid after all, so it is marked paid and was not cancelled. Refund it to cancel it.' });
         return Response.json({ ok: true, restocked: r.restocked });
       }
       case 'refund': {
         // Money goes back: admins only.
         if (locals.user?.role !== 'admin') return new Response('Only admins can refund orders.', { status: 403 });
-        return Response.json({ ok: true, ...(await refundShopOrder(db, id, Math.round(Number(body.amount) || 0), restockOf(body.restock), url.origin)) });
+        return Response.json({ ok: true, ...(await refundShopOrder(db, id, Math.round(Number(body.amount) || 0), restockOf(body.restock), url.origin, by)) });
       }
       case 'restock':
-        return Response.json({ ok: true, restocked: await restockOrder(db, id, restockOf(body.restock)) });
+        return Response.json({ ok: true, restocked: await restockOrder(db, id, restockOf(body.restock), by) });
     }
     return new Response('Unknown action', { status: 400 });
   } catch (e) {

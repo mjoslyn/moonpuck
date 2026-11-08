@@ -3,6 +3,8 @@
 // (which records the label, marks the order shipped with its tracking and emails the buyer), and the
 // parcel's tracking, read from the carrier service when its update comes, by the hourly run, or on the
 // order's page; a parcel delivered emails the buyer once (`delivered_at`). Server only.
+import { logOrder } from './history';
+import { formatMoney } from '../payments/money';
 import type { Db } from '../db/query';
 import { serviceClient } from '../db/site';
 import { env } from '../env';
@@ -51,7 +53,7 @@ export async function labelRates(db: Db, id: number): Promise<{ rates: CarrierRa
  * mark the order shipped with its tracking number, which emails the buyer. A label is bought once: an
  * order that has one is refused.
  */
-export async function buyLabel(db: Db, id: number, rate: Pick<CarrierRate, 'rateId' | 'carrier' | 'service' | 'serviceName' | 'carrierName' | 'amount' | 'currency'>, origin?: string): Promise<ShopOrder> {
+export async function buyLabel(db: Db, id: number, rate: Pick<CarrierRate, 'rateId' | 'carrier' | 'service' | 'serviceName' | 'carrierName' | 'amount' | 'currency'>, origin?: string, by = ''): Promise<ShopOrder> {
   const o = await loadOrder(db, id);
   if (o.status !== 'paid' || o.fulfilment !== 'ship') throw new Error('Only paid orders that are posted take a label.');
   if (o.label) throw new Error('This order already has a label.');
@@ -75,7 +77,8 @@ export async function buyLabel(db: Db, id: number, rate: Pick<CarrierRate, 'rate
   // Kept before anything else, so a label paid for is never lost.
   const { error } = await db.from('shop_orders').update({ label }).eq('id', id);
   if (error) console.error(`shop: label ${bought.id} for order ${o.code} not recorded: ${error.message}`);
-  await fulfilOrder(db, id, 'shipped', bought.trackingNumber, origin, rate.carrier, { follow: false });
+  await logOrder(db, id, 'label', `Bought a ${label.service} label for ${formatMoney(label.amount, label.currency || 'USD')}.`, by, { label: bought.id });
+  await fulfilOrder(db, id, 'shipped', bought.trackingNumber, origin, rate.carrier, { follow: false, by });
   return loadOrder(db, id);
 }
 
@@ -90,6 +93,7 @@ export async function refreshTracking(db: Db, o: ShopOrder, origin?: string): Pr
   await db.from('shop_orders').update({ tracking_status: { ...t, checked_at: new Date().toISOString() } }).eq('id', o.id).eq('tracking', o.tracking);
   if (t.status === 'DELIVERED') {
     const { data } = await db.from('shop_orders').update({ delivered_at: t.at || new Date().toISOString() }).eq('id', o.id).is('delivered_at', null).select('*').maybeSingle<ShopOrder>();
+    if (data) await logOrder(db, o.id, 'delivered', `Delivered, the carrier says${t.details ? ` (${t.details})` : ''}.`);
     if (data) await sendShopEmail('delivered', data, siteOrigin(origin)).catch((e) => console.error(`shop: delivered email for ${o.code}: ${(e as Error).message}`));
   }
   return t;

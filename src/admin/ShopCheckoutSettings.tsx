@@ -14,6 +14,7 @@ import { EmailCard } from './EmailCard';
 import type { MailList } from '../lib/mailing/config';
 import { DEFAULT_DOWNLOAD_DAYS, DEFAULT_DOWNLOAD_LIMIT, DEFAULT_LOW_STOCK, DEFAULT_NEWS_LABEL } from '../lib/shop/checkout-settings';
 import { shopEmailKit } from './shop-email';
+import { MAX_STATUSES, newStatusId, STATUS_EMAIL, type ShopStatus } from '../lib/shop/statuses';
 
 const EMAIL_HELP: Record<ShopEmailKind, string> = {
   confirmation: 'To the buyer when an order is paid, or at once when there is nothing to pay. Resend confirmation on an order sends it again.',
@@ -70,6 +71,15 @@ export default function ShopCheckoutSettings({ value, currency, weightUnit, prov
   const stripeTax = provider === 'stripe';
   const emails = (value.emails ?? {}) as Partial<Record<ShopEmailKind, ShopEmail>>;
   const news: { lists: number[]; label?: string } = { lists: [], ...(value.news ?? {}) };
+  // The shop's own order statuses (src/lib/shop/statuses.ts), as edited (cleaned on save).
+  const statuses: ShopStatus[] = Array.isArray(value.statuses) ? value.statuses : [];
+  const setStatus = (id: string, patch: Partial<ShopStatus>) => set({ statuses: statuses.map((x) => (x.id === id ? { ...x, ...patch } : x)) });
+  const moveStatus = (i: number, by: number) => {
+    const next = [...statuses];
+    const [x] = next.splice(i, 1);
+    next.splice(i + by, 0, x);
+    set({ statuses: next });
+  };
 
   return (
     <>
@@ -247,6 +257,47 @@ export default function ShopCheckoutSettings({ value, currency, weightUnit, prov
           {kind === 'admin' && <Toggle title="Send the shop a copy of each order" value={value.notify !== false} onChange={(notify) => set({ notify })} />}
         </EmailCard>
       ))}
+
+      <span className={heading}>Order statuses</span>
+      <p className="mb-2 text-xs text-admin-muted">Your own steps for orders (Being made, Ready to collect, On hold...), set on an order's page beside its payment status and listed on the Orders screen. Each can email the buyer when an order is moved to it.</p>
+      {statuses.map((st, i) => (
+        <div key={st.id} className={`${card} p-2`}>
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Text title="Name" value={st.name} onChange={(name) => setStatus(st.id, { name })} />
+            </div>
+            <button type="button" className={`${small} mb-3`} disabled={i === 0} onClick={() => moveStatus(i, -1)} aria-label={`Move ${st.name || 'status'} up`}>
+              ↑
+            </button>
+            <button type="button" className={`${small} mb-3`} disabled={i === statuses.length - 1} onClick={() => moveStatus(i, 1)} aria-label={`Move ${st.name || 'status'} down`}>
+              ↓
+            </button>
+            <button type="button" className={`${remove} mb-4`} onClick={() => set({ statuses: statuses.filter((x) => x.id !== st.id) })}>
+              Delete
+            </button>
+          </div>
+          <Toggle title="Email the buyer when an order is moved to it" value={st.notify} onChange={(notify) => setStatus(st.id, { notify: notify || undefined })} />
+          {st.notify && (
+            <EmailCard
+              label={`${st.name || 'Status'} email`}
+              help="To the buyer when an order is moved to this status ({order_status} is its name). The order's page can leave it unsent."
+              value={st.email ?? {}}
+              fallback={STATUS_EMAIL}
+              templateKey="shop:status"
+              makeKit={(subject) => shopEmailKit('confirmation', subject, site.name, () => st.name)}
+              note="Saved with the settings."
+              onChange={(patch) => setStatus(st.id, { email: { ...(st.email ?? {}), ...patch } })}
+              onReset={() => setStatus(st.id, { email: { ...(st.email ?? {}), design: undefined, text: undefined } })}
+            />
+          )}
+        </div>
+      ))}
+      {statuses.length < MAX_STATUSES && (
+        <button type="button" className={`${small} mb-3`} onClick={() => set({ statuses: [...statuses, { id: newStatusId(), name: '' }] })}>
+          Add a status
+        </button>
+      )}
+      {statuses.some((st) => !st.name.trim()) && <p className="mb-2 text-xs text-[#c4592a]">A status without a name isn't saved.</p>}
     </>
   );
 }

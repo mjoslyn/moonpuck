@@ -198,14 +198,21 @@ Click **Shop** in the admin bar (it shows while the shop is on), then **Orders**
 - **To send or hand over**: paid orders still to ship or to be picked up.
 - **Paid**, **Awaiting payment**, **Cancelled and expired**, **Refunded** and **All orders**.
 
-Search by order number, email or name. **Export CSV** downloads the orders shown, a row for each item.
+Search by order number, email or name, and, once you have order statuses (below), choose one under
+**Any status** to see only those orders. **Export CSV** downloads the orders shown, a row for each item.
 
 Click an order to see what was bought, the totals, the buyer, where it goes and the payment. On its page:
 
 - **Mark shipped and email the buyer**: type the tracking number first, if there is one. The buyer gets an
   email saying it is on its way.
 - **Mark picked up**: for an order collected from a pickup location.
-- **Notes**: for the shop only; the buyer never sees them.
+- **Status** (once you have order statuses): choose one and click **Set status**. A status that emails
+  the buyer shows **Email the buyer**, ticked; untick it to change the status without the email.
+- **Notes and history**: type a note and click **Add note**; notes are for the shop only, and the buyer
+  never sees them. Below, everything that happened to the order, newest first, with when and who: placed,
+  paid, every email sent (its subject and who it went to, or why it wasn't sent), shipped or picked up,
+  labels, delivered, refunds, items put back in stock, status changes, cancelled or expired, and the
+  notes.
 - **Resend confirmation**: emails the buyer their receipt again.
 - **Refund** (admins): type how much to give back, all or part. The money goes back to their card through
   Stripe or Square, and the buyer gets an email saying how much. Refunding all of it marks the order
@@ -218,6 +225,19 @@ Click an order to see what was bought, the totals, the buyer, where it goes and 
 
 A refund made in Stripe's or Square's own dashboard shows on the order too, but puts nothing back in
 stock: do that on the order's page.
+
+## Order statuses
+
+Your own steps for orders, such as Being made, Ready to collect or On hold, beside whether an order is
+paid. Under **Settings**, **Shop**, **Order statuses**, click **Add a status**, then set:
+
+- **Name**: what it is called on the order's page and the Orders screen.
+- **Email the buyer when an order is moved to it**: on or off.
+- Its email (when on): a **Subject** and **Edit email**, designed like the other order emails. The merge
+  tag {order_status} is the status's name.
+
+Use the arrows to put them in order, and **Delete** to remove one (orders with it then show none). Click
+**Save settings**.
 
 ## Discounts
 

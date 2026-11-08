@@ -1320,6 +1320,20 @@ answer 404.
   `refund_attempt`, as ticket refunds) and put lines back in stock (`restockOrder`, `shop_restock`: each
   line at most what was bought, checked in the statement that records it, `lines[].restocked`; only once
   the order's stock was taken off). Cancel and refund take the lines to put back with them.
+- **Order history and notes** (`src/lib/shop/history.ts`, table `shop_order_events`, migration
+  `*_shop_order_events.sql`; editors read, the server writes): each order's events with when and who
+  (`by`, the editor's name or email; empty for the site): placed, paid, every email (`sendOrderMail`: its
+  subject, recipients and whether it went), fulfilled, label, delivered, refund (on the page and by the
+  provider's webhook), restock, cancelled, expired, status, and notes (`addNote`, the `note` action; the
+  notes kept in `shop_orders.notes` before became each order's first note). Shown on the order's page,
+  newest first. Not synced or backed up (they stay with the copy's orders).
+- **Order statuses** (`src/lib/shop/statuses.ts`, safe in the browser; Settings > Shop, Order statuses,
+  `settings.site.shop.statuses`, `orderStatusesFrom`): the shop's own steps, `{ id, name, notify, email }`,
+  at most 30. An order's is `shop_orders.custom_status` (its id, '' for none; synced with the order), set
+  on its page (`setOrderStatus`, the `status` action: recorded in its history and, when the status
+  `notify`s and the page leaves Email the buyer ticked, the buyer emailed: the status's design, else
+  `STATUS_EMAIL`, `{order_status}` its name). The Orders screen shows it and filters by it (`?status=`,
+  `-` for none; `ordersQuery`, the CSV too).
 - **Carrier rates, labels and tracking** (`src/lib/shop/carrier.ts`, `fulfilment.ts`; `tracking.ts` safe in the
   browser): Shippo's REST API (no SDK; `SHIPPO_API_KEY` under Settings > Connections, `SHIPPO_API_BASE` a
   stand-in for tests) behind a `Carrier` interface (`rates`, `buyLabel`, `tracks`, `track`, `follow`). Settings >

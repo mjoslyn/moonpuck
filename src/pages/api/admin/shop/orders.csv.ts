@@ -12,7 +12,7 @@ const cell = (v: unknown) => {
 };
 
 export const GET: APIRoute = async ({ url, locals }) => {
-  const { data, error } = await allRows(ordersQuery(locals.db, url.searchParams.get('tab') ?? 'all', url.searchParams.get('q') ?? ''));
+  const { data, error } = await allRows(ordersQuery(locals.db, url.searchParams.get('tab') ?? 'all', url.searchParams.get('q') ?? '', url.searchParams.get('status') ?? ''));
   if (error) return new Response(error.message, { status: 400 });
   const lines = ordersCsvRows((data ?? []) as ShopOrder[]).map((r) => r.map(cell).join(','));
   const day = new Date().toISOString().slice(0, 10);

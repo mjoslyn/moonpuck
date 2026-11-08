@@ -42,6 +42,7 @@ export const SHOP_MERGE_TAGS: [string, string][] = [
   ['{tracking_link}', 'Link to follow the parcel (shipped)'],
   ['{refund}', 'This refund (refunded)'],
   ['{refunded}', 'Refunded in all'],
+  ['{order_status}', 'The order’s status (an order status’s email)'],
   ['{order_summary}', 'Order summary'],
   ['{payment_summary}', 'Payment: items, total and details'],
   ['{downloads}', 'Download links (paid orders with downloads)'],
@@ -155,6 +156,8 @@ export interface ShopEmailExtras {
   siteName: string;
   /** This refund's amount (the refund email). */
   refund?: number;
+  /** The shop's status the order was moved to (a status's email). */
+  status?: string;
   /** The site's time zone, for the payment's date. */
   timeZone?: string;
   /** A paid order's downloads: each file's name and link (src/lib/shop/downloads.ts). */
@@ -225,6 +228,7 @@ export function shopTagValues(o: OrderForEmail, x: ShopEmailExtras): Record<stri
     '{tracking_link}': o.tracking && o.carrier ? trackingLink(o.carrier, o.tracking) : '',
     '{refund}': x.refund ? m(x.refund) : '',
     '{refunded}': o.refunded_amount ? m(o.refunded_amount) : '',
+    '{order_status}': x.status ?? '',
     '{order_summary}': [...o.lines.map((l) => `${l.quantity} × ${lineName(l)}: ${m(l.total)}`), ...totalRows(o).map(([k, v]) => `${k}: ${v}`)].join('\n'),
     '{payment_summary}': pay ? textVersion(paymentTable(pay)) : '',
     '{downloads}': (x.downloads ?? []).map((d) => `${d.name}: ${d.url}`).join('\n'),

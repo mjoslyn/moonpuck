@@ -271,12 +271,20 @@ export const SCHEMA: Record<string, TableSchema> = {
     defaults: {"name":"","kind":"percent","value":0,"applies":"all","products":[],"categories":[],"min_subtotal":0,"once_per_email":false,"members_only":false,"levels":[],"active":true},
     touch: true,
   },
+  shop_order_events: {
+    pk: ["id"],
+    columns: {"id":"int8","order_id":"int8","at":"timestamptz","kind":"text","by":"text","text":"text","data":"jsonb"},
+    generated: [],
+    fks: [[["order_id"],"shop_orders",["id"]]],
+    defaults: {"by":"","text":""},
+    touch: false,
+  },
   shop_orders: {
     pk: ["id"],
-    columns: {"id":"int8","token":"text","code":"text","status":"text","provider":"text","provider_ref":"text","provider_order":"text","provider_payment":"text","name":"text","email":"text","phone":"text","address":"jsonb","fulfilment":"text","shipping":"jsonb","lines":"jsonb","quantity":"int8","subtotal":"int8","discount":"int8","shipping_total":"int8","tax":"int8","tax_by":"text","total":"int8","currency":"text","refunded_amount":"int8","refund_attempt":"jsonb","stock_taken":"bool","fulfilled":"text","fulfilled_at":"timestamptz","tracking":"text","notes":"text","note":"text","member_id":"uuid","ip":"text","expires_at":"timestamptz","paid_at":"timestamptz","emailed_at":"timestamptz","created_at":"timestamptz","updated_at":"timestamptz","discount_id":"int8","discount_code":"text","campaign":"text","carrier":"text","label":"jsonb","tracking_status":"jsonb","delivered_at":"timestamptz"},
+    columns: {"id":"int8","token":"text","code":"text","status":"text","provider":"text","provider_ref":"text","provider_order":"text","provider_payment":"text","name":"text","email":"text","phone":"text","address":"jsonb","fulfilment":"text","shipping":"jsonb","lines":"jsonb","quantity":"int8","subtotal":"int8","discount":"int8","shipping_total":"int8","tax":"int8","tax_by":"text","total":"int8","currency":"text","refunded_amount":"int8","refund_attempt":"jsonb","stock_taken":"bool","fulfilled":"text","fulfilled_at":"timestamptz","tracking":"text","notes":"text","note":"text","member_id":"uuid","ip":"text","expires_at":"timestamptz","paid_at":"timestamptz","emailed_at":"timestamptz","created_at":"timestamptz","updated_at":"timestamptz","discount_id":"int8","discount_code":"text","campaign":"text","carrier":"text","label":"jsonb","tracking_status":"jsonb","delivered_at":"timestamptz","custom_status":"text"},
     generated: [],
     fks: [[["discount_id"],"shop_discounts",["id"]],[["member_id"],"users",["id"]]],
-    defaults: {"status":"pending","phone":"","fulfilment":"none","lines":[],"discount":0,"shipping_total":0,"tax":0,"tax_by":"site","currency":"USD","refunded_amount":0,"stock_taken":false,"fulfilled":"","tracking":"","notes":"","note":"","ip":"","discount_code":"","campaign":"","carrier":""},
+    defaults: {"status":"pending","phone":"","fulfilment":"none","lines":[],"discount":0,"shipping_total":0,"tax":0,"tax_by":"site","currency":"USD","refunded_amount":0,"stock_taken":false,"fulfilled":"","tracking":"","notes":"","note":"","ip":"","discount_code":"","campaign":"","carrier":"","custom_status":""},
     touch: true,
   },
   shop_stock: {

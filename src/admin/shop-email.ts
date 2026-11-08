@@ -19,12 +19,15 @@ const DETAIL_TAGS: Record<string, [string, string]> = {
 };
 
 /** `subject`: read when the preview renders, so it shows the subject as it is then. */
-export function shopEmailKit(kind: ShopEmailKind, subject: () => string, siteName: string): EmailKit {
+/** `status`: a custom order status's name, for its email's {order_status}. */
+export function shopEmailKit(kind: ShopEmailKind, subject: () => string, siteName: string, status?: () => string): EmailKit {
   const origin = typeof window === 'undefined' ? '' : window.location.origin;
   // Each kind's sample as it would be when sent.
   const order: OrderForEmail =
     kind === 'shipped' || kind === 'delivered' ? { ...SAMPLE_SHOP_ORDER, tracking: '9400111899223197428490', carrier: 'usps' } : kind === 'refunded' ? { ...SAMPLE_SHOP_ORDER, refunded_amount: 1200 } : SAMPLE_SHOP_ORDER;
-  const extras = { order: `${origin}/cart/?order=sample`, admin: `${origin}/admin/shop/`, siteName, refund: kind === 'refunded' ? 1200 : undefined, downloads: kind === 'admin' ? undefined : [{ name: 'Harbour pattern.pdf', url: `${origin}/api/shop/download?order=sample&line=0` }] };
+  const extras = { order: `${origin}/cart/?order=sample`, admin: `${origin}/admin/shop/`, siteName, refund: kind === 'refunded' ? 1200 : undefined, get status() {
+      return status?.();
+    }, downloads: kind === 'admin' ? undefined : [{ name: 'Harbour pattern.pdf', url: `${origin}/api/shop/download?order=sample&line=0` }] };
   const sample = shopEmailContext(order, extras, origin);
   return {
     dataBlock: { label: 'Order details', options: SHOP_ORDER_DETAILS },

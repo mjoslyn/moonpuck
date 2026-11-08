@@ -1,8 +1,9 @@
 ---
 // One shop order (src/lib/shop/orders.ts): what was bought, the totals, the buyer, where it goes (an
 // address, or a pickup location), the payment, and the actions: mark shipped (with tracking, emailing the
-// buyer) or picked up, the shop's notes, resend the confirmation, cancel, refund (admins) and put lines
-// back in stock (each line at most what was bought). POST /api/admin/shop/orders.
+// buyer) or picked up, the shop's own status (emailing the buyer when it says so), notes and the order's
+// history (src/lib/shop/history.ts), resend the confirmation, cancel, refund (admins) and put lines back in
+// stock (each line at most what was bought). POST /api/admin/shop/orders.
 import Admin from '../../../layouts/Admin.astro';
 import { SITE_TZ } from '../../../lib/site';
 import { formatMoney } from '../../../lib/payments/money';
@@ -11,6 +12,8 @@ import { CARRIERS } from '../../../lib/shop/checkout-settings';
 import { carrierName, trackingLink, TRACKING_WORDS } from '../../../lib/shop/tracking';
 import { activeCarrier, carrierTesting, SHIPPO_TEST_CARRIER } from '../../../lib/shop/carrier';
 import { orderWeight } from '../../../lib/shop/fulfilment';
+import { orderHistory } from '../../../lib/shop/history';
+import { orderStatusesFrom } from '../../../lib/shop/statuses';
 
 const id = Number(Astro.params.id) || 0;
 const { data } = await Astro.locals.db.from('shop_orders').select('*').eq('id', id).maybeSingle();
@@ -29,13 +32,18 @@ const trackingHref = o.tracking && o.carrier ? trackingLink(o.carrier, o.trackin
 const restockable = o.stock_taken ? o.lines.map((l, i) => ({ ...l, i, room: l.track ? l.quantity - (l.restocked ?? 0) : 0 })).filter((l) => l.room > 0) : [];
 const canCancel = ['pending', 'expired'].includes(o.status) || (o.status === 'paid' && left <= 0) || o.status === 'refunded';
 const canRefund = isAdmin && o.status === 'paid' && o.provider !== 'free' && left > 0;
+const { data: siteRow } = await Astro.locals.db.from('settings').select('value').eq('key', 'site').maybeSingle();
+const statuses = orderStatusesFrom((siteRow?.value as any)?.shop?.statuses);
+const ownStatus = statuses.find((x) => x.id === o.custom_status);
+const history = await orderHistory(Astro.locals.db, o.id);
+const KIND: Record<string, string> = { placed: 'Placed', paid: 'Paid', email: 'Email', fulfilled: 'Fulfilment', refund: 'Refund', restock: 'Stock', cancelled: 'Cancelled', expired: 'Expired', delivered: 'Delivered', label: 'Label', status: 'Status', note: 'Note' };
 ---
 <Admin title={`Order ${o.code}`}>
   <p class="text-sm"><a href="/admin/shop/" class="text-admin-muted hover:text-admin-accent">← Orders</a></p>
   <div class="mt-2 flex flex-wrap items-end justify-between gap-4">
     <div>
       <h1 class="text-3xl font-normal">Order {o.code}</h1>
-      <p class="mt-1 text-sm text-admin-muted">{STATUS[o.status] ?? o.status} · placed {when(o.created_at)}{o.paid_at ? ` · paid ${when(o.paid_at)}` : ''}</p>
+      <p class="mt-1 text-sm text-admin-muted">{ownStatus && <span class="mr-1 rounded-full bg-admin-accent/10 px-2 py-0.5 font-semibold text-admin-accent">{ownStatus.name}</span>}{STATUS[o.status] ?? o.status} · placed {when(o.created_at)}{o.paid_at ? ` · paid ${when(o.paid_at)}` : ''}</p>
     </div>
     <button type="button" onclick="print()" class="rounded border border-admin-ink/15 bg-white px-3 py-1.5 text-sm hover:border-admin-accent hover:text-admin-accent print:hidden">Print</button>
   </div>
@@ -128,16 +136,45 @@ const canRefund = isAdmin && o.status === 'paid' && o.provider !== 'free' && lef
         </section>
       )}
 
-      <section class="rounded bg-white p-5 text-sm shadow-[0_0_0_1px_rgba(26,26,46,0.08)] print:hidden">
-        <h2 class="mb-2 text-lg">Notes</h2>
-        <form data-notes class="grid gap-2">
-          <label class="sr-only" for="notes">Notes</label>
-          <textarea id="notes" name="notes" rows="3" class="rounded border border-admin-ink/15 bg-white px-2 py-1.5" placeholder="For the shop only; the buyer doesn't see them.">{o.notes}</textarea>
-          <button class="justify-self-start rounded border border-admin-ink/15 bg-white px-3 py-1.5 hover:border-admin-accent hover:text-admin-accent">Save notes</button>
-        </form>
-      </section>
+      {statuses.length > 0 && (
+        <section class="rounded bg-white p-5 text-sm shadow-[0_0_0_1px_rgba(26,26,46,0.08)] print:hidden">
+          <h2 class="mb-2 text-lg">Status</h2>
+          <form data-own-status class="grid gap-2">
+            <label class="sr-only" for="own-status">Status</label>
+            <select id="own-status" name="status" class="rounded border border-admin-ink/15 bg-white px-2 py-1.5">
+              <option value="">None</option>
+              {statuses.map((x) => <option value={x.id} selected={x.id === o.custom_status} data-notify={x.notify ? '1' : ''}>{x.name}{x.notify ? ' (emails the buyer)' : ''}</option>)}
+            </select>
+            <label class="flex items-center gap-2 text-xs text-admin-muted" data-status-email hidden><input type="checkbox" name="email" checked /> Email the buyer</label>
+            <button class="justify-self-start rounded border border-admin-ink/15 bg-white px-3 py-1.5 hover:border-admin-accent hover:text-admin-accent">Set status</button>
+          </form>
+          <p class="mt-2 text-xs text-admin-muted">The shop’s own steps, beside the payment status. Set them up under <a class="underline" href="/admin/settings/shop/">Settings &gt; Shop</a>.</p>
+        </section>
+      )}
     </div>
   </div>
+
+  <section class="mt-6 rounded bg-white p-5 text-sm shadow-[0_0_0_1px_rgba(26,26,46,0.08)] print:hidden">
+    <h2 class="mb-3 text-lg">Notes and history</h2>
+    <form data-note class="mb-4 grid gap-2">
+      <label class="sr-only" for="note">Add a note</label>
+      <textarea id="note" name="note" rows="2" maxlength="5000" class="rounded border border-admin-ink/15 bg-white px-2 py-1.5" placeholder="A note for the shop; the buyer doesn't see it."></textarea>
+      <button class="justify-self-start rounded border border-admin-ink/15 bg-white px-3 py-1.5 hover:border-admin-accent hover:text-admin-accent">Add note</button>
+    </form>
+    {history.length ? (
+      <ol class="grid list-none gap-0 border-l border-admin-ink/10 pl-4">
+        {history.map((h) => (
+          <li class={`relative py-2 ${h.kind === 'note' ? 'rounded bg-[#fffbeb] px-3 my-1' : ''}`}>
+            <span class="absolute top-3.5 -left-[1.27rem] h-2 w-2 rounded-full bg-admin-ink/25"></span>
+            <div class="text-xs text-admin-muted"><span class="font-semibold">{KIND[h.kind] ?? h.kind}</span> · {when(h.at)}{h.by ? ` · ${h.by}` : ''}</div>
+            <div class="whitespace-pre-line">{h.text}</div>
+          </li>
+        ))}
+      </ol>
+    ) : (
+      <p class="text-admin-muted">Nothing recorded yet.</p>
+    )}
+  </section>
 
   <section class="mt-6 rounded bg-white p-5 text-sm shadow-[0_0_0_1px_rgba(26,26,46,0.08)] print:hidden">
     <h2 class="mb-3 text-lg">More</h2>
@@ -226,10 +263,23 @@ const canRefund = isAdmin && o.status === 'paid' && o.provider !== 'free' && lef
       if (await post({ action: 'fulfil', kind: b.dataset.fulfilNow })) location.reload();
     });
   }
-  document.querySelector('[data-notes]')?.addEventListener('submit', async (e) => {
+  document.querySelector('[data-note]')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (await post({ action: 'notes', notes: e.target.notes.value })) status.textContent = 'Notes saved.';
+    if (!e.target.note.value.trim()) return;
+    if (await post({ action: 'note', note: e.target.note.value })) location.reload();
   });
+  const own = document.querySelector('[data-own-status]');
+  if (own) {
+    const tick = own.querySelector('[data-status-email]');
+    const sync = () => (tick.hidden = !own.status.selectedOptions[0]?.dataset.notify);
+    own.status.addEventListener('change', sync);
+    sync();
+    own.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const r = await post({ action: 'status', status: own.status.value, email: !!own.email.checked });
+      if (r) location.reload();
+    });
+  }
   document.querySelector('[data-action="resend"]')?.addEventListener('click', async () => {
     if (await post({ action: 'resend' })) status.textContent = 'Confirmation sent again.';
   });

@@ -7,22 +7,27 @@ import { SITE_TZ } from '../../../lib/site';
 import { formatMoney } from '../../../lib/payments/money';
 import { shopOn } from '../../../lib/shop/config';
 import { ORDER_TABS, ordersQuery, type ShopOrder } from '../../../lib/shop/orders';
+import { orderStatusesFrom } from '../../../lib/shop/statuses';
 
 const PER_PAGE = 50;
 const db = Astro.locals.db;
 const params = Astro.url.searchParams;
 const tab = ORDER_TABS.some(([k]) => k === params.get('tab')) ? params.get('tab')! : 'to-fulfil';
 const search = (params.get('q') ?? '').slice(0, 100);
+const { data: siteRow } = await Astro.locals.db.from('settings').select('value').eq('key', 'site').maybeSingle();
+const statuses = orderStatusesFrom((siteRow?.value as any)?.shop?.statuses);
+const own = statuses.some((x) => x.id === params.get('status')) || params.get('status') === '-' ? params.get('status')! : '';
+const ownName = (id: string | undefined) => statuses.find((x) => x.id === id)?.name;
 const page = Math.max(1, Math.min(10_000, Math.floor(Number(params.get('page'))) || 1));
 const { data: siteRow } = await db.from('settings').select('value').eq('key', 'site').maybeSingle();
 const on = shopOn(siteRow?.value);
-const { data, count, error } = await ordersQuery(db, tab, search).range((page - 1) * PER_PAGE, page * PER_PAGE - 1);
+const { data, count, error } = await ordersQuery(db, tab, search, own).range((page - 1) * PER_PAGE, page * PER_PAGE - 1);
 if (error) throw error;
 const orders = (data ?? []) as ShopOrder[];
 const pages = Math.max(1, Math.ceil((count ?? 0) / PER_PAGE));
 const when = (s: string) => new Date(s).toLocaleString('en-US', { timeZone: SITE_TZ, month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 const href = (patch: Record<string, string | number | null>) => {
-  const p = new URLSearchParams({ tab, ...(search ? { q: search } : {}) });
+  const p = new URLSearchParams({ tab, ...(search ? { q: search } : {}), ...(own ? { status: own } : {}) });
   for (const [k, v] of Object.entries(patch)) v === null || v === '' ? p.delete(k) : p.set(k, String(v));
   return `/admin/shop/?${p}`;
 };
@@ -35,7 +40,7 @@ const STATUS: Record<string, [string, string]> = {
 };
 const how = (o: ShopOrder) =>
   o.fulfilment === 'none' ? 'Nothing to send' : o.fulfilled === 'shipped' ? 'Shipped' : o.fulfilled === 'picked_up' ? 'Picked up' : o.fulfilment === 'pickup' ? `To pick up: ${o.shipping?.name ?? ''}` : `To ship: ${o.shipping?.name ?? ''}`;
-const csv = `/api/admin/shop/orders.csv?${new URLSearchParams({ tab, ...(search ? { q: search } : {}) })}`;
+const csv = `/api/admin/shop/orders.csv?${new URLSearchParams({ tab, ...(search ? { q: search } : {}), ...(own ? { status: own } : {}) })}`;
 ---
 <Admin title="Orders">
   <div class="flex flex-wrap items-end justify-between gap-4">
@@ -46,6 +51,13 @@ const csv = `/api/admin/shop/orders.csv?${new URLSearchParams({ tab, ...(search 
     <div class="flex flex-wrap items-center gap-2">
       <form method="get" class="flex items-center gap-2">
         <input type="hidden" name="tab" value={tab} />
+        {statuses.length > 0 && (
+          <select name="status" aria-label="Status" class="rounded border border-admin-ink/15 bg-white px-2 py-1.5 text-sm" onchange="this.form.submit()">
+            <option value="">Any status</option>
+            {statuses.map((x) => <option value={x.id} selected={x.id === own}>{x.name}</option>)}
+            <option value="-" selected={own === '-'}>No status</option>
+          </select>
+        )}
         <input name="q" value={search} placeholder="Order, email or name" aria-label="Search orders" class="w-56 rounded border border-admin-ink/15 bg-white px-2 py-1.5 text-sm" />
         <button class="rounded border border-admin-ink/15 bg-white px-3 py-1.5 text-sm hover:border-admin-accent hover:text-admin-accent">Search</button>
       </form>
@@ -81,7 +93,7 @@ const csv = `/api/admin/shop/orders.csv?${new URLSearchParams({ tab, ...(search 
             <td class="px-4 py-3">{o.name}<div class="text-xs text-admin-muted">{o.email}</div></td>
             <td class="px-4 py-3 text-admin-muted">{o.quantity}</td>
             <td class="px-4 py-3">{formatMoney(o.total, o.currency)}{o.refunded_amount > 0 && <div class="text-xs text-admin-muted">{formatMoney(o.refunded_amount, o.currency)} refunded</div>}</td>
-            <td class="px-4 py-3"><span class={`rounded px-2 py-0.5 text-xs ${STATUS[o.status]?.[1] ?? ''}`}>{STATUS[o.status]?.[0] ?? o.status}</span>{o.note && <span class="ml-1 text-xs text-[#b45309]" title={o.note}>Note</span>}</td>
+            <td class="px-4 py-3"><span class={`rounded px-2 py-0.5 text-xs ${STATUS[o.status]?.[1] ?? ''}`}>{STATUS[o.status]?.[0] ?? o.status}</span>{ownName(o.custom_status) && <span class="ml-1 rounded-full bg-admin-accent/10 px-2 py-0.5 text-xs font-semibold text-admin-accent">{ownName(o.custom_status)}</span>}{o.note && <span class="ml-1 text-xs text-[#b45309]" title={o.note}>Note</span>}</td>
             <td class="px-4 py-3 text-admin-muted">{how(o)}</td>
           </tr>
         ))}
