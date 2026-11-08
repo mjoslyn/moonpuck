@@ -4,8 +4,8 @@
 // CONTACT_TO through Email Routing (the CONTACT send_email binding), replying to the visitor.
 //
 // Set up once (see wrangler.jsonc): `npx wrangler secret put TURNSTILE_SECRET_KEY`; the site key is
-// PUBLIC_TURNSTILE_SITE_KEY at build time; Email Routing on moonpuck.com with CONTACT_TO a verified
-// destination address.
+// PUBLIC_TURNSTILE_SITE_KEY at build time; Email Routing on moonpuck.com with CONTACT_TO, set in the
+// dashboard, a verified destination address (not one that only forwards).
 import { EmailMessage } from 'cloudflare:email';
 
 const LIMITS = { name: 100, email: 200, organization: 150, site: 300, message: 5000 };
@@ -47,15 +47,16 @@ async function contact(request, env) {
   const message = String(form.get('message') ?? '').replace(/\r\n?/g, '\n').trim().slice(0, LIMITS.message);
   if (!EMAIL.test(email)) return answer(400, 'invalid', 'Please give a valid email address.');
 
-  if (!env.TURNSTILE_SECRET_KEY || !env.CONTACT) {
-    console.error('contact: TURNSTILE_SECRET_KEY or the CONTACT email binding is not set up');
+  // CONTACT_TO is set in the dashboard: a verified destination address under Email Routing.
+  if (!env.TURNSTILE_SECRET_KEY || !env.CONTACT || !env.CONTACT_TO) {
+    console.error('contact: TURNSTILE_SECRET_KEY, CONTACT_TO or the CONTACT email binding is not set up');
     return answer(503, 'unavailable', 'The form is not working just now. Please email info@moonpuck.com.');
   }
   const verified = await verifyTurnstile(env.TURNSTILE_SECRET_KEY, String(form.get('cf-turnstile-response') ?? ''), request.headers.get('CF-Connecting-IP'));
   if (!verified) return answer(403, 'check', 'The check that you are a person did not pass. Please try again.');
 
   const from = env.CONTACT_FROM || 'form@moonpuck.com';
-  const to = env.CONTACT_TO || 'info@moonpuck.com';
+  const to = env.CONTACT_TO;
   const body = [
     `From: ${name ? `${name} <${email}>` : email}`,
     ...(organization ? [`Organization: ${organization}`] : []),
