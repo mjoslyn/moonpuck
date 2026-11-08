@@ -21,7 +21,8 @@ renamed things come out of the docs too.
 - `README.md`: setting up a new site and taking core updates.
 - `docs-site/`: https://moonpuck.com, the home page (`src/pages/index.astro`) and the documentation
   (Starlight), styled by `src/styles/moonpuck.css`. A Cloudflare Worker serves the built files
-  (`docs-site/wrangler.jsonc`); Workers Builds deploys it when `main` changes. Preview with
+  (`docs-site/wrangler.jsonc`) and runs the home page's contact form (`docs-site/worker.js`: Turnstile, then
+  an email through Email Routing; its setup is in `wrangler.jsonc`); Workers Builds deploys it when `main` changes. Preview with
   `cd docs-site && npm install && npx astro dev`.
 - `docs-site/src/content/docs/editors/` and `admins/`: the Editor guide and the Admin guide (a low-tech
   audience; the admin bar's **?** links editors to the first and admins to the second; each has its own
