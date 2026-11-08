@@ -1308,6 +1308,17 @@ answer 404.
   `refund_attempt`, as ticket refunds) and put lines back in stock (`restockOrder`, `shop_restock`: each
   line at most what was bought, checked in the statement that records it, `lines[].restocked`; only once
   the order's stock was taken off). Cancel and refund take the lines to put back with them.
+- **Stock screen and low-stock alerts** (Shop > Stock, `/admin/shop/stock/`, editors; `src/admin/StockTable.tsx`,
+  `src/lib/shop/low-stock.ts`; `stateOf` and `StockRow` in `stock.ts`, safe in the browser): every variant
+  of the products that count stock (not in the trash), with on hand (changed in place, saved to
+  `shop_stock` as the product's own settings save it), held by orders (`loadHeld`), left and its
+  low-stock mark (the product's `lowStock`, else Settings > Shop's `lowStock`, default 3, 0 never), marked
+  Low or Out of stock (variants not sold aren't), filtered All / Low or out / Out of stock and searched by
+  name or SKU. A sale that takes stock off (`afterPaid`, after the order's emails) runs `alertLowStock`:
+  the order's variants now at or under their mark that the shop hasn't been told of are claimed
+  (`shop_stock.low_alerted_at`, set where it is null) and emailed to the shop (SHOP_NOTIFY_EMAIL, else
+  the forms' address, else the config's), unless `lowStockAlerts` is false. Raising a count re-arms it (a
+  trigger clears `low_alerted_at` when `on_hand` goes up; migration `*_shop_stock_low.sql`).
 - **Shop stats** (Shop > Stats, `/admin/shop/stats/`, editors; `src/lib/shop/stats.ts`): over the Stats
   screen's ranges (`statsRange`), from paid and refunded orders by the day they were paid in the site's
   time zone (`summarizeOrders`): net sales (paid less refunded), orders, items, the average order, buyers
@@ -1472,7 +1483,7 @@ of its own, `section`; the content list has no tabs of its own for the types), a
 (each type with a page, at `/admin/compose/?type=<type>`; then Form and, while Mailing is on, Campaign;
 then Template, Template part and Pattern), Media, Stats, a **Forms** dropdown (Forms, Submissions), a **People** dropdown (Users and Members
 for admins, Mailing Lists and Tickets, each while its feature is on; a group of one shows as its link)
-and a **Shop** dropdown (Orders, Discounts, Stats) while the shop is on,
+and a **Shop** dropdown (Orders, Discounts, Stock, Stats) while the shop is on,
 then a gear for Settings (admins), **?**, View site and the account menu. Below 1024px it all sits behind
 one menu button, the groups as headings. The dropdowns are `details[data-menu]`: one open at a time, closed
 by a click elsewhere or Escape.

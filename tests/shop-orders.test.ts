@@ -72,8 +72,8 @@ describe('checkout', () => {
     expect(after).toMatchObject({ status: 'paid', stock_taken: true, provider_payment: `pi_${o.provider_ref}` });
     expect((await db.from('shop_stock').select('on_hand').eq('product_id', mug).single()).data!.on_hand).toBe(1);
     expect((await loadStock(db, [mug])).get(mug)).toEqual({ default: 1 });
-    expect(sent).toHaveLength(2);
-    expect(sent.every((m) => m.subject.includes(o.code))).toBe(true);
+    // The receipt, the shop's copy, and (1 of 3 left) the low-stock email.
+    expect(sent.map((m) => m.subject)).toEqual([expect.stringContaining(o.code), expect.stringContaining(o.code), 'Low stock: hold-mug']);
     expect(sent[0].to).toEqual(['ada@example.org']);
   });
 

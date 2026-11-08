@@ -108,6 +108,8 @@ export interface Product {
   maxPerOrder?: number | null;
   /** Count stock (shop_stock); off, there's no limit. */
   trackStock: boolean;
+  /** Its low-stock mark: at or under this many left, it is low (the Stock screen, alerts); empty: the shop's. */
+  lowStock?: number | null;
   options: ProductOption[];
   variants: Variant[];
   /** Percent off every variant's price for active members, by level id. */
@@ -222,6 +224,7 @@ export function productOf(fields: Record<string, any> | null | undefined): Produ
     taxable: raw.taxable !== false,
     maxPerOrder: max > 0 ? Math.min(max, MAX_QUANTITY) : null,
     trackStock: raw.trackStock === true,
+    lowStock: Number.isFinite(Number(raw.lowStock)) && raw.lowStock !== null && raw.lowStock !== '' ? Math.max(0, Math.min(100_000, Math.trunc(Number(raw.lowStock)))) : null,
     options,
     // The variants that match the options now (a variant for values no longer offered is dropped).
     variants: variantsFor(options, variants),

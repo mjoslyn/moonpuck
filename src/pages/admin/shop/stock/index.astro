@@ -1,0 +1,22 @@
+---
+// Shop > Stock (src/admin/StockTable.tsx, src/lib/shop/low-stock.ts): every counted variant's stock, to
+// change, with what orders hold, what is left and its low-stock mark.
+import Admin from '../../../../layouts/Admin.astro';
+import StockTable from '../../../../admin/StockTable';
+import { stockRows } from '../../../../lib/shop/low-stock';
+import { checkoutSettings } from '../../../../lib/shop/checkout-settings';
+
+const db = Astro.locals.db;
+const rows = await stockRows(db);
+const { data: siteRow } = await db.from('settings').select('value').eq('key', 'site').maybeSingle();
+const c = checkoutSettings((siteRow?.value as any)?.shop);
+---
+<Admin title="Stock">
+  <h1 class="text-3xl font-normal">Stock</h1>
+  <p class="mt-1 text-sm text-admin-muted">
+    The products that count stock. Change what's on hand here or in a product's own settings; sales take it off when they're paid. Left is on hand less what unpaid and unsent orders hold.
+    {c.lowStock > 0 ? ` Low at ${c.lowStock} or fewer unless a product sets its own` : ' Nothing is marked low unless a product sets its own mark'}{c.lowStockAlerts ? ', and the shop is emailed when a sale takes something there.' : '; low-stock emails are off.'}
+    {' '}<a class="underline" href="/admin/settings/shop/">Settings &gt; Shop</a>
+  </p>
+  <StockTable client:load rows={rows} show={Astro.url.searchParams.get('show') ?? 'all'} />
+</Admin>

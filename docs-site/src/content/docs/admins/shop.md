@@ -167,6 +167,29 @@ only). Uses count paid orders and orders waiting to be paid, so the last use can
 The discount is shared out over the items it applies to, and tax is worked out after it. A refund gives
 back what was paid, after the discount.
 
+## Stock
+
+Click **Shop** in the admin bar, then **Stock**, for every product that counts stock, each size or
+color on its own line.
+
+![The Stock screen](../../../assets/guide/shop-stock.png)
+
+- **On hand**: type a new count and press Enter (or click away); it saves at once.
+- **Held by orders**: what orders waiting to be paid, or paid and not yet taken off, are keeping.
+- **Left**: on hand less what's held, what can still be sold.
+- **Low at**: the product's own mark, or the shop's.
+- **Status**: **Low** at or under the mark, **Out of stock** at none.
+
+**Low or out** and **Out of stock** show just those; the box searches by name or SKU.
+
+The low-stock mark is set under **Settings**, **Shop**, **Stock**:
+
+- **Low stock at**: how few left counts as low (3 to begin with; 0 for never).
+- **Email the shop when a sale takes something to low stock**: on or off. Each one is emailed about once,
+  until you raise its count again.
+
+A product can have its own mark: **Low stock at** in its Shop settings, under **Count stock**.
+
 ## Shop stats
 
 Click **Shop** in the admin bar, then **Stats**, for what the shop sold. Choose **7 days**, **30 days**,

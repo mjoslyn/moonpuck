@@ -21,6 +21,7 @@ import { signUp } from '../mailing/contacts';
 import { cleanPlace, placeName, US_STATES } from './places';
 import { cartTotals, type ShipOption } from './totals';
 import { discountCandidates } from './discount-lookup';
+import { alertLowStock } from './low-stock';
 import { addressLines, shopEmail, shopEmailsFrom, shopEmailToSend, type ShopEmailKind } from './email';
 import { defaultTemplate } from '../email-templates';
 import { emailEvents } from '../events/email';
@@ -316,10 +317,16 @@ export async function markShopPaid(db: Db, order: Pick<ShopOrder, 'id'>, state: 
 
 /** A paid order's stock taken off and its emails sent (each once). */
 async function afterPaid(db: Db, id: number, origin?: string) {
-  const { error } = await db.rpc('shop_take_stock', { p_id: id });
+  const { data: took, error } = await db.rpc('shop_take_stock', { p_id: id });
   if (error) console.error(`shop: taking stock for order ${id}: ${error.message}`);
   const { data: claimed } = await db.from('shop_orders').update({ emailed_at: new Date().toISOString() }).eq('id', id).is('emailed_at', null).select('*').maybeSingle<ShopOrder>();
   if (claimed) await sendOrderEmails(claimed, siteOrigin(origin)).catch((e) => console.error(`shop: emails for order ${claimed.code}: ${(e as Error).message}`));
+  // Then the stock just taken off: the shop is told of variants it took to their low-stock mark.
+  if (took) {
+    const { data: o } = await db.from('shop_orders').select('lines').eq('id', id).maybeSingle<Pick<ShopOrder, 'lines'>>();
+    const products = (o?.lines ?? []).filter((l) => l.track).map((l) => l.product);
+    await alertLowStock(db, products, siteOrigin(origin)).catch((e) => console.error(`shop: low-stock check for order ${id}: ${(e as Error).message}`));
+  }
 }
 
 /** The buyer back from the provider (/api/shop/return): the order checked, and the address of its page. */

@@ -53,3 +53,29 @@ export async function loadHeld(db: Db): Promise<Map<number, Record<string, numbe
 export function leftOf(p: Product, stock: Record<string, number> | undefined, variant: string): number | null {
   return p.trackStock ? Math.max(0, stock?.[variant] ?? 0) : null;
 }
+
+// ---- the Stock screen (src/lib/shop/low-stock.ts reads its rows) ----
+
+export type StockState = 'out' | 'low' | 'ok';
+
+export interface StockRow {
+  product: number;
+  title: string;
+  status: string;
+  variant: string;
+  /** "Large / Blue"; '' for a product without options. */
+  label: string;
+  sku: string;
+  /** Not sold (switched off in the product's variants). */
+  off: boolean;
+  onHand: number;
+  held: number;
+  /** On hand less held: what can still be sold. */
+  left: number;
+  /** Its low-stock mark (0: never low). */
+  mark: number;
+  state: StockState;
+  alerted: boolean;
+}
+
+export const stateOf = (left: number, mark: number): StockState => (left <= 0 ? 'out' : mark > 0 && left <= mark ? 'low' : 'ok');

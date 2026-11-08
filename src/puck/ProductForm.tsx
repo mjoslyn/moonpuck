@@ -52,6 +52,7 @@ export function ProductForm({ entryId, fields, onChange }: { entryId: number | n
       <Toggle title="Count stock" value={raw.trackStock} onChange={(v) => set({ trackStock: v || undefined })} />
       {raw.trackStock && !hasOptions && <StockInput label="In stock" value={stock.counts[DEFAULT_VARIANT]} disabled={!entryId} onSave={(n) => stock.save(DEFAULT_VARIANT, n)} />}
       {raw.trackStock && <p className="-mt-2 mb-3 text-xs text-admin-muted" role="status">{stock.status || 'Stock saves as you change it, apart from the product.'}</p>}
+      {raw.trackStock && <Num title="Low stock at (empty: the shop's, under Settings > Shop)" min={0} value={raw.lowStock ?? undefined} onChange={(v) => set({ lowStock: v ?? undefined })} />}
 
       <h4 className="mt-4 mb-1 text-xs font-semibold tracking-wider text-admin-muted uppercase">Options</h4>
       <p className="mb-2 text-xs text-admin-muted">Such as Size or Color, each with its values. Every combination becomes a variant with its own price, stock, SKU and image.</p>

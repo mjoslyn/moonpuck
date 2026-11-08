@@ -88,7 +88,13 @@ export interface CheckoutSettings {
   pickup: PickupLocation[];
   tax: TaxSettings;
   news: NewsTick;
+  /** At or under this many left a variant is low (a product can set its own); 0: never. */
+  lowStock: number;
+  /** Email the shop when a sale takes a variant to its low-stock mark. */
+  lowStockAlerts: boolean;
 }
+
+export const DEFAULT_LOW_STOCK = 3;
 
 const text = (v: unknown, max = 120) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
 const lines = (v: unknown, max = 400) => String(v ?? '').replace(/\r/g, '').replace(/[ \t]+/g, ' ').trim().slice(0, max);
@@ -190,6 +196,8 @@ export function checkoutSettings(shop: Record<string, any> | null | undefined): 
     zones: cleanZones(s.zones),
     pickup: cleanPickup(s.pickup),
     tax: cleanTax(s.tax),
+    lowStock: s.lowStock === undefined || s.lowStock === null || s.lowStock === '' || !Number.isFinite(Number(s.lowStock)) ? DEFAULT_LOW_STOCK : Math.max(0, Math.min(100_000, Math.trunc(Number(s.lowStock)))),
+    lowStockAlerts: s.lowStockAlerts !== false,
     news: {
       lists: [...new Set((Array.isArray(s.news?.lists) ? s.news.lists : []).map((x: unknown) => Math.trunc(Number(x))).filter((n: number) => n > 0))].slice(0, 20) as number[],
       ...(text(s.news?.label, 200) ? { label: text(s.news?.label, 200) } : {}),
@@ -214,6 +222,8 @@ export function checkoutSettingsFrom(raw: Record<string, any> | null | undefined
   const t = c.tax;
   if (t.mode !== 'rates' || t.rate || t.regions.length || t.onShipping || t.taxCode !== DEFAULT_TAX_CODE) out.tax = t;
   if (c.news.lists.length) out.news = c.news;
+  if (c.lowStock !== DEFAULT_LOW_STOCK) out.lowStock = c.lowStock;
+  if (!c.lowStockAlerts) out.lowStockAlerts = false;
   return out;
 }
 

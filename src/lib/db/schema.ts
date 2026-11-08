@@ -281,7 +281,7 @@ export const SCHEMA: Record<string, TableSchema> = {
   },
   shop_stock: {
     pk: ["product_id","variant"],
-    columns: {"product_id":"int8","variant":"text","on_hand":"int8","updated_at":"timestamptz"},
+    columns: {"product_id":"int8","variant":"text","on_hand":"int8","updated_at":"timestamptz","low_alerted_at":"timestamptz"},
     generated: [],
     fks: [[["product_id"],"entries",["id"]]],
     defaults: {"on_hand":0},
