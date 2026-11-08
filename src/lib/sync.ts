@@ -73,7 +73,7 @@ export async function isProtected(db: Db): Promise<boolean> {
 }
 
 /** What can be synced, in the order a sync applies them (files and terms before the entries using them). */
-export function syncGroups(): { id: string; label: string; kind: 'files' | 'taxonomy' | 'forms' | 'templates' | 'type' | 'settings' | 'redirects' | 'discounts' | 'orders' | 'stock'; optIn?: boolean }[] {
+export function syncGroups(): { id: string; label: string; kind: 'files' | 'taxonomy' | 'forms' | 'templates' | 'type' | 'settings' | 'redirects' | 'discounts' | 'orders' | 'stock' | 'plans' | 'donations'; optIn?: boolean }[] {
   return [
     { id: 'media', label: 'Files (media library)', kind: 'files' as const },
     ...config.taxonomies.map((t) => ({ id: `taxonomy:${t.name}`, label: taxonomyLabel(t.name), kind: 'taxonomy' as const })),
@@ -87,6 +87,9 @@ export function syncGroups(): { id: string; label: string; kind: 'files' | 'taxo
     { id: 'shop:discounts', label: 'Shop discounts', kind: 'discounts' as const },
     { id: 'shop:orders', label: 'Shop orders', kind: 'orders' as const },
     { id: 'shop:stock', label: 'Shop stock counts', kind: 'stock' as const, optIn: true },
+    // Donations: monthly donors before the gifts that name them.
+    { id: 'donations:plans', label: 'Monthly donors', kind: 'plans' as const },
+    { id: 'donations:gifts', label: 'Donations', kind: 'donations' as const },
   ];
 }
 
@@ -755,6 +758,112 @@ async function ordersNotAhead(db: Db, rows: any[]): Promise<{ rows: any[]; kept:
   return { rows: out, kept };
 }
 
+// ---- donations: monthly donors and gifts ---------------------------------------------------------
+//
+// Both match by their token (each copy's rows have their own ids), are written without sending anything
+// or touching Stripe, and never go backwards: a gift or monthly gift further along on the target (its
+// status, refunds) or changed there since is a conflict, left alone. A gift names its monthly gift by the
+// target's id for the same token (`plan`, the token, is what is compared).
+
+const GIFT_OWN = ['id', 'updated_at', 'plan_id'];
+const PLAN_OWN = ['id', 'updated_at'];
+const GIFT_RANK: Record<string, number> = { pending: 0, expired: 1, cancelled: 1, paid: 2, refunded: 3 };
+const PLAN_RANK: Record<string, number> = { incomplete: 0, active: 1, past_due: 1, cancelled: 2 };
+
+/** Why the target's gift or monthly gift is ahead of the source's (so a sync or restore leaves it), or null. */
+export function donationAhead(there: any, from: any, plan = false): string | null {
+  const rank = plan ? PLAN_RANK : GIFT_RANK;
+  if ((rank[there.status] ?? 0) > (rank[from.status] ?? 0)) return `it is ${there.status.replace('_', ' ')} there`;
+  if (!plan && (there.refunded_amount ?? 0) > (from.refunded_amount ?? 0)) return 'more of it is refunded there';
+  if (there.updated_at && from.updated_at && there.updated_at > from.updated_at) return 'it changed there since';
+  return null;
+}
+
+const giftLabel = (d: any) => `${d.code}: ${d.name} (${d.status})`;
+const planLabel = (p: any) => `${p.name} <${p.email}> (${p.status})`;
+
+/** Each plan id's token, on one copy. */
+async function planTokens(db: Db, ids: number[]): Promise<Map<number, string>> {
+  return new Map((await byIds<{ id: number; token: string }>(db, 'donation_plans', 'id, token', 'id', [...new Set(ids)])).map((p) => [p.id, p.token]));
+}
+
+/** A gift as a sync compares it: without its own id, and its monthly gift as the token. */
+const giftValue = (d: any, tokens: Map<number, string>) => ({ ...omit(d, GIFT_OWN), plan: d.plan_id ? (tokens.get(d.plan_id) ?? null) : null });
+
+async function donationState(ctx: Context, plans: boolean, tokens?: string[]) {
+  const table = plans ? 'donation_plans' : 'donations';
+  const read = (db: Db) => (tokens ? byIds(db, table, '*', 'token', tokens, ['id']) : must(db.from(table).select('*').order('id'), table));
+  const [src, tgtRows] = await Promise.all([read(ctx.source), read(ctx.target)]);
+  const srcPlans = plans ? new Map<number, string>() : await planTokens(ctx.source, src.filter((d) => d.plan_id).map((d) => d.plan_id));
+  const tgtPlans = plans ? new Map<number, string>() : await planTokens(ctx.target, tgtRows.filter((d) => d.plan_id).map((d) => d.plan_id));
+  // Receipt numbers and invoices taken there by other gifts (each unique on a copy).
+  const owners = plans ? [] : [...tgtRows, ...(tokens ? await byIds(ctx.target, 'donations', 'code, token, invoice', 'code', src.map((d) => d.code), ['id']) : [])];
+  return { src, srcPlans, tgtPlans, tgt: new Map(tgtRows.map((r) => [r.token, r])), codeOwner: new Map(owners.map((d) => [d.code, d.token])) };
+}
+
+function donationConflict(r: any, s: Awaited<ReturnType<typeof donationState>>, plans: boolean): string | null {
+  const owner = s.codeOwner.get(r.code);
+  if (!plans && owner && owner !== r.token) return `receipt ${r.code} is another gift there`;
+  const there = s.tgt.get(r.token);
+  return there ? donationAhead(there, r, plans) : null;
+}
+
+const value = (r: any, s: Awaited<ReturnType<typeof donationState>>, plans: boolean, here: boolean) => (plans ? omit(r, PLAN_OWN) : giftValue(r, here ? s.srcPlans : s.tgtPlans));
+
+const planDonations: Planner = async (ctx, group) => {
+  const plans = group === 'donations:plans';
+  const s = await donationState(ctx, plans);
+  const out = { added: [] as SyncItem[], changed: [] as SyncItem[], same: 0, conflicts: [] as SyncConflict[], warnings: [] as string[] };
+  for (const r of s.src) {
+    const item = { key: r.token, label: plans ? planLabel(r) : giftLabel(r) };
+    const there = s.tgt.get(r.token);
+    if (there && stable(value(r, s, plans, true)) === stable(value(there, s, plans, false))) out.same++;
+    else {
+      const conflict = donationConflict(r, s, plans);
+      if (conflict) out.conflicts.push({ ...item, reason: conflict });
+      else if (!there) out.added.push(item);
+      else out.changed.push(item);
+    }
+  }
+  if (out.added.length + out.changed.length)
+    out.warnings.push(plans ? 'Monthly donors are copied as they are: nothing is sent and nothing changes at Stripe. Donors’ names and emails go with them.' : 'Gifts are copied as they are: no receipts are sent. Donors’ names and emails go with them. A monthly gift’s gifts need Monthly donors synced too.');
+  return out;
+};
+
+const applyDonations: Applier = async (ctx, group, keys) => {
+  const plans = group === 'donations:plans';
+  const s = await donationState(ctx, plans, keys);
+  // The target's monthly gift for each source plan, by token.
+  const tgtIds = plans ? new Map<string, number>() : new Map((await byIds<{ id: number; token: string }>(ctx.target, 'donation_plans', 'id, token', 'token', [...new Set(s.srcPlans.values())])).map((p) => [p.token, p.id]));
+  const skipped: SyncConflict[] = [];
+  let written = 0;
+  for (const r of s.src) {
+    let conflict = donationConflict(r, s, plans);
+    const token = !plans && r.plan_id ? s.srcPlans.get(r.plan_id) : undefined;
+    if (!conflict && token && !tgtIds.has(token)) conflict = 'its monthly donor isn’t there: sync Monthly donors too';
+    const row = plans ? omit(r, PLAN_OWN) : { ...omit(r, GIFT_OWN), plan_id: token ? tgtIds.get(token)! : null };
+    const { error } = conflict ? { error: { message: conflict } } : await ctx.target.from(plans ? 'donation_plans' : 'donations').upsert(row, { onConflict: 'token' });
+    if (error) skipped.push({ key: r.token, label: plans ? planLabel(r) : giftLabel(r), reason: error.message });
+    else written++;
+  }
+  return { written, skipped };
+};
+
+/** Gifts or monthly gifts to put back: only those not further along now (a restore never takes one backwards). */
+async function donationsNotAhead(db: Db, table: 'donations' | 'donation_plans', rows: any[]): Promise<{ rows: any[]; kept: string[] }> {
+  const plans = table === 'donation_plans';
+  const now = new Map((await byIds(db, table, '*', 'token', rows.map((r) => r.token), ['id'])).map((r) => [r.token, r]));
+  const kept: string[] = [];
+  const out = rows.filter((r) => {
+    const there = now.get(r.token);
+    if (!there || stable(omit(there, ['updated_at'])) === stable(omit(r, ['updated_at']))) return !there;
+    const why = donationAhead(there, r, plans);
+    if (why) kept.push(plans ? r.email : r.code);
+    return !why;
+  });
+  return { rows: out, kept };
+}
+
 // ---- one row, for the diff ------------------------------------------------------------------------
 
 /** A row as a sync compares it (what it would write), on one copy, or null when it isn't there. */
@@ -807,6 +916,14 @@ async function record(db: Db, kind: string, group: string, key: string): Promise
     case 'stock': {
       const [product, ...variant] = key.split('/');
       return one(db.from('shop_stock').select('product_id, variant, on_hand').eq('product_id', Number(product)).eq('variant', variant.join('/')));
+    }
+    case 'plans': {
+      const p = await one(db.from('donation_plans').select('*').eq('token', key));
+      return p && omit(p, PLAN_OWN);
+    }
+    case 'donations': {
+      const d = await one(db.from('donations').select('*').eq('token', key));
+      return d && giftValue(d, await planTokens(db, d.plan_id ? [d.plan_id] : []));
     }
   }
   return null;
@@ -896,6 +1013,10 @@ async function currentRows(target: Db, kind: string, keys: string[]): Promise<Re
       const rows = await byIds<any>(target, 'shop_stock', '*', 'product_id', [...new Set(keys.map((k) => Number(k.split('/')[0])))], ['product_id', 'variant']);
       return { shop_stock: rows.filter((r) => want.has(stockKey(r))) };
     }
+    case 'plans':
+      return { donation_plans: await byIds(target, 'donation_plans', '*', 'token', keys, ['id']) };
+    case 'donations':
+      return { donations: await byIds(target, 'donations', '*', 'token', keys, ['id']) };
   }
   return {};
 }
@@ -1066,6 +1187,8 @@ const SNAPSHOT_TABLES: [string, string[]][] = [
   ['shop_discounts', ['id']],
   ['shop_orders', ['id']],
   ['shop_stock', ['product_id', 'variant']],
+  ['donation_plans', ['id']],
+  ['donations', ['id']],
 ];
 
 /** Everything a sync covers on one copy, as stored (settings `site` and `options`); not stored images. */
@@ -1126,6 +1249,8 @@ const tableKey: Record<string, (r: any) => string> = {
   shop_discounts: (r) => String(r.id),
   shop_orders: (r) => r.token,
   shop_stock: stockKey,
+  donation_plans: (r) => r.token,
+  donations: (r) => r.token,
 };
 
 /** What restoring a snapshot would do: per table, rows it puts back and rows made since (deleted only if asked). */
@@ -1138,8 +1263,8 @@ export async function snapshotPreview(site: Site, path: string): Promise<{ creat
     created_at: file.created_at,
     tables: Object.keys(tableKey).map((table) => {
       const had = new Set((file.tables[table] ?? []).map(tableKey[table]));
-      // Orders made since are never deleted (money was taken for them).
-      return { table, restore: had.size, since: table === 'shop_orders' ? 0 : (now[table] ?? []).filter((r) => !had.has(tableKey[table](r))).length };
+      // Orders, gifts and monthly gifts made since are never deleted (money was taken for them).
+      return { table, restore: had.size, since: ['shop_orders', 'donations', 'donation_plans'].includes(table) ? 0 : (now[table] ?? []).filter((r) => !had.has(tableKey[table](r))).length };
     }),
   };
 }
@@ -1170,6 +1295,8 @@ async function restoreSnapshot(db: Db, name: string, file: any, path: string, de
     shop_discounts: t.shop_discounts ?? [],
     shop_orders: t.shop_orders ?? [],
     shop_stock: t.shop_stock ?? [],
+    donation_plans: t.donation_plans ?? [],
+    donations: t.donations ?? [],
   };
   // Rows made since go first, so the rows written back don't clash with them (an address one of them
   // took since). Entries first (their terms and drafts go with them), then what they could point at.
@@ -1195,6 +1322,8 @@ async function restoreSnapshot(db: Db, name: string, file: any, path: string, de
   problems.push(...(await putBack(db, 'discounts', { shop_discounts: rows.shop_discounts })));
   problems.push(...(await putBack(db, 'orders', { shop_orders: rows.shop_orders })));
   problems.push(...(await putBack(db, 'stock', { shop_stock: rows.shop_stock }, file.created_at)));
+  problems.push(...(await putBack(db, 'plans', { donation_plans: rows.donation_plans })));
+  problems.push(...(await putBack(db, 'donations', { donations: rows.donations })));
   const { error } = await db.rpc('sync_reset_ids');
   if (error) problems.push(`The id counters could not be moved on: ${error.message}`);
   return { restored: Object.values(rows).reduce((n, r) => n + r.length, 0), removed, problems, backup: saved.path };
@@ -1225,6 +1354,10 @@ function backupKeys(kind: string, rows: Record<string, any[]>): string[] {
       return (rows.shop_orders ?? []).map((r) => r.token);
     case 'stock':
       return (rows.shop_stock ?? []).map(stockKey);
+    case 'plans':
+      return (rows.donation_plans ?? []).map((r) => r.token);
+    case 'donations':
+      return (rows.donations ?? []).map((r) => r.token);
   }
   return [];
 }
@@ -1342,6 +1475,16 @@ async function putBack(db: Db, kind: string, rows: Record<string, any[]>, at?: s
     case 'stock':
       // Less what orders paid since took off, so sold stock isn't put back.
       return (await writeRows(db, 'shop_stock', at ? await stockLessSold(db, rows.shop_stock ?? [], at) : (rows.shop_stock ?? []).map((r) => ({ product_id: r.product_id, variant: r.variant, on_hand: r.on_hand })), 'product_id,variant', stockKey)).problems;
+    case 'plans':
+    case 'donations': {
+      // Never backwards: a gift refunded since, or a monthly gift cancelled since, stays as it is. The rows
+      // are this copy's own (backups and snapshots are taken where they are restored), ids and all.
+      const table = kind === 'plans' ? 'donation_plans' : 'donations';
+      const { rows: back, kept } = await donationsNotAhead(db, table, rows[table] ?? []);
+      const problems = (await writeRows(db, table, back.map((r) => omit(r, ['updated_at'])), 'token', (r) => r.token)).problems;
+      if (kept.length) problems.push(`Kept ${kept.length === 1 ? (kind === 'plans' ? 'a monthly donor' : 'a gift') : `${kept.length} ${kind === 'plans' ? 'monthly donors' : 'gifts'}`} (${kept.slice(0, 20).join(', ')}${kept.length > 20 ? '…' : ''}) as now: further along than in the backup.`);
+      return problems;
+    }
   }
   return [];
 }
@@ -1425,6 +1568,11 @@ export async function removeAdded(db: Db, kind: string, keys: string[]): Promise
     case 'orders':
       // Never deleted: money may have been taken for them, and no backup holds what happened to them since.
       problems.push(`Kept ${keys.length === 1 ? 'an order' : `${keys.length} orders`} the sync added: a restore never deletes orders.`);
+      break;
+    case 'plans':
+    case 'donations':
+      // Never deleted: money was taken for them (and a monthly gift goes on at Stripe).
+      problems.push(`Kept ${keys.length} ${kind === 'plans' ? (keys.length === 1 ? 'monthly donor' : 'monthly donors') : keys.length === 1 ? 'gift' : 'gifts'} the sync added: a restore never deletes donations.`);
       break;
     case 'stock':
       for (const key of keys) {
@@ -1580,8 +1728,8 @@ export async function restoreJob(id: string): Promise<RestoreJob | null> {
 
 // ---- entry points ---------------------------------------------------------------------------------
 
-const PLANNERS: Record<string, Planner> = { files: planMedia, taxonomy: planTerms, forms: planForms, templates: planTemplates, type: planEntries, settings: planSettings, redirects: planRedirects, discounts: planDiscounts, orders: planOrders, stock: planStock };
-const APPLIERS: Record<string, Applier> = { files: applyMedia, taxonomy: applyTerms, forms: applyForms, templates: applyTemplates, type: applyEntries, settings: applySettings, redirects: applyRedirects, discounts: applyDiscounts, orders: applyOrders, stock: applyStock };
+const PLANNERS: Record<string, Planner> = { files: planMedia, taxonomy: planTerms, forms: planForms, templates: planTemplates, type: planEntries, settings: planSettings, redirects: planRedirects, discounts: planDiscounts, orders: planOrders, stock: planStock, plans: planDonations, donations: planDonations };
+const APPLIERS: Record<string, Applier> = { files: applyMedia, taxonomy: applyTerms, forms: applyForms, templates: applyTemplates, type: applyEntries, settings: applySettings, redirects: applyRedirects, discounts: applyDiscounts, orders: applyOrders, stock: applyStock, plans: applyDonations, donations: applyDonations };
 // Groups whose rows are written with their ids: the id counters then move past them.
 const KEEPS_IDS = new Set(['files', 'taxonomy', 'forms', 'type', 'discounts']);
 

@@ -353,8 +353,8 @@ Backups) copies content
 between this site and another copy of it (production and a local copy), either way: entries of chosen
 types (with their terms and unpublished changes), terms of chosen taxonomies, files (media rows and
 every storage object: sizes, the kept original, AVIF/WebP copies), templates, parts and patterns,
-forms, settings (`site`, `options`; the site icon's files too), redirects, and the shop's discounts, orders
-and stock counts (see the Shop's Sync and backups). A sync runs from the copy
+forms, settings (`site`, `options`; the site icon's files too), redirects, the shop's discounts, orders
+and stock counts (see the Shop's Sync and backups), and donations and monthly donors (see Donations). A sync runs from the copy
 that has the other's address (`SYNC_REMOTE_URL`, `SYNC_REMOTE_NAME`; production can't reach a local
 copy). Both copies share a secret (`SYNC_SECRET`, at least 32 characters): the copy running the sync
 sends its queries to the other's `/api/sync/remote` and its file calls to `/api/sync/files`
@@ -387,7 +387,8 @@ at any depth, is refused. Its writes clear its page cache.
   (a row made there since Compare) stops it: compare again. Each batch then records the rows it really
   added beside the backup (`written/<backup name>`).
 - **Snapshots**: everything a sync covers on one copy (entries with their terms and unpublished
-  changes, terms, media rows, templates, forms, settings `site` and `options`, redirects), in the same
+  changes, terms, media rows, templates, forms, settings `site` and `options`, redirects, the shop's
+  discounts, orders and stock, donations and monthly donors), in the same
   folder as `<time>-snapshot-<trigger>.json`. Taken by **Back up now** (`snapshotNow`), before a
   snapshot restore, and on a schedule: the Worker's daily run at 07:00 UTC (`src/worker.ts`, deployed
   site only) calls `scheduledSnapshot`, which takes one if
@@ -1508,7 +1509,15 @@ at Stripe) are still recorded. A gift gives no membership.
   `amount` the gift, `fee` covered, `total` charged, `refunded_amount`, `refund_attempt`, donor, anonymous,
   dedication, goal, the page it was given on, the visit's `campaign`); `donation_plans`, one per monthly
   gift (status incomplete, active, past_due or cancelled; Stripe's `customer` and `subscription`, and the
-  gift's details). Not synced or backed up: they stay on the copy where they were made.
+  gift's details).
+- **Sync and backups** (`src/lib/sync.ts`; Settings > Sync): groups `donations:plans` (Monthly donors)
+  and `donations:gifts` (Donations), in that order, both matched by token (each copy's rows have their
+  own ids). A gift's monthly gift is written as the target's plan with the same token (compared as its
+  token, `giftValue`); one whose plan isn't on the target is skipped (sync Monthly donors too). Nothing is
+  sent and nothing changes at Stripe. Neither goes backwards (`donationAhead`: further along in status or
+  refunds, or changed later, on the target is a conflict). Snapshots and sync backups hold `donations` and
+  `donation_plans`; a restore never deletes either (not even with Also delete) and puts back only those not
+  further along now (`donationsNotAhead`). Backups so hold donors' names and emails.
 - **Blocks** (`src/render/c/donations.ts`; the editor's Donations category, `src/puck/DonationPanels.tsx`):
   **Donate** (`donate`: Give once / Monthly, preset amounts (the block's `amounts` else the settings') and
   Other, cover the fees, name, email, dedication, anonymous, news, a honeypot; the `goal` it counts

@@ -210,7 +210,7 @@ export default function Sync() {
             {info.groups.some((g) => g.optIn && chosen.has(g.id)) && (
               <p className="mt-2 rounded-sm bg-[#fffbeb] p-2 text-xs text-[#92400e]">Stock counts replace the other site’s, which its own orders have been taking off. Sync them only to set the counts there. Show differences shows both.</p>
             )}
-            <p className="mt-2 text-xs text-admin-muted">Entries, terms, files and forms keep their ids on both sites; shop orders match by order, stock by product and option; templates match by name, redirects by old address. A sync never deletes anything.</p>
+            <p className="mt-2 text-xs text-admin-muted">Entries, terms, files and forms keep their ids on both sites; shop orders match by order, stock by product and option, donations and monthly donors by gift; templates match by name, redirects by old address. A sync never deletes anything.</p>
           </section>
 
           <div className="flex flex-wrap items-center gap-3">

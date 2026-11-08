@@ -116,7 +116,9 @@ Donors can cancel their own gift from the link in their receipts.
 
 ## Good to know
 
-- Gifts and monthly donors stay on the copy of the site where they were made: they aren't synced or
-  backed up with your content. Use **Export CSV** to keep a copy.
+- Gifts and monthly donors are in the site's backups, and **Settings > Sync** can copy them to another
+  copy of the site (**Monthly donors** and **Donations**). A sync or restore never deletes a gift, never
+  takes one back to an earlier state (a refund stays a refund), sends no receipts and changes nothing at
+  Stripe. Backups hold donors' names and emails: keep downloaded backups private.
 - The site doesn't file tax returns or send year-end statements for you. Export the year's gifts as CSV
   for that.

@@ -1,7 +1,7 @@
 -- Donations (src/lib/donations/): gifts made with the Donate block, one row per payment, and monthly
 -- gifts (donation_plans), Stripe subscriptions that make a donation row each month they are paid.
 -- Amounts are in minor units: `amount` the gift, `fee` what the donor added to cover the fees, `total`
--- what was charged. Not synced or backed up: they stay on the copy where they were made.
+-- what was charged. Synced (by token) and backed up (src/lib/sync.ts).
 CREATE TABLE donation_plans (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   token TEXT NOT NULL,
