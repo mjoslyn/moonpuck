@@ -64,7 +64,8 @@ export interface TrackingStatus {
 export interface Carrier {
   name: string;
   configured(): boolean;
-  rates(from: CarrierAddress, to: CarrierAddress, parcel: Parcel): Promise<CarrierRate[]>;
+  /** The rates for a parcel, priced in `currency` (rates the service can't give in it are left out). */
+  rates(from: CarrierAddress, to: CarrierAddress, parcel: Parcel, currency: string): Promise<CarrierRate[]>;
   buyLabel(rateId: string): Promise<Label>;
   track(carrier: string, number: string): Promise<TrackingStatus>;
   /** Ask for tracking updates of a number not bought through it (a label bought there is followed on its own). */
@@ -93,27 +94,34 @@ export const carrierToken = (name: string) => {
   return t === 'dhl' ? 'dhl_express' : t;
 };
 
-const minor = (amount: unknown) => Math.round(Number(amount) * 100);
+import { toMinor } from '../payments/money';
 
 export const shippoCarrier: Carrier = {
   name: 'Shippo',
   configured: () => !!env('SHIPPO_API_KEY'),
-  async rates(from, to, parcel) {
+  async rates(from, to, parcel, currency) {
     const shipment = await shippo('POST', '/shipments/', { address_from: from, address_to: to, parcels: [parcel], async: false });
-    return (Array.isArray(shipment?.rates) ? shipment.rates : [])
-      .filter((r: any) => r?.object_id && Number.isFinite(Number(r.amount)))
-      .map(
-        (r: any): CarrierRate => ({
-          rateId: String(r.object_id),
-          carrier: carrierToken(r.provider),
-          carrierName: String(r.provider ?? ''),
-          service: String(r.servicelevel?.token ?? r.servicelevel?.name ?? ''),
-          serviceName: String(r.servicelevel?.name ?? ''),
-          amount: minor(r.amount),
-          currency: String(r.currency ?? 'USD').toUpperCase(),
-          days: Number.isFinite(Number(r.estimated_days)) ? Number(r.estimated_days) : null,
-        }),
-      );
+    const want = currency.toUpperCase();
+    const out: CarrierRate[] = [];
+    for (const r of Array.isArray(shipment?.rates) ? shipment.rates : []) {
+      if (!r?.object_id) continue;
+      // Shippo prices a rate in the carrier's currency (`amount`) and in the account's own (`amount_local`):
+      // the one in the shop's currency is taken.
+      const amount = String(r.currency_local ?? '').toUpperCase() === want && Number.isFinite(Number(r.amount_local)) ? r.amount_local : String(r.currency ?? '').toUpperCase() === want && Number.isFinite(Number(r.amount)) ? r.amount : null;
+      if (amount == null) continue;
+      out.push({
+        rateId: String(r.object_id),
+        carrier: carrierToken(r.provider),
+        carrierName: String(r.provider ?? ''),
+        service: String(r.servicelevel?.token ?? r.servicelevel?.name ?? ''),
+        serviceName: String(r.servicelevel?.name ?? ''),
+        // The shop's currencies all have two decimal places (src/lib/payments/money.ts).
+        amount: toMinor(amount),
+        currency: want,
+        days: Number.isFinite(Number(r.estimated_days)) ? Number(r.estimated_days) : null,
+      });
+    }
+    return out;
   },
   async buyLabel(rateId) {
     const t = await shippo('POST', '/transactions/', { rate: rateId, label_file_type: 'PDF', async: false });
@@ -142,34 +150,65 @@ export function parcelOf(c: CarrierSettings, weight: number, unit: string): Parc
 }
 
 /** The rates a carrier offers for a parcel, of the carriers chosen and in the shop's currency, cheapest first. */
-async function offered(carrier: Carrier, c: CarrierSettings, to: CarrierAddress, weight: number, unit: string, currency: string): Promise<CarrierRate[]> {
-  const rates = await carrier.rates(shipFrom(c.from), to, parcelOf(c, weight, unit));
-  return rates.filter((r) => r.currency === currency.toUpperCase() && (!c.carriers.length || c.carriers.includes(r.carrier))).sort((a, b) => a.amount - b.amount);
+export async function offered(carrier: Carrier, c: CarrierSettings, to: CarrierAddress, weight: number, unit: string, currency: string): Promise<CarrierRate[]> {
+  const rates = await carrier.rates(shipFrom(c.from), to, parcelOf(c, weight, unit), currency);
+  const sorted = rates.filter((r) => r.currency === currency.toUpperCase() && (!c.carriers.length || c.carriers.includes(r.carrier))).sort((a, b) => a.amount - b.amount);
+  // One rate per carrier and service (its option's id), the cheapest, should the service answer it twice.
+  const seen = new Set<string>();
+  return sorted.filter((r) => !seen.has(`${r.carrier}:${r.service}`) && seen.add(`${r.carrier}:${r.service}`));
 }
 
 // The rates answered for an address and weight, for a few minutes: a buyer's checkout asks again as they
-// change their choices, and checkout asks once more to charge.
+// change their choices, and checkout asks once more to charge. The key is the address as rates depend on
+// it (country, state, ZIP, city and street, in one case and spacing; not the apartment line, which the
+// cart doesn't re-price on), so checkout finds the rates the cart showed. The oldest go past 500.
 const CACHE_MS = 10 * 60_000;
+const CACHE_MAX = 500;
 const cache = new Map<string, { at: number; rates: CarrierRate[] }>();
+const norm = (v: string | undefined) => String(v ?? '').replace(/\s+/g, ' ').trim().toUpperCase();
+export const rateKey = (to: CarrierAddress, weight: number, c: CarrierSettings, unit: string, currency: string) =>
+  JSON.stringify([norm(to.country), norm(to.state), norm(to.zip), norm(to.city), norm(to.street1), weight, c, unit, currency]);
+
+// New lookups a buyer's checkout may make (each a shipment at the carrier service): per visitor and in
+// all, in each running copy of the Worker, so a script can't spend the shop's API allowance. Over them a
+// visitor gets no carrier rates until the window passes; checkout itself isn't limited.
+const LOOKUP_WINDOW_MS = 10 * 60_000;
+export const LOOKUPS_PER_VISITOR = 30;
+export const LOOKUPS_IN_ALL = 300;
+const lookups = new Map<string, number[]>();
+/** Whether `client` may make one more lookup now (and counts it when so). */
+export function mayLookUp(client: string, now = Date.now()): boolean {
+  const recent = (k: string) => (lookups.get(k) ?? []).filter((t) => now - t < LOOKUP_WINDOW_MS);
+  const mine = recent(`v:${client}`);
+  const all = recent('*');
+  if (mine.length >= LOOKUPS_PER_VISITOR || all.length >= LOOKUPS_IN_ALL) return false;
+  lookups.set(`v:${client}`, [...mine, now]);
+  lookups.set('*', [...all, now]);
+  if (lookups.size > 5000) for (const k of [...lookups.keys()].slice(0, 2500)) if (k !== '*') lookups.delete(k);
+  return true;
+}
 
 /** A rate as a shipping option: `carrier:<carrier>:<service>`, the same each time it is asked for. */
 export const rateOption = (r: CarrierRate): ShipOption => ({ id: `carrier:${r.carrier}:${r.service}`, kind: 'ship', name: `${r.carrierName} ${r.serviceName}`.trim(), price: r.amount, source: 'carrier', carrier: r.carrier, service: r.service, days: r.days });
 
 /** The carrier's rates as a shipping source: only for an address with a ZIP code (and a street, when given) and a weight. */
-export function carrierSource(carrier: Carrier, c: CarrierSettings, unit: string, currency: string): ShippingSource {
+export function carrierSource(carrier: Carrier, c: CarrierSettings, unit: string, currency: string, client?: string): ShippingSource {
   return {
     id: 'carrier',
     async quote(cart: CartFacts, dest: Destination) {
       const weight = cartWeight(cart);
       if (!dest.zip || (!weight && !c.boxWeight)) return [];
       const to: CarrierAddress = { name: 'Buyer', street1: dest.line1 || '', street2: dest.line2, city: dest.city || '', state: dest.state, zip: dest.zip, country: dest.country };
-      const key = JSON.stringify([to, weight, c, unit, currency]);
+      const key = rateKey(to, weight, c, unit, currency);
       const hit = cache.get(key);
       let rates = hit && Date.now() - hit.at < CACHE_MS ? hit.rates : null;
       if (!rates) {
+        // A buyer's cart (`client`) is limited; checkout, which charges, isn't.
+        if (client !== undefined && !mayLookUp(client)) return [];
         rates = await offered(carrier, c, to, weight, unit, currency);
-        if (cache.size > 500) cache.clear();
+        cache.delete(key);
         cache.set(key, { at: Date.now(), rates });
+        while (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value!);
       }
       return rates.map(rateOption);
     },
@@ -177,9 +216,9 @@ export function carrierSource(carrier: Carrier, c: CarrierSettings, unit: string
 }
 
 /** The shipping sources checkout uses: the manual zones, and the carrier's live rates while on (in their place with `only`). */
-export function shippingSources(settings: CheckoutSettings, unit: string, currency: string): ShippingSource[] {
+export function shippingSources(settings: CheckoutSettings, unit: string, currency: string, client?: string): ShippingSource[] {
   const carrier = activeCarrier();
-  const live = carrier && settings.carrier.rates && !carrierProblem(settings.carrier) ? carrierSource(carrier, settings.carrier, unit, currency) : null;
+  const live = carrier && settings.carrier.rates && !carrierProblem(settings.carrier) ? carrierSource(carrier, settings.carrier, unit, currency, client) : null;
   if (!live) return [manualSource(settings)];
   return settings.carrier.only ? [live] : [manualSource(settings), live];
 }

@@ -8,6 +8,8 @@ import { siteViewer } from '../../../lib/members/viewer';
 import { featuresOf, offTypes } from '../../../lib/features';
 import { shopOn, shopSettings } from '../../../lib/shop/config';
 import { shippingSources } from '../../../lib/shop/carrier';
+import { clientIp } from '../../../lib/mailing/request';
+import { buyerAddress } from '../../../lib/tickets/orders';
 import { quoteCart } from '../../../lib/shop/cart';
 import { checkoutSettings, taxInForce } from '../../../lib/shop/checkout-settings';
 import { pickProvider } from '../../../lib/payments';
@@ -32,6 +34,6 @@ export const POST: APIRoute = async ({ request }) => {
   const settings = checkoutSettings(siteRow?.value?.shop);
   // The code typed, else the automatic discounts this visitor may take.
   const found = await discountCandidates(db, { code: typeof body?.code === 'string' ? body.code : null, member: viewer?.member });
-  const totals = await cartTotals(quote, { ...settings, tax: taxInForce(settings.tax, pickProvider(settings.provider)) }, { destination, option, discounts: found.discounts, code: found.code, codeProblem: found.problem, sources: shippingSources(settings, shopSettings(siteRow?.value).weightUnit, quote.currency) });
+  const totals = await cartTotals(quote, { ...settings, tax: taxInForce(settings.tax, pickProvider(settings.provider)) }, { destination, option, discounts: found.discounts, code: found.code, codeProblem: found.problem, sources: shippingSources(settings, shopSettings(siteRow?.value).weightUnit, quote.currency, buyerAddress(clientIp(request))) });
   return Response.json({ ...quote, ...totals }, { headers: { 'Cache-Control': 'private, no-store' } });
 };

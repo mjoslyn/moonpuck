@@ -225,6 +225,10 @@
         showCount();
       }
     }
+    // The checkout is built again below: the field the buyer is in (they may have just tabbed to it from one
+    // that re-prices the cart) gets its focus and cursor back.
+    const active = document.activeElement;
+    const keep = active?.dataset?.co ? { key: active.dataset.co, start: active.selectionStart, end: active.selectionEnd } : null;
     for (const c of carts) {
       const body = c.querySelector('.c-cart__body');
       body.innerHTML = '';
@@ -238,6 +242,7 @@
       }
       const rows = shown.map((l) => {
         const input = el('input', { type: 'number', min: '0', max: String(l.max || 0), value: String(l.quantity), inputMode: 'numeric', className: 'c-cart__qty' });
+        input.dataset.co = `qty:${l.product}:${l.variant}`;
         input.setAttribute('aria-label', `Quantity of ${l.title}${l.label ? `, ${l.label}` : ''}`);
         input.addEventListener('change', () => setQuantity(l, Math.floor(Number(input.value) || 0)));
         const remove = el('button', { type: 'button', className: 'c-cart__remove', textContent: 'Remove' });
@@ -260,6 +265,15 @@
         checkoutForm(c, quote, currency, shown.some((l) => l.problem && l.problem !== 'fewer')),
       );
     }
+    if (keep) {
+      const again = [...document.querySelectorAll('.c-cart [data-co]')].find((x) => x.dataset.co === keep.key);
+      if (again) {
+        again.focus();
+        try {
+          if (keep.start != null && typeof again.setSelectionRange === 'function' && /^(text|search|tel)$/.test(again.type)) again.setSelectionRange(keep.start, keep.end);
+        } catch {}
+      }
+    }
   };
   const offerOf = (c) => {
     try {
@@ -271,6 +285,7 @@
   const field = (label, input, hint) => el('label', { className: 'c-checkout__field' }, [el('span', { textContent: label }), input, hint ? el('small', { textContent: hint }) : null]);
   const textInput = (key, props = {}) => {
     const input = el('input', { type: 'text', value: co[key] || '', ...props });
+    input.dataset.co = key;
     input.addEventListener('input', () => {
       co[key] = input.value;
       keepCo();
@@ -284,6 +299,7 @@
   };
   const select = (key, options, onChange) => {
     const s = el('select', {}, options.map(([v, label]) => el('option', { value: v, textContent: label })));
+    s.dataset.co = key;
     s.value = co[key] || '';
     s.addEventListener('change', () => {
       co[key] = s.value;
@@ -313,6 +329,7 @@
     // Email me news (Settings > Shop): unticked until the buyer ticks it; confirmed by email.
     if (offer.news) {
       const tick = el('input', { type: 'checkbox', checked: !!co.news });
+      tick.dataset.co = 'news';
       tick.addEventListener('change', () => {
         co.news = tick.checked;
         keepCo();
@@ -327,7 +344,8 @@
         const row = el('div', { className: 'c-checkout__row' }, [field('Country', select('country', offer.countries, () => ((co.state = ''), renderCart())))]);
         if (co.country === 'US') row.append(field('State', select('state', [['', 'Choose…'], ...(offer.states || [])], renderCart)));
         // Live carrier rates (Settings > Shop) come once the ZIP is in: asked for here, before the options.
-        if (offer.carrier) row.append(field(co.country === 'US' ? 'ZIP code' : 'Postal code', requote(textInput('zip', { required: true, autocomplete: 'postal-code' }))));
+        // Needed only for an order that is posted: picking it up needs no address.
+        if (offer.carrier) row.append(field(co.country === 'US' ? 'ZIP code' : 'Postal code', requote(textInput('zip', { required: chosen?.kind !== 'pickup', autocomplete: 'postal-code' }))));
         how.append(row);
         if (offer.carrier && !co.zip) how.append(el('p', { className: 'c-checkout__hint', textContent: `Enter your ${co.country === 'US' ? 'ZIP' : 'postal'} code to see the carriers' rates.` }));
       }
@@ -337,6 +355,7 @@
       const name = `ship-${Math.random().toString(36).slice(2, 8)}`;
       for (const o of shipping.options) {
         const radio = el('input', { type: 'radio', name, value: o.id, checked: chosen?.id === o.id });
+        radio.dataset.co = `option:${o.id}`;
         radio.addEventListener('change', () => {
           co.option = o.id;
           keepCo();
@@ -362,6 +381,7 @@
     // A discount code: applied by pricing the cart again with it; the server says what it takes off, or why not.
     const codeBox = el('div', { className: 'c-checkout__code' });
     const codeInput = el('input', { type: 'text', value: co.code || '', autocomplete: 'off', placeholder: 'Code' });
+    codeInput.dataset.co = 'code';
     codeInput.setAttribute('aria-label', 'Discount code');
     const apply = el('button', { type: 'button', className: 'c-checkout__apply', textContent: co.code ? 'Change' : 'Apply' });
     apply.addEventListener('click', () => {

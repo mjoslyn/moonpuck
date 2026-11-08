@@ -1317,16 +1317,24 @@ answer 404.
   checkout and the quote the manual zones and `carrierSource`, whose rates come only for an address with
   a ZIP code (the cart asks for it beside the country and re-quotes as the address changes; any country
   is offered), for the shipped lines' weight plus the box's, of the carriers chosen and in the shop's
-  currency, as options `carrier:<carrier>:<service>` (kept 10 minutes per address and weight, so checkout
-  charges what the cart showed). The order keeps the option (`shipping.carrier`, `service`) and each
+  currency (Shippo's `amount`, or `amount_local` in the account's currency), one per carrier and service
+  (the cheapest), as options `carrier:<carrier>:<service>` (`offered`, which the label rates share; kept 10
+  minutes per address and weight, the address as rates depend on it, `rateKey`: country, state, ZIP, city and
+  street in one case and spacing, so checkout charges what the cart showed; the oldest go past 500). A
+  cart's new lookups are limited per visitor and in all, in each running copy of the Worker
+  (`mayLookUp`: 30 per visitor, by address or IPv6 /64, and 300 in all, in 10 minutes); past them the
+  visitor gets no carrier rates for a while, and checkout isn't limited. The cart keeps the buyer's focus
+  and cursor across the re-price (`data-co`), and the ZIP is needed only for an order that is posted. The order keeps the option (`shipping.carrier`, `service`) and each
   shipped line's `weight`. An order's page (editors) lists the label rates (`labelRates`, the buyer's
-  service marked) and buys one (`buyLabel`, once: `shop_orders.label` with the label's address, then
-  `fulfilOrder` shipped with its tracking and carrier, emailing the buyer); a tracking number typed with
-  a carrier (`shop_orders.carrier`) is followed through Shippo (`follow`). Tracking updates come to
+  service marked) and buys one (`buyLabel`: the order claimed first, a label marked as being bought set only
+  where there is none, so overlapping purchases buy one; let go if the purchase fails; then
+  `shop_orders.label` with the label's address, and `fulfilOrder` shipped with its tracking and carrier,
+  emailing the buyer); a tracking number typed with a carrier (`shop_orders.carrier`: any carrier's code,
+  a label's from any carrier on the account; none chosen clears it) is followed through Shippo (`follow`). Tracking updates come to
   `POST /api/shop/carrier/shippo?token=<SHIPPO_WEBHOOK_TOKEN>` (made when Shippo is connected), which takes
   only the number and reads each order's tracking again from Shippo (`refreshTracking`:
-  `tracking_status`); the hourly run reads those not delivered of the last 30 days, at most 50
-  (`refreshDueTracking`); **Check the tracking now** on the order. Delivered, the buyer gets the Delivered
+  `tracking_status`); the hourly run reads those not delivered of the last 30 days, at most 50, those
+  unchecked longest first among all of them (`refreshDueTracking`); **Check the tracking now** on the order. Delivered, the buyer gets the Delivered
   email once (`delivered_at`, set where null). Without a key a number with a carrier links to the
   carrier's own page (`trackingLink`). Migration `*_shop_orders_carrier.sql`.
 - **Digital downloads** (`src/lib/shop/downloads.ts`): a product's `download` (`downloadOf`: a path under a

@@ -8,7 +8,8 @@ import { serviceClient } from '../db/site';
 import { env } from '../env';
 import { shopSettings } from './config';
 import { carrierProblem, checkoutSettings } from './checkout-settings';
-import { activeCarrier, parcelOf, shipFrom, type CarrierRate, type TrackingStatus } from './carrier';
+import { activeCarrier, offered, type CarrierRate, type TrackingStatus } from './carrier';
+import { allRows } from '../rows';
 import { fulfilOrder, sendShopEmail, type ShopOrder } from './orders';
 import { siteOrigin } from '../tickets/orders';
 
@@ -38,11 +39,11 @@ export async function labelRates(db: Db, id: number): Promise<{ rates: CarrierRa
   if (problem) throw new Error(`${problem} (Settings > Shop, Carrier)`);
   const { weightUnit, currency } = shopSettings(site);
   const a = o.address;
-  const rates = await carrier.rates(shipFrom(c.from), { name: o.name, street1: a.line1, street2: a.line2, city: a.city, state: a.state, zip: a.zip, country: a.country, phone: o.phone || undefined, email: o.email }, parcelOf(c, orderWeight(o), weightUnit));
-  const offered = rates.filter((r) => r.currency === currency.toUpperCase() && (!c.carriers.length || c.carriers.includes(r.carrier))).sort((x, y) => x.amount - y.amount);
+  // The same rates checkout offers (src/lib/shop/carrier.ts), for this order's address and weight.
+  const rates = await offered(carrier, c, { name: o.name, street1: a.line1, street2: a.line2, city: a.city, state: a.state, zip: a.zip, country: a.country, phone: o.phone || undefined, email: o.email }, orderWeight(o), weightUnit, currency);
   // The service the buyer chose, when they chose a carrier's rate.
-  const chosen = o.shipping?.source === 'carrier' ? (offered.find((r) => r.carrier === o.shipping?.carrier && r.service === o.shipping?.service)?.rateId ?? null) : null;
-  return { rates: offered, chosen };
+  const chosen = o.shipping?.source === 'carrier' ? (rates.find((r) => r.carrier === o.shipping?.carrier && r.service === o.shipping?.service)?.rateId ?? null) : null;
+  return { rates, chosen };
 }
 
 /**
@@ -57,8 +58,20 @@ export async function buyLabel(db: Db, id: number, rate: Pick<CarrierRate, 'rate
   const carrier = activeCarrier();
   if (!carrier) throw new Error('Connect Shippo under Settings > Connections to buy labels.');
   if (!/^[\w-]{1,100}$/.test(rate.rateId)) throw new Error('No such rate.');
-  const bought = await carrier.buyLabel(rate.rateId);
-  const label = { id: bought.id, url: bought.labelUrl, carrier: rate.carrier, service: `${rate.carrierName} ${rate.serviceName}`.trim(), amount: Math.round(Number(rate.amount)) || 0, currency: rate.currency, at: new Date().toISOString() };
+  // The order is claimed for this purchase first (a label marked as being bought, set only where there is
+  // none), so two clicks or two editors at once buy one label, not two.
+  const at = new Date().toISOString();
+  const { data: claimed } = await db.from('shop_orders').update({ label: { id: '', url: '', carrier: rate.carrier, service: 'being bought', amount: 0, currency: rate.currency, at } }).eq('id', id).is('label', null).select('id');
+  if (!claimed?.length) throw new Error('This order already has a label, or one is being bought.');
+  let bought;
+  try {
+    bought = await carrier.buyLabel(rate.rateId);
+  } catch (e) {
+    // Not bought: the claim goes (nothing else writes a label while it stands), so it can be tried again.
+    await db.from('shop_orders').update({ label: null }).eq('id', id);
+    throw e;
+  }
+  const label = { id: bought.id, url: bought.labelUrl, carrier: rate.carrier, service: `${rate.carrierName} ${rate.serviceName}`.trim(), amount: Math.round(Number(rate.amount)) || 0, currency: rate.currency, at };
   // Kept before anything else, so a label paid for is never lost.
   const { error } = await db.from('shop_orders').update({ label }).eq('id', id);
   if (error) console.error(`shop: label ${bought.id} for order ${o.code} not recorded: ${error.message}`);
@@ -103,8 +116,9 @@ export async function refreshDueTracking(): Promise<number> {
   if (!activeCarrier()) return 0;
   const db = serviceClient();
   const since = new Date(Date.now() - 30 * 86400_000).toISOString();
-  const { data } = await db.from('shop_orders').select('*').eq('fulfilled', 'shipped').is('delivered_at', null).neq('carrier', '').neq('tracking', '').gte('fulfilled_at', since).order('fulfilled_at').limit(200);
-  const due = ((data ?? []) as ShopOrder[])
+  // Every open parcel of the window (not only the oldest), then those unchecked longest first.
+  const { data } = await allRows<ShopOrder>(db.from('shop_orders').select('*').eq('fulfilled', 'shipped').is('delivered_at', null).neq('carrier', '').neq('tracking', '').gte('fulfilled_at', since).order('id'));
+  const due = (data ?? [])
     .filter((o) => !o.tracking_status || Date.now() - Date.parse(o.tracking_status.checked_at) > 3 * 3600_000)
     .sort((a, b) => Date.parse(a.tracking_status?.checked_at ?? '1970-01-01') - Date.parse(b.tracking_status?.checked_at ?? '1970-01-01'))
     .slice(0, 50);

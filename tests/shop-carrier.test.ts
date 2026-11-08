@@ -7,9 +7,9 @@ import { fulfilOrder, markShopPaid, startShopCheckout, type ShopOrder } from '..
 import { quoteCart } from '../src/lib/shop/cart';
 import { cartTotals } from '../src/lib/shop/totals';
 import { checkoutSettings } from '../src/lib/shop/checkout-settings';
-import { carrierToken, shippingSources } from '../src/lib/shop/carrier';
-import { buyLabel, labelRates, trackingWebhook } from '../src/lib/shop/fulfilment';
-import { trackingLink } from '../src/lib/shop/tracking';
+import { carrierToken, LOOKUPS_PER_VISITOR, mayLookUp, rateKey, shippingSources } from '../src/lib/shop/carrier';
+import { buyLabel, labelRates, refreshDueTracking, trackingWebhook } from '../src/lib/shop/fulfilment';
+import { carrierName, trackingLink } from '../src/lib/shop/tracking';
 
 const sent: { to: string[]; subject: string; html: string }[] = [];
 vi.mock('../src/lib/forms/mail', async (actual) => ({ ...(await actual<object>()), sendMail: async (m: any) => (sent.push(m), true) }));
@@ -19,6 +19,8 @@ Object.assign(PROVIDERS.stripe, { configured: () => true, create: async () => ({
 // Shippo, stood in for: its answers as its API documents them.
 const calls: { method: string; path: string; body: any }[] = [];
 let trackStatus = 'TRANSIT';
+let labelFails = false;
+let rateCurrency: { currency: string; local?: string } = { currency: 'USD' };
 const realFetch = globalThis.fetch;
 beforeAll(() => {
   process.env.SHIPPO_API_KEY = 'shippo_test_abc';
@@ -38,9 +40,11 @@ beforeAll(() => {
           { object_id: 'rate_ground', amount: '6.10', currency: 'USD', provider: 'USPS', servicelevel: { name: 'Ground Advantage', token: 'usps_ground_advantage' }, estimated_days: 4 },
           { object_id: 'rate_ups', amount: '12.40', currency: 'USD', provider: 'UPS', servicelevel: { name: 'Ground', token: 'ups_ground' }, estimated_days: 3 },
           { object_id: 'rate_cad', amount: '8.00', currency: 'CAD', provider: 'USPS', servicelevel: { name: 'Priority Mail', token: 'usps_priority' }, estimated_days: 2 },
-        ],
+          { object_id: 'rate_cp', amount: '7.00', currency: 'USD', provider: 'Canada Post', servicelevel: { name: 'Expedited', token: 'canada_post_expedited' }, estimated_days: 3 },
+        ].map((r) => (rateCurrency.local && r.currency === 'USD' ? { ...r, amount_local: (Number(r.amount) * 1.4).toFixed(2), currency_local: rateCurrency.local } : r)),
       });
     }
+    if (u.pathname === '/transactions/' && labelFails) return json({ status: 'ERROR', messages: [{ text: 'Insufficient funds' }] });
     if (u.pathname === '/transactions/') return json({ object_id: 'txn_1', status: 'SUCCESS', tracking_number: '9400100000000000000001', tracking_url_provider: 'https://tools.usps.com/x', label_url: 'https://shippo.example/label.pdf' });
     if (u.pathname === '/tracks/' && init?.method === 'POST') return json({ tracking_number: body.tracking_number });
     if (u.pathname.startsWith('/tracks/')) return json({ tracking_status: { status: trackStatus, status_details: trackStatus === 'DELIVERED' ? 'Left at the front door' : 'In transit', status_date: '2026-11-10T15:00:00Z' } });
@@ -59,6 +63,8 @@ beforeEach(async () => {
   sent.length = 0;
   calls.length = 0;
   trackStatus = 'TRANSIT';
+  labelFails = false;
+  rateCurrency = { currency: 'USD' };
 });
 let n = 0;
 const product = async (weight: number) => (await db.from('entries').insert({ type: 'product', slug: `ship-${++n}`, title: `Lamp ${n}`, status: 'publish', fields: { shop: { price: 4000, weight } } }).select('id').single()).data!.id as number;
@@ -136,7 +142,69 @@ describe('labels and tracking', () => {
     expect(sent.filter((m) => /arrived/.test(m.subject))).toHaveLength(1);
     expect((await lastOrder()).delivered_at).toBe('2026-11-10T15:00:00.000Z');
   });
+  it('buys one label when two purchases overlap, and lets go of the claim when the purchase fails', async () => {
+    const o = await paidOrder();
+    const { rates } = await labelRates(db, o.id);
+    labelFails = true;
+    await expect(buyLabel(db, o.id, rates[0])).rejects.toThrow(/Insufficient funds/);
+    expect((await lastOrder()).label).toBeNull();
+    labelFails = false;
+    calls.length = 0;
+    const both = await Promise.allSettled([buyLabel(db, o.id, rates[0]), buyLabel(db, o.id, rates[1])]);
+    expect(both.map((r) => r.status).sort()).toEqual(['fulfilled', 'rejected']);
+    expect(calls.filter((c) => c.path === '/transactions/')).toHaveLength(1);
+    expect((await lastOrder()).label).toMatchObject({ id: 'txn_1' });
+  });
+  it('keeps a carrier that isn’t one of the four, and clears one when none is chosen', async () => {
+    await setShop({ carrier: { ...CARRIER, carriers: [] } });
+    const o = await paidOrder();
+    const { rates } = await labelRates(db, o.id);
+    const cp = rates.find((r) => r.carrier === 'canada_post')!;
+    expect(cp).toBeTruthy();
+    expect(await buyLabel(db, o.id, cp)).toMatchObject({ carrier: 'canada_post' });
+    await fulfilOrder(db, o.id, 'shipped', '9400100000000000000001', 'http://localhost', '');
+    expect((await lastOrder()).carrier).toBe('');
+  });
+  it('prices rates in the shop’s currency, from the account’s local amount', async () => {
+    rateCurrency = { currency: 'USD', local: 'CAD' };
+    const settings = checkoutSettings({ carrier: { ...CARRIER, carriers: ['usps'] } });
+    const p = await product(1);
+    const quote = await quoteCart(db, [{ product: p, variant: 'default', quantity: 1 }], { published: true }, { shop: { enabled: true } });
+    const t = await cartTotals(quote, settings, { destination: { country: 'US', state: 'NY', zip: '10001', city: 'New York', line1: '5 Main St' }, sources: shippingSources(settings, 'lb', 'CAD') });
+    // At their CAD amounts (Ground Advantage 6.10 at 1.4); Priority Mail answered twice, at 9.85 USD (13.79 CAD)
+    // and 8.00 CAD, is offered once, at the cheaper.
+    expect(t.shipping.options.filter((x) => x.source === 'carrier').map((x) => [x.id, x.price])).toEqual([
+      ['carrier:usps:usps_priority', 800],
+      ['carrier:usps:usps_ground_advantage', 854],
+    ]);
+  });
+  it('finds the rates the cart showed at checkout whatever the spacing, case or apartment line', () => {
+    const c = checkoutSettings({ carrier: CARRIER }).carrier;
+    const a = rateKey({ name: 'Buyer', street1: ' 2  elm st ', street2: '', city: 'albany', state: 'ny', zip: '12207 ', country: 'US' }, 2, c, 'lb', 'USD');
+    const b = rateKey({ name: 'Ada', street1: '2 Elm St', street2: 'Apt 4', city: 'Albany', state: 'NY', zip: '12207', country: 'US' }, 2, c, 'lb', 'USD');
+    expect(a).toBe(b);
+  });
+  it('limits the lookups a visitor’s cart can make', () => {
+    const at = Date.now();
+    for (let i = 0; i < LOOKUPS_PER_VISITOR; i++) expect(mayLookUp('203.0.113.9', at)).toBe(true);
+    expect(mayLookUp('203.0.113.9', at)).toBe(false);
+    expect(mayLookUp('198.51.100.1', at)).toBe(true);
+    expect(mayLookUp('203.0.113.9', at + 11 * 60_000)).toBe(true);
+  });
+  it('checks the parcels unchecked longest, however many are open', async () => {
+    const now = new Date().toISOString();
+    const base = { status: 'paid', provider: 'stripe', name: 'A', email: 'a@example.org', lines: [], quantity: 1, subtotal: 100, total: 100, currency: 'USD', fulfilment: 'ship', fulfilled: 'shipped', carrier: 'usps', tracking_status: { status: 'TRANSIT', details: '', at: null, checked_at: now } };
+    for (let i = 0; i < 210; i++) expect((await db.from('shop_orders').insert({ ...base, token: `due-${i}-tokenaaaaaaaaaaaaaaaaaa`, code: `DUE-${i}`, tracking: `DUE${i}`, fulfilled_at: new Date(Date.now() - (20 - i / 20) * 86400_000).toISOString() })).error).toBeNull();
+    // The newest, never checked.
+    expect((await db.from('shop_orders').insert({ ...base, token: 'due-new-tokenaaaaaaaaaaaaaaaaa', code: 'DUE-NEW', tracking: 'DUENEW', tracking_status: null, fulfilled_at: now })).error).toBeNull();
+    calls.length = 0;
+    await refreshDueTracking();
+    // The newest open parcel is read; those checked just now aren't (the earlier tests' parcels may be too).
+    expect(calls.map((c) => c.path)).toContain('/tracks/usps/DUENEW');
+    expect(calls.some((c) => /\/DUE\d+$/.test(c.path))).toBe(false);
+  });
   it('names carriers and their tracking pages', () => {
+    expect(carrierName('canada_post')).toBe('Canada Post');
     expect(carrierToken('FedEx')).toBe('fedex');
     expect(carrierToken('DHL Express')).toBe('dhl_express');
     expect(trackingLink('usps', '94 00')).toBe('https://tools.usps.com/go/TrackConfirmAction?tLabels=94%2000');

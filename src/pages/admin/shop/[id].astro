@@ -93,7 +93,8 @@ const canRefund = isAdmin && o.status === 'paid' && o.provider !== 'free' && lef
             </p>
           )}
           {o.fulfilled === 'shipped' && o.tracking && o.carrier && carrierOn && <button type="button" data-track class="mb-3 text-xs underline hover:text-admin-accent">Check the tracking now</button>}
-          {o.label && (
+          {o.label && !o.label.id && <p class="mb-3 text-admin-muted">A label is being bought. Reload in a moment.</p>}
+          {o.label?.id && (
             <p class="mb-3">
               Label: {o.label.service}, {formatMoney(o.label.amount, o.label.currency)}. <a class="underline hover:text-admin-accent" href={o.label.url} target="_blank" rel="noopener">Print the label</a>
             </p>
@@ -113,6 +114,7 @@ const canRefund = isAdmin && o.status === 'paid' && o.provider !== 'free' && lef
               <select id="carrier" name="carrier" class="rounded border border-admin-ink/15 bg-white px-2 py-1.5">
                 <option value="">Another, or not known</option>
                 {CARRIERS.map(([k, label]) => <option value={k} selected={o.carrier === k}>{label}</option>)}
+                {o.carrier && !CARRIERS.some(([k]) => k === o.carrier) && <option value={o.carrier} selected>{carrierName(o.carrier)}</option>}
               </select>
               <button class="justify-self-start rounded bg-admin-accent px-3 py-1.5 text-white hover:bg-admin-accent-dark">{o.fulfilled ? 'Save and email the buyer again' : 'Mark shipped and email the buyer'}</button>
             </form>

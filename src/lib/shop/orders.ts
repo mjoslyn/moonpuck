@@ -462,7 +462,9 @@ export async function fulfilOrder(db: Db, id: number, kind: 'shipped' | 'picked_
   const o = await loadOrder(db, id);
   if (o.status !== 'paid') throw new Error('Only paid orders can be marked shipped or picked up.');
   const t = text(tracking, 300);
-  const k = kind === 'shipped' && CARRIERS.some(([c]) => c === carrier) ? carrier : kind === 'shipped' ? o.carrier && t === o.tracking ? o.carrier : '' : '';
+  // Any carrier's code (a label can come from any carrier on the Shippo account, not only CARRIERS'); none
+  // given ("Another, or not known") clears it.
+  const k = kind === 'shipped' && /^[a-z0-9_]{1,40}$/.test(carrier) ? carrier : '';
   const changed = t !== o.tracking || k !== o.carrier;
   await db
     .from('shop_orders')
