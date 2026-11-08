@@ -24,11 +24,15 @@ import Sync from '../admin/Sync';
 import Connections from '../admin/Connections';
 import BackupsTab from '../admin/Backups';
 import TicketSettingsPanel from '../admin/TicketSettings';
+import ShopCheckoutSettings from '../admin/ShopCheckoutSettings';
 import MemberSettingsPanel from '../admin/MemberSettings';
 import MailingSettingsPanel, { type MailgunInfo } from '../admin/MailingSettings';
 import { mailingOn, type MailList, type MailingSettings } from '../lib/mailing/config';
 import type { MemberSettings } from '../lib/members/config';
-import { eventsOn, showsTaxonomy, showsType } from '../lib/events/on';
+import { eventsOn } from '../lib/events/on';
+import { shopOn, shopSettings, WEIGHT_UNITS, type ShopSettings } from '../lib/shop/config';
+import { CURRENCIES } from '../lib/payments/money';
+import { featuresOf, showsTaxonomy, showsType, type Features } from '../lib/features';
 import type { TicketSettings } from '../lib/tickets/config';
 import type { Redirect } from '../lib/redirects';
 import { MENU_FIELDS } from '../lib/navigation';
@@ -41,7 +45,7 @@ import { ADMIN_THEME_DEFAULTS, ADMIN_THEME_FIELDS, adminThemeVars, contrast, typ
 interface Props {
   /** The section the address names. */
   section: string;
-  site: { name?: string; description?: string; front_page_id?: number | null; not_found_page_id?: number | null; timezone?: string; search_types?: string[]; social?: { network: string; url: string }[]; share_image?: number; share_image_url?: string; templates?: TemplateMap; taxonomy_templates?: Record<string, string>; taxonomy_pages_off?: string[]; taxonomy_meta?: Record<string, TaxonomyMeta>; listing_meta?: Record<string, TaxonomyMeta>; listings_off?: string[]; featured_types?: string[]; icons?: Record<string, string>; icon_media_id?: number | null; icon_preview?: string; admin_theme?: AdminTheme; tickets?: TicketSettings; members?: Partial<MemberSettings>; mailing?: MailingSettings; events?: { enabled?: boolean }; a11y?: { block_publish?: boolean }; snippets?: CodeSnippets; popups?: Popup[]; stats?: StatsSettings; mail_log?: { enabled?: boolean; days?: number } };
+  site: { name?: string; description?: string; front_page_id?: number | null; not_found_page_id?: number | null; timezone?: string; search_types?: string[]; social?: { network: string; url: string }[]; share_image?: number; share_image_url?: string; templates?: TemplateMap; taxonomy_templates?: Record<string, string>; taxonomy_pages_off?: string[]; taxonomy_meta?: Record<string, TaxonomyMeta>; listing_meta?: Record<string, TaxonomyMeta>; listings_off?: string[]; featured_types?: string[]; icons?: Record<string, string>; icon_media_id?: number | null; icon_preview?: string; admin_theme?: AdminTheme; tickets?: TicketSettings; members?: Partial<MemberSettings>; mailing?: MailingSettings; events?: { enabled?: boolean }; shop?: Partial<ShopSettings>; a11y?: { block_publish?: boolean }; snippets?: CodeSnippets; popups?: Popup[]; stats?: StatsSettings; mail_log?: { enabled?: boolean; days?: number } };
   options: Record<string, any>;
   pages: { id: number; title: string }[];
   templates: TemplateInfo[];
@@ -49,6 +53,8 @@ interface Props {
   notFound: NotFound[];
   /** Which payment providers have their keys set (for Tickets). */
   ticketProviders: Record<PaymentProvider, ProviderStatus>;
+  /** Whether Shippo is connected, with a live or a test token. */
+  shippo?: 'live' | 'test' | null;
   /** Mailgun's keys (for Mailing) and the mailing lists. */
   mailgun: MailgunInfo;
   mailLists: MailList[];
@@ -62,7 +68,7 @@ const OFF = '__off__';
 /** Every IANA timezone the browser knows. */
 const TIMEZONES: string[] = (Intl as any).supportedValuesOf?.('timeZone') ?? [config.timezone];
 
-export default function SiteSettings({ section, site: initialSite, options: initialOptions, pages, templates, redirects, notFound, ticketProviders, mailgun, mailLists, parts }: Props) {
+export default function SiteSettings({ section, site: initialSite, options: initialOptions, pages, templates, redirects, notFound, ticketProviders, mailgun, mailLists, parts, shippo }: Props) {
   const [site, setSite] = useState(initialSite);
   const [options, setOptions] = useState(initialOptions);
   const [status, setStatus] = useState('');
@@ -146,10 +152,10 @@ export default function SiteSettings({ section, site: initialSite, options: init
       label: 'Types',
       panel: (
         <>
-          <TypesEditor events={eventsOn(site)} />
-          <TypeTemplates events={eventsOn(site)} value={site.templates ?? {}} off={site.listings_off ?? []} templates={templates} meta={site.listing_meta ?? {}} onChange={(m) => setSite((s) => ({ ...s, templates: m }))} onListings={(off) => setSite((s) => ({ ...s, listings_off: off }))} onMeta={(m) => setSite((s) => ({ ...s, listing_meta: Object.keys(m).length ? m : undefined }))} />
-          <FeaturedTypes events={eventsOn(site)} value={site.featured_types ?? []} onChange={(v) => setSite((s) => ({ ...s, featured_types: v.length ? v : undefined }))} />
-          <TaxonomyTemplatesPanel events={eventsOn(site)} value={site.taxonomy_templates ?? {}} off={site.taxonomy_pages_off ?? []} templates={templates} meta={site.taxonomy_meta ?? {}} onChange={(m) => setSite((s) => ({ ...s, taxonomy_templates: Object.keys(m).length ? m : undefined }))} onPages={(off) => setSite((s) => ({ ...s, taxonomy_pages_off: off.length ? off : undefined }))} onMeta={(m) => setSite((s) => ({ ...s, taxonomy_meta: Object.keys(m).length ? m : undefined }))} />
+          <TypesEditor features={featuresOf(site)} />
+          <TypeTemplates features={featuresOf(site)} value={site.templates ?? {}} off={site.listings_off ?? []} templates={templates} meta={site.listing_meta ?? {}} onChange={(m) => setSite((s) => ({ ...s, templates: m }))} onListings={(off) => setSite((s) => ({ ...s, listings_off: off }))} onMeta={(m) => setSite((s) => ({ ...s, listing_meta: Object.keys(m).length ? m : undefined }))} />
+          <FeaturedTypes features={featuresOf(site)} value={site.featured_types ?? []} onChange={(v) => setSite((s) => ({ ...s, featured_types: v.length ? v : undefined }))} />
+          <TaxonomyTemplatesPanel features={featuresOf(site)} value={site.taxonomy_templates ?? {}} off={site.taxonomy_pages_off ?? []} templates={templates} meta={site.taxonomy_meta ?? {}} onChange={(m) => setSite((s) => ({ ...s, taxonomy_templates: Object.keys(m).length ? m : undefined }))} onPages={(off) => setSite((s) => ({ ...s, taxonomy_pages_off: off.length ? off : undefined }))} onMeta={(m) => setSite((s) => ({ ...s, taxonomy_meta: Object.keys(m).length ? m : undefined }))} />
         </>
       ),
     },
@@ -159,7 +165,7 @@ export default function SiteSettings({ section, site: initialSite, options: init
       panel: (
         <>
         <p className="mb-3 text-xs text-admin-muted">What site search and its live results cover.</p>
-        {SEARCHABLE_TYPES.filter((type) => showsType(type, eventsOn(site))).map((type) => {
+        {SEARCHABLE_TYPES.filter((type) => showsType(type, featuresOf(site))).map((type) => {
           const chosen = site.search_types ?? SEARCHABLE_TYPES;
           const on = chosen.includes(type);
           return (
@@ -281,6 +287,13 @@ export default function SiteSettings({ section, site: initialSite, options: init
       label: 'Mailing Lists',
       on: mailingOn(site),
       panel: <MailingSettingsPanel value={site.mailing ?? {}} mailgun={mailgun} lists={mailLists} membersOn={!!site.members?.enabled} onChange={(mailing) => setSite((s) => ({ ...s, mailing }))} />,
+    },
+    // The shop, an optional feature (src/lib/shop/config.ts).
+    {
+      id: 'shop',
+      label: 'Shop',
+      on: shopOn(site),
+      panel: <ShopSettingsPanel value={site.shop ?? {}} providers={ticketProviders} shippo={shippo ?? null} mailLists={site.mailing?.enabled ? mailLists : null} onChange={(shop) => setSite((s) => ({ ...s, shop }))} />,
     },
     {
       id: 'popups',
@@ -475,9 +488,9 @@ export default function SiteSettings({ section, site: initialSite, options: init
 }
 
 /** Types with pages of their own, and the template for their entries and their listing page. */
-function TypeTemplates({ events, value, off, templates, meta, onChange, onListings, onMeta }: { events: boolean; value: TemplateMap; off: string[]; templates: TemplateInfo[]; meta: Record<string, TaxonomyMeta>; onChange: (m: TemplateMap) => void; onListings: (off: string[]) => void; onMeta: (m: Record<string, TaxonomyMeta>) => void }) {
+function TypeTemplates({ features, value, off, templates, meta, onChange, onListings, onMeta }: { features: Features; value: TemplateMap; off: string[]; templates: TemplateInfo[]; meta: Record<string, TaxonomyMeta>; onChange: (m: TemplateMap) => void; onListings: (off: string[]) => void; onMeta: (m: Record<string, TaxonomyMeta>) => void }) {
   const have = new Set(templates.map((t) => t.slug));
-  const types = CONTENT_TYPES.filter((t) => !PAGELESS_TYPES.has(t.type) && showsType(t.type, events));
+  const types = CONTENT_TYPES.filter((t) => !PAGELESS_TYPES.has(t.type) && showsType(t.type, features));
   const setMeta = (type: string, m: TaxonomyMeta) => {
     const next = { ...meta };
     if (m.image || (m.seo && Object.keys(m.seo).length)) next[type] = m;
@@ -648,8 +661,8 @@ function PageDefaults({ kind, name, label, path, value, onChange }: { kind: 'tax
 /** Settings > Types: the template for each taxonomy's term pages (a term can choose its own), and their default image and SEO. */
 /** The types whose entries can be marked Featured (settings.site.featured_types): a Featured switch in their
  *  settings, which the Collection and Map blocks can list alone. Types whose code has one keep theirs. */
-function FeaturedTypes({ events, value, onChange }: { events: boolean; value: string[]; onChange: (v: string[]) => void }) {
-  const types = CONTENT_TYPES.filter((t) => t.type !== 'global' && showsType(t.type, events));
+function FeaturedTypes({ features, value, onChange }: { features: Features; value: string[]; onChange: (v: string[]) => void }) {
+  const types = CONTENT_TYPES.filter((t) => t.type !== 'global' && showsType(t.type, features));
   return (
     <section className="mt-8 border-t border-admin-ink/10 pt-6">
       <h3 className="text-sm font-semibold">Featured</h3>
@@ -671,9 +684,9 @@ function FeaturedTypes({ events, value, onChange }: { events: boolean; value: st
   );
 }
 
-function TaxonomyTemplatesPanel({ events, value, off, templates, meta, onChange, onPages, onMeta }: { events: boolean; value: Record<string, string>; off: string[]; templates: TemplateInfo[]; meta: Record<string, TaxonomyMeta>; onChange: (m: Record<string, string>) => void; onPages: (off: string[]) => void; onMeta: (m: Record<string, TaxonomyMeta>) => void }) {
+function TaxonomyTemplatesPanel({ features, value, off, templates, meta, onChange, onPages, onMeta }: { features: Features; value: Record<string, string>; off: string[]; templates: TemplateInfo[]; meta: Record<string, TaxonomyMeta>; onChange: (m: Record<string, string>) => void; onPages: (off: string[]) => void; onMeta: (m: Record<string, TaxonomyMeta>) => void }) {
   const have = new Set(templates.map((t) => t.slug));
-  const taxonomies = config.taxonomies.filter((t) => t.base && showsTaxonomy(t.name, events));
+  const taxonomies = config.taxonomies.filter((t) => t.base && showsTaxonomy(t.name, features));
   return (
     <>
       <h3 className="mt-8 mb-1 text-sm font-semibold">Taxonomy pages</h3>
@@ -776,6 +789,25 @@ function AdminThemePanel({ value, onChange }: { value: AdminTheme; onChange: (t:
           </FieldGroup>
         );
       })}
+    </>
+  );
+}
+
+/** Settings > Shop: on or off, the currency prices are in and the unit weights are in. */
+function ShopSettingsPanel({ value, providers, shippo, mailLists, onChange }: { value: Record<string, any>; providers: Record<PaymentProvider, ProviderStatus>; shippo: 'live' | 'test' | null; mailLists: MailList[] | null; onChange: (v: Record<string, any>) => void }) {
+  const s = shopSettings({ shop: value });
+  return (
+    <>
+      <Toggle title="Shop on" value={s.enabled} onChange={(on) => onChange({ ...value, enabled: on })} />
+      <p className="mb-3 text-xs text-admin-muted">
+        {s.enabled
+          ? 'Products under Content, product pages, the shop (/shop/), product categories, the cart (/cart/) with its checkout, and the shop blocks. Orders, discounts and stats are under Shop in the admin bar.'
+          : 'Turn on to add products under Content, product pages, a shop (/shop/), product categories, a cart (/cart/) and the shop blocks. Turning it off later deletes nothing: products are hidden until it is on again.'}
+      </p>
+      <Select title="Currency" value={s.currency} options={CURRENCIES} onChange={(v) => onChange({ ...value, currency: v || undefined })} />
+      <Select title="Weights in" value={s.weightUnit} options={WEIGHT_UNITS} onChange={(v) => onChange({ ...value, weightUnit: v || undefined })} />
+      <p className="-mt-2 mb-3 text-xs text-admin-muted">Products' and variants' weights are in this unit; shipping rates by weight use it.</p>
+      {s.enabled && <ShopCheckoutSettings value={value} currency={s.currency} weightUnit={s.weightUnit} providers={providers} shippo={shippo} mailLists={mailLists} onChange={onChange} />}
     </>
   );
 }

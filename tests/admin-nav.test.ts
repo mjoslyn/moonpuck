@@ -16,6 +16,11 @@ describe('admin nav', () => {
     expect(labels({ isAdmin: false, ticketsOn: true, mailOn: false, membersOn: false }).at(-1)).toBe('Tickets');
   });
 
+  it("offers the shop's Orders while the shop is on", () => {
+    expect(labels({ isAdmin: false, ticketsOn: false, mailOn: false, membersOn: false, shopOn: true }).at(-1)).toBe('Shop: Orders, Discounts, Stock, Stats');
+    expect(labels({ isAdmin: false, ticketsOn: false, mailOn: false, membersOn: false }).some((l) => l.startsWith('Shop'))).toBe(false);
+  });
+
   it('marks the screen shown, and a group holding it', () => {
     const nav = adminNav({ isAdmin: true, ticketsOn: true, mailOn: false, membersOn: false, types, composable });
     const [content] = nav;

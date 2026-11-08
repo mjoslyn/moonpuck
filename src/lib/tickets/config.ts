@@ -5,7 +5,7 @@
 import type { EmailDoc } from '../forms/email';
 import type { PaymentProvider } from '../payments';
 import { CURRENCIES as PAYMENT_CURRENCIES, formatMoney } from '../payments/money';
-import { isActive, type MemberRow } from '../members/config';
+import { isActive, type MemberRow, byLevel } from '../members/config';
 
 /** A kind of ticket ("Adult", "Child", "VIP"). Prices are in the currency's smallest unit (cents). */
 export interface TicketType {
@@ -205,11 +205,7 @@ const num = (v: unknown): number | null => (v === '' || v == null || Number.isNa
 const str = (v: unknown, max = 500) => (typeof v === 'string' ? v.slice(0, max) : '');
 const localTime = (v: unknown) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v) ? v : undefined);
 
-function memberPricesOf(v: unknown): Record<string, number> | undefined {
-  if (!v || typeof v !== 'object') return undefined;
-  const out = Object.fromEntries(Object.entries(v as Record<string, unknown>).map(([k, p]) => [k.slice(0, 40), num(p)]).filter(([, p]) => p != null)) as Record<string, number>;
-  return Object.keys(out).length ? out : undefined;
-}
+const memberPricesOf = (v: unknown) => byLevel(v, num);
 
 /** What a ticket costs a buyer: their level's member price, else its price. */
 export const priceFor = (t: TicketType, member: MemberRow | null | undefined) => (isActive(member) && t.memberPrices?.[member.level] != null ? t.memberPrices[member.level] : t.price);

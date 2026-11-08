@@ -6,7 +6,10 @@ import { FieldsForm } from '../puck/entry-fields';
 import { MediaPicker, inputClass } from '../puck/fields';
 import { SeoForm } from '../puck/SeoForm';
 import { termFieldsFor } from '../lib/page-meta';
-import { taxonomySingular } from '../lib/site';
+import { categoryOf, taxonomySingular } from '../lib/site';
+import { useMemberSettings, useShopOn } from '../puck/member-settings';
+import { CATEGORY_DISCOUNTS_KEY } from '../lib/shop/config';
+import { Num } from '../puck/fields';
 
 interface TermRow {
   id: number;
@@ -27,6 +30,10 @@ export default function TermDetails({ taxonomy }: { taxonomy: string }) {
   const [notes, setNotes] = useState('');
   const [writing, setWriting] = useState(false);
   const defs = termFieldsFor(taxonomy);
+  const members = useMemberSettings();
+  const shop = useShopOn();
+  // Product categories take member discounts (percent off by level) while the shop and Members are on.
+  const memberPricing = !!shop && !!members?.enabled && members.levels.length > 0 && taxonomy === categoryOf('product')?.[0];
 
   // Any Details button on the page opens its term.
   useEffect(() => {
@@ -145,6 +152,30 @@ export default function TermDetails({ taxonomy }: { taxonomy: string }) {
             <section>
               <h3 className="mb-2 text-xs font-semibold tracking-wider text-admin-muted uppercase">Fields</h3>
               <FieldsForm defs={defs} value={f} onChange={(v) => set({ fields: v })} />
+            </section>
+          )}
+          {memberPricing && (
+            <section>
+              <h3 className="mb-2 text-xs font-semibold tracking-wider text-admin-muted uppercase">Member pricing</h3>
+              {members!.levels.map((l) => {
+                const off: Record<string, number> = f[CATEGORY_DISCOUNTS_KEY] ?? {};
+                return (
+                  <Num
+                    key={l.id}
+                    title={`${l.name} members: percent off (empty: none)`}
+                    min={0}
+                    max={100}
+                    value={off[l.id]}
+                    onChange={(pct) => {
+                      const next = { ...off };
+                      if (pct) next[l.id] = Math.min(100, pct);
+                      else delete next[l.id];
+                      set({ fields: { ...f, [CATEGORY_DISCOUNTS_KEY]: Object.keys(next).length ? next : undefined } });
+                    }}
+                  />
+                );
+              })}
+              <p className="-mt-2 text-xs text-admin-muted">Taken off every product in this category and the categories under it, for signed-in members of that level. A product's own member pricing comes first; a product in several categories takes the largest discount.</p>
             </section>
           )}
           <section>

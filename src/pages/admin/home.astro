@@ -5,22 +5,22 @@ import Admin from '../../layouts/Admin.astro';
 import ComposeHome, { type HomeKind } from '../../admin/ComposeHome';
 import { COMPOSABLE_TYPES, CONTENT_TYPES, SITE_TZ } from '../../lib/site';
 import { env } from '../../lib/compose/claude';
-import { eventsOn, showsType } from '../../lib/events/on';
+import { featuresOf, showsType } from '../../lib/features';
 import { mailingOn } from '../../lib/mailing/config';
 
 const db = Astro.locals.db;
 const user = Astro.locals.user;
 const { data: siteRow } = await db.from('settings').select('value').eq('key', 'site').maybeSingle();
-const events = eventsOn(siteRow?.value);
+const features = featuresOf(siteRow?.value);
 const kinds: HomeKind[] = [
-  ...COMPOSABLE_TYPES.filter((t) => showsType(t.type, events)).map((t) => ({ id: `type:${t.type}`, label: t.singular })),
+  ...COMPOSABLE_TYPES.filter((t) => showsType(t.type, features)).map((t) => ({ id: `type:${t.type}`, label: t.singular })),
   { id: 'form', label: 'Form', group: true },
   ...(mailingOn(siteRow?.value) ? [{ id: 'campaign', label: 'Campaign' }] : []),
   { id: 'template', label: 'Template', group: true },
   { id: 'part', label: 'Template part' },
   { id: 'pattern', label: 'Pattern' },
 ];
-const shown = CONTENT_TYPES.filter((t) => showsType(t.type, events));
+const shown = CONTENT_TYPES.filter((t) => showsType(t.type, features));
 const typeLabel = (type: string) => shown.find((t) => t.type === type)?.singular ?? type;
 // What was worked on lately: entries of the types shown, and Compose's conversations about pages.
 const { data: edited } = await db.from('entries').select('id, type, title, status, updated_at').in('type', shown.map((t) => t.type)).neq('status', 'trash').order('updated_at', { ascending: false }).limit(8);

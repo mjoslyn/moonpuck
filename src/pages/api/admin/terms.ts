@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
-import { isFlat, isTaxonomy, TAXONOMY_BASES } from '../../../lib/site';
+import { categoryOf, isFlat, isTaxonomy, TAXONOMY_BASES } from '../../../lib/site';
+import { CATEGORY_DISCOUNTS_KEY, memberDiscountsOf } from '../../../lib/shop/config';
 import { slugify } from '../../../lib/slug';
 import { termLink } from '../../../lib/permalink';
 import { redirectMovedEntry } from '../../../lib/redirects';
@@ -149,6 +150,12 @@ export const PUT: APIRoute = async ({ request, locals }) => {
     const v = body.fields?.[f.key];
     if (v === undefined || v === null || v === '') delete fields[f.key];
     else fields[f.key] = v;
+  }
+  // A product category's member discounts (src/lib/shop/config.ts).
+  if (taxonomy === categoryOf('product')?.[0]) {
+    const off = memberDiscountsOf(body.fields?.[CATEGORY_DISCOUNTS_KEY]);
+    if (off) fields[CATEGORY_DISCOUNTS_KEY] = off;
+    else delete fields[CATEGORY_DISCOUNTS_KEY];
   }
   const { error } = await locals.db.from('terms').update({ description: text(body.description, 5000), fields }).eq('id', term.id);
   if (error) return new Response(error.message, { status: 400 });

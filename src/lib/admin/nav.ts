@@ -24,9 +24,9 @@ export const contentHref = (type: string) => `/admin/?type=${type}`;
  * What the bar offers this person: Content's types (those shown, `types`), Taxonomies and, in a section
  * of its own, Templates; Compose, for each thing it makes (an entry of a type with a page, `composable`,
  * then a form and, while Mailing is on, a campaign, then a template, part or pattern); optional features
- * only while they are on; admin screens to admins.
+ * only while they are on (the Shop's Orders among them); admin screens to admins.
  */
-export function adminNav(o: { isAdmin: boolean; ticketsOn: boolean; mailOn: boolean; membersOn: boolean; types: { type: string; label: string }[]; composable: { type: string; singular: string }[] }): NavItem[] {
+export function adminNav(o: { isAdmin: boolean; ticketsOn: boolean; mailOn: boolean; membersOn: boolean; shopOn?: boolean; types: { type: string; label: string }[]; composable: { type: string; singular: string }[] }): NavItem[] {
   const people: NavLink[] = [
     ...(o.isAdmin ? [{ href: '/admin/users/', label: 'Users' }] : []),
     ...(o.isAdmin && o.membersOn ? [{ href: '/admin/members/', label: 'Members' }] : []),
@@ -36,6 +36,8 @@ export function adminNav(o: { isAdmin: boolean; ticketsOn: boolean; mailOn: bool
   const groups: NavGroup[] = [
     { label: 'Forms', items: [{ href: '/admin/forms/', label: 'Forms' }, { href: '/admin/submissions/', label: 'Submissions' }] },
     { label: 'People', items: people },
+    // The shop's orders, discounts, stock and stats while it is on (Settings > Shop); products stay under Content.
+    { label: 'Shop', items: o.shopOn ? [{ href: '/admin/shop/', label: 'Orders' }, { href: '/admin/shop/discounts/', label: 'Discounts' }, { href: '/admin/shop/stock/', label: 'Stock' }, { href: '/admin/shop/stats/', label: 'Stats' }] : [] },
   ];
   return [
     { label: 'Content', items: [...o.types.map((t) => ({ href: contentHref(t.type), label: t.label })), { href: contentHref('terms'), label: 'Taxonomies' }, { href: '/admin/templates/', label: 'Templates', section: true }], also: ['/admin/content', '/admin/edit'] },

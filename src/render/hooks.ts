@@ -7,4 +7,6 @@ import type { RenderCtx } from './env';
 export const renderHooks: {
   /** The mailing preferences page's data: whose subscription the page's signed link (or the visitor's sign-in) is for. */
   mailPreferences?: (ctx: RenderCtx) => Promise<void>;
+  /** The shop's order page: the order a Cart block shows for the page's ?order=<token>. */
+  shopOrder?: (ctx: RenderCtx) => Promise<void>;
 } = {};

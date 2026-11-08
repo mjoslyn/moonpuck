@@ -289,6 +289,155 @@ export const FUNCTIONS: Record<string, Fn> = {
     },
   },
 
+  /**
+   * A shop order (src/lib/shop/orders.ts), inserted only if every line whose stock is counted has that
+   * many left (on hand less what unexpired holds and paid orders not yet taken off have) and the buyer is
+   * within their share, in the one statement that inserts it: two checkouts can't both take the last one.
+   * With `p_limits.discount`, the discount's uses are checked in it too. Refused: `{ ok: false, client }`
+   * for the buyer's share, `{ ok: false, discount }` for a discount used up, else `{ ok: false, line }` (the
+   * first line short, and how many are left of it).
+   */
+  shop_order_create: {
+    async run(exec, a) {
+      const order = a.p_order ?? {};
+      const limits = a.p_limits ?? {};
+      const lines = ((order.lines ?? []) as { product: number; variant: string; quantity: number; track?: boolean }[]).map((l) => ({ ...l, product: Math.trunc(Number(l.product)), quantity: Math.trunc(Number(l.quantity)) }));
+      const row = {
+        token: order.token, code: order.code, status: order.status, provider: order.provider, name: order.name, email: order.email, phone: order.phone ?? '',
+        address: order.address ?? null, fulfilment: order.fulfilment ?? 'none', shipping: order.shipping ?? null, lines,
+        quantity: lines.reduce((n, l) => n + l.quantity, 0), subtotal: Math.trunc(Number(order.subtotal)), discount: Math.trunc(Number(order.discount ?? 0)),
+        shipping_total: Math.trunc(Number(order.shipping_total ?? 0)), tax: Math.trunc(Number(order.tax ?? 0)), total: Math.trunc(Number(order.total)), currency: order.currency ?? 'USD',
+        member_id: order.member_id || null, ip: String(order.ip ?? ''), expires_at: order.expires_at || null, paid_at: order.paid_at || null,
+        discount_id: order.discount_id || null, discount_code: String(order.discount_code ?? ''), campaign: String(order.campaign ?? ''),
+      };
+      const client = limits.client as { orders: number } | undefined;
+      const discount = limits.discount as { id: number; max: number | null; once: boolean } | undefined;
+      // A discount's uses: its paid orders and unexpired holds, in all and (once per email) by this buyer.
+      const discountConds = (add: (v: unknown) => string) => {
+        // Nothing bound unless a condition uses it: a value bound to no placeholder is an error.
+        if (!discount || (discount.max == null && !discount.once)) return [];
+        const used = `o.discount_id = ${add(discount.id)} AND (o.status = 'paid' OR (o.status = 'pending' AND o.expires_at > ${add(now())}))`;
+        return [
+          ...(discount.max != null ? [`(SELECT count(*) FROM shop_orders AS o WHERE ${used}) < ${add(discount.max)}`] : []),
+          ...(discount.once ? [`NOT EXISTS (SELECT 1 FROM shop_orders AS o WHERE ${used} AND lower(o.email) = lower(${add(row.email)}))`] : []),
+        ];
+      };
+      const clientConds = (add: (v: unknown) => string) => {
+        if (!client) return [];
+        const hour = add(ago(3600_000));
+        const unpaid = `NOT (o.provider <> 'free' AND o.status IN ('paid', 'refunded'))`;
+        const orders = (who: string) => `(SELECT count(*) FROM shop_orders AS o WHERE ${who} AND o.created_at >= ${hour} AND ${unpaid}) < ${add(client.orders)}`;
+        return [orders(`lower(o.email) = lower(${add(row.email)})`), ...(row.ip ? [orders(`o.ip = ${add(row.ip)}`)] : [])];
+      };
+      const left = (add: (v: unknown) => string, product: number, variant: string) => {
+        const p = add(product);
+        const v = add(variant);
+        const held = `(o.status = 'pending' AND o.expires_at > ${add(now())}) OR (o.status = 'paid' AND o.stock_taken = 0)`;
+        const onHand = `coalesce((SELECT s.on_hand FROM shop_stock AS s WHERE s.product_id = ${p} AND s.variant = ${v}), 0)`;
+        const taken = `(SELECT coalesce(sum(CAST(json_extract(l.value, '$.quantity') AS INTEGER)), 0) FROM shop_orders AS o, json_each(o.lines) AS l WHERE (${held}) AND CAST(json_extract(l.value, '$.product') AS INTEGER) = ${p} AND CAST(json_extract(l.value, '$.variant') AS TEXT) = ${v})`;
+        return `(${onHand} - ${taken})`;
+      };
+      const tracked = lines.filter((l) => l.track);
+      const made = await exec.as(SERVICE).insertIf('shop_orders', row, (add) => ['1', ...clientConds(add), ...discountConds(add), ...tracked.map((l) => `${left(add, l.product, l.variant)} >= ${add(l.quantity)}`)].join(' AND '));
+      if (made) return { ok: true, id: made.id as number };
+      if (client) {
+        const values: unknown[] = [];
+        const add = (v: unknown) => (values.push(v), `?${values.length}`);
+        const [r] = await exec.rows<{ ok: number }>(`SELECT ${clientConds(add).join(' AND ')} AS ok`, values);
+        if (!r?.ok) return { ok: false, client: true };
+      }
+      if (discount) {
+        const values: unknown[] = [];
+        const add = (v: unknown) => (values.push(v), `?${values.length}`);
+        const conds = discountConds(add);
+        const [r] = conds.length ? await exec.rows<{ ok: number }>(`SELECT ${conds.join(' AND ')} AS ok`, values) : [{ ok: 1 }];
+        if (!r?.ok) return { ok: false, discount: true };
+      }
+      for (const l of tracked) {
+        const values: unknown[] = [];
+        const add = (v: unknown) => (values.push(v), `?${values.length}`);
+        const [r] = await exec.rows<{ n: number }>(`SELECT ${left(add, l.product, l.variant)} AS n`, values);
+        if ((r?.n ?? 0) < l.quantity) return { ok: false, line: { product: l.product, variant: l.variant, left: Math.max(0, Number(r?.n) || 0) } };
+      }
+      return { ok: false };
+    },
+  },
+
+  /**
+   * A paid order's stock taken off on hand, once (`stock_taken` claimed first, so a webhook and the
+   * buyer's return can't both take it). Lines not counted are left alone; a counted line with no stock
+   * row gets one below 0 (paid after its hold expired and the stock went), which shows as none left.
+   */
+  /**
+   * Count one download of an order's line (src/lib/shop/downloads.ts): only for a paid order whose line
+   * has a download, under `p_limit` downloads (0: no limit), checked in the statement that counts it.
+   * Answers the line's download ({ path, name }) and its count, or null when refused.
+   */
+  shop_download: {
+    async run(exec, a) {
+      const i = Math.trunc(Number(a.p_line));
+      const limit = Math.max(0, Math.trunc(Number(a.p_limit)) || 0);
+      if (!(i >= 0 && i < 50)) return null;
+      const at = `$[${i}]`;
+      const [row] = await exec.rows<{ download: string | null; n: number }>(
+        `UPDATE shop_orders SET lines = json_set(lines, ?3, coalesce(json_extract(lines, ?4), 0) + 1)
+         WHERE token = ?1 AND status = 'paid' AND json_extract(lines, ?2) IS NOT NULL AND (?5 = 0 OR coalesce(json_extract(lines, ?4), 0) < ?5)
+         RETURNING json_extract(lines, ?2) AS download, json_extract(lines, ?4) AS n`,
+        [String(a.p_token ?? ''), `${at}.download`, `${at}.downloads`, `${at}.downloads`, limit],
+      );
+      return row ? { download: JSON.parse(row.download ?? 'null'), count: Number(row.n) } : null;
+    },
+  },
+
+  shop_take_stock: {
+    async run(exec, a) {
+      const id = Math.trunc(Number(a.p_id));
+      const [order] = await exec.rows<{ lines: string }>(`UPDATE shop_orders SET stock_taken = 1 WHERE id = ?1 AND status = 'paid' AND stock_taken = 0 RETURNING lines`, [id]);
+      if (!order) return false;
+      for (const l of JSON.parse(order.lines || '[]') as { product: number; variant: string; quantity: number; track?: boolean }[]) {
+        if (!l.track) continue;
+        await exec.changes(
+          `INSERT INTO shop_stock (product_id, variant, on_hand) SELECT ?1, ?2, -?3 WHERE EXISTS (SELECT 1 FROM entries WHERE id = ?1) ON CONFLICT (product_id, variant) DO UPDATE SET on_hand = on_hand - ?3`,
+          [Math.trunc(Number(l.product)), String(l.variant), Math.trunc(Number(l.quantity))],
+        );
+      }
+      return true;
+    },
+  },
+
+  /**
+   * Put lines of an order back in stock: `p_lines` is { <line index>: quantity }. Each line takes back
+   * at most what it hasn't yet (`restocked` against `quantity`), checked in the statement that records it,
+   * so nothing goes back twice; only for an order whose stock was taken off. Answers what went back, by
+   * line index.
+   */
+  shop_restock: {
+    async run(exec, a) {
+      const id = Math.trunc(Number(a.p_id));
+      const back: Record<string, number> = {};
+      for (const [k, raw] of Object.entries((a.p_lines ?? {}) as Record<string, unknown>)) {
+        const i = Math.trunc(Number(k));
+        const n = Math.trunc(Number(raw));
+        if (!(i >= 0) || !(n > 0)) continue;
+        const path = `$[${i}]`;
+        const [line] = await exec.rows<{ product: number; variant: string; track: number }>(
+          `UPDATE shop_orders SET lines = json_set(lines, '${path}.restocked', coalesce(json_extract(lines, '${path}.restocked'), 0) + ?2)
+           WHERE id = ?1 AND stock_taken = 1 AND json_extract(lines, '${path}') IS NOT NULL AND json_extract(lines, '${path}.track') = 1
+             AND coalesce(json_extract(lines, '${path}.restocked'), 0) + ?2 <= json_extract(lines, '${path}.quantity')
+           RETURNING json_extract(lines, '${path}.product') AS product, json_extract(lines, '${path}.variant') AS variant, 1 AS track`,
+          [id, n],
+        );
+        if (!line) continue;
+        await exec.changes(
+          `INSERT INTO shop_stock (product_id, variant, on_hand) SELECT ?1, ?2, ?3 WHERE EXISTS (SELECT 1 FROM entries WHERE id = ?1) ON CONFLICT (product_id, variant) DO UPDATE SET on_hand = on_hand + ?3`,
+          [Math.trunc(Number(line.product)), String(line.variant), n],
+        );
+        back[String(i)] = n;
+      }
+      return back;
+    },
+  },
+
   /** Claims a campaign to send (no other run holds it, or that run went quiet 16 minutes ago). */
   mail_claim: {
     async run(exec, a) {

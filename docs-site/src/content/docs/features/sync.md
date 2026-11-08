@@ -39,6 +39,9 @@ pull from production; production can't reach a local copy. Apply the migrations 
 | Forms | id | Title, fields, notifications, active |
 | Settings and menu | key | `site` and `options`, and the site icon's files |
 | Redirects | old address | Target, status, note |
+| Shop discounts | id | The whole discount |
+| Shop orders | the order | The whole order, without its member or discount id (the target's discount with the same code) |
+| Shop stock counts | product and option | The count on hand; left out of **All**, ticked only on purpose |
 
 Copies of one site share ids, and a sync keeps them; rows added later take ids past the largest, so they
 don't collide.
@@ -55,6 +58,11 @@ don't collide.
    and sync. Rows are written in batches, with progress shown.
 
 A sync adds and overwrites; it never deletes.
+
+The shop's orders are copied as they are: no emails go and no stock changes. An order never goes
+backwards: one further along on the target (paid, refunded, sent, its stock taken off) or changed there
+since is a conflict, left alone. Stock counts replace the target's, which its own orders have been
+taking off, so they are ticked only to set the counts there.
 
 ## Backups and snapshots
 
@@ -84,7 +92,8 @@ compare again. As each batch is written, the rows it really added are recorded b
 ### Snapshots
 
 A snapshot is everything a sync covers on one site, as it is: entries with their terms and unpublished
-changes, terms, library rows, templates, forms, settings and redirects.
+changes, terms, library rows, templates, forms, settings, redirects, and the shop's discounts, orders and
+stock counts.
 
 - **Back up now** takes one at once.
 - **Take one every day / every week** takes them on a schedule: the Worker's daily run at 07:00 UTC
@@ -112,6 +121,15 @@ row only; its stored images stay, so undoing the restore brings the file back wh
 submissions is never deleted by a restore (its submissions would be cut loose from it), nor is a row
 other rows came to depend on: an event with ticket orders or waitlists, a page with pages under it, a
 term entries still use, a file entries feature. The report names what was kept.
+
+The shop's orders are never deleted by a restore (money was taken for them), and never go backwards: an
+order further along now, or changed since the backup, stays as it is, and the report names it. Stock
+comes back as the backup has it, less what orders paid since then took off, so sold stock isn't put back.
+
+:::caution[Backups hold buyers' details]
+With the shop on, backups and snapshots hold its orders: buyers' names, emails, phone numbers and
+addresses. They stay in the store's private `sync-backups/` folder, and only admins can download them.
+:::
 
 A restore runs as a job (on the Worker's jobs queue, up to 15 minutes), so a large one isn't cut off halfway; the screen waits for it and then shows the result.
 

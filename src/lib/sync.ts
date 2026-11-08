@@ -73,7 +73,7 @@ export async function isProtected(db: Db): Promise<boolean> {
 }
 
 /** What can be synced, in the order a sync applies them (files and terms before the entries using them). */
-export function syncGroups(): { id: string; label: string; kind: 'files' | 'taxonomy' | 'forms' | 'templates' | 'type' | 'settings' | 'redirects' }[] {
+export function syncGroups(): { id: string; label: string; kind: 'files' | 'taxonomy' | 'forms' | 'templates' | 'type' | 'settings' | 'redirects' | 'discounts' | 'orders' | 'stock'; optIn?: boolean }[] {
   return [
     { id: 'media', label: 'Files (media library)', kind: 'files' as const },
     ...config.taxonomies.map((t) => ({ id: `taxonomy:${t.name}`, label: taxonomyLabel(t.name), kind: 'taxonomy' as const })),
@@ -82,6 +82,11 @@ export function syncGroups(): { id: string; label: string; kind: 'files' | 'taxo
     ...config.types.map((t) => ({ id: `type:${t.type}`, label: t.label, kind: 'type' as const })),
     { id: 'settings', label: 'Settings and menu', kind: 'settings' as const },
     { id: 'redirects', label: 'Redirects', kind: 'redirects' as const },
+    // The shop's: discounts before the orders naming them; stock counts only when ticked on purpose
+    // (they overwrite the target's, which its own orders have been taking off).
+    { id: 'shop:discounts', label: 'Shop discounts', kind: 'discounts' as const },
+    { id: 'shop:orders', label: 'Shop orders', kind: 'orders' as const },
+    { id: 'shop:stock', label: 'Shop stock counts', kind: 'stock' as const, optIn: true },
   ];
 }
 
@@ -131,12 +136,15 @@ function parentsFirst<T extends { id: number; parent_id: number | null }>(rows: 
 }
 
 /** Media ids that entry content and image fields point at. */
-function mediaRefs(e: any): number[] {
+export function mediaRefs(e: any): number[] {
   const ids = new Set<number>();
   if (e.featured_media_id) ids.add(Number(e.featured_media_id));
   const text = typeof e.content === 'string' ? e.content : JSON.stringify(e.content ?? null);
   for (const m of text.matchAll(/"mediaId":\s*"?(\d+)/g)) ids.add(Number(m[1]));
   for (const f of fieldsFor(e.type)) if (f.type === 'image' && Number(e.fields?.[f.key])) ids.add(Number(e.fields[f.key]));
+  // A product's gallery and its variants' pictures (fields.shop).
+  const shop = e.fields?.shop;
+  for (const id of [...(Array.isArray(shop?.gallery) ? shop.gallery : []), ...(Array.isArray(shop?.variants) ? shop.variants.map((v: any) => v?.image) : [])]) if (Number(id) > 0) ids.add(Number(id));
   return [...ids];
 }
 
@@ -568,6 +576,185 @@ const applyRedirects: Applier = async (ctx, _group, keys) => {
   return { written, skipped };
 };
 
+// ---- the shop: discounts, orders, stock -----------------------------------------------------------
+//
+// Discounts match by id (as forms). Orders match by their token (orders made on each copy have their own
+// ids), are written without sending anything or changing stock, and never go backwards: an order that is
+// further along on the target (its status, refunds, fulfilment, stock taken off) or changed there since
+// is a conflict, left alone. Its member is left out (accounts are each copy's own) and its discount is the
+// target's with the same code. Stock counts match by product and variant and overwrite the target's.
+
+const DISCOUNT_DERIVED = ['created_at', 'updated_at'];
+// An order's columns a sync neither compares nor writes: the target's own id, member and discount id.
+const ORDER_OWN = ['id', 'updated_at', 'member_id', 'discount_id'];
+const ORDER_RANK: Record<string, number> = { pending: 0, expired: 1, cancelled: 1, paid: 2, refunded: 3 };
+
+/** Why the target's order is ahead of the source's (so a sync or restore leaves it), or null. */
+export function orderAhead(there: any, from: any): string | null {
+  if ((ORDER_RANK[there.status] ?? 0) > (ORDER_RANK[from.status] ?? 0)) return `it is ${there.status} there`;
+  if ((there.refunded_amount ?? 0) > (from.refunded_amount ?? 0)) return 'more of it is refunded there';
+  if (there.fulfilled && !from.fulfilled) return `it is marked ${there.fulfilled === 'picked_up' ? 'picked up' : 'shipped'} there`;
+  if (there.stock_taken && !from.stock_taken) return 'its stock was taken off there';
+  if (there.updated_at && from.updated_at && there.updated_at > from.updated_at) return 'it changed there since';
+  return null;
+}
+
+const stockKey = (r: { product_id: number; variant: string }) => `${r.product_id}/${r.variant}`;
+const orderLabel = (o: any) => `${o.code}: ${o.name} (${o.status})`;
+
+const planDiscounts: Planner = async (ctx) => {
+  const [src, tgt] = await Promise.all([must(ctx.source.from('shop_discounts').select('*').order('id'), 'discounts'), must(ctx.target.from('shop_discounts').select('*').order('id'), 'discounts')]);
+  const there = new Map(tgt.map((d) => [d.id, d]));
+  const codes = new Map(tgt.filter((d) => d.code).map((d) => [String(d.code).toLowerCase(), d.id]));
+  const out = { added: [] as SyncItem[], changed: [] as SyncItem[], same: 0, conflicts: [] as SyncConflict[], warnings: [] as string[] };
+  for (const d of src) {
+    const item = { key: String(d.id), label: d.code || d.name || `Automatic discount ${d.id}` };
+    const other = d.code ? codes.get(String(d.code).toLowerCase()) : undefined;
+    const o = there.get(d.id);
+    if (other != null && other !== d.id) out.conflicts.push({ ...item, reason: `the code is discount ${other} there` });
+    else if (!o) out.added.push(item);
+    else if (stable(omit(d, DISCOUNT_DERIVED)) === stable(omit(o, DISCOUNT_DERIVED))) out.same++;
+    else out.changed.push(item);
+  }
+  return out;
+};
+
+const applyDiscounts: Applier = async (ctx, _group, keys) => {
+  const rows = await byIds(ctx.source, 'shop_discounts', '*', 'id', keys.map(Number));
+  const skipped: SyncConflict[] = [];
+  let written = 0;
+  for (const d of rows) {
+    const { error } = await ctx.target.from('shop_discounts').upsert(omit(d, DISCOUNT_DERIVED), { onConflict: 'id' });
+    if (error) skipped.push({ key: String(d.id), label: d.code || d.name, reason: error.message });
+    else written++;
+  }
+  return { written, skipped };
+};
+
+/** An order as a sync compares and writes it. */
+const orderValue = (o: any) => omit(o, ORDER_OWN);
+
+async function orderState(ctx: Context, tokens?: string[]) {
+  const cols = '*';
+  const src = tokens ? await byIds(ctx.source, 'shop_orders', cols, 'token', tokens, ['id']) : await must(ctx.source.from('shop_orders').select(cols).order('id'), 'orders');
+  const tgtRows = tokens ? await byIds(ctx.target, 'shop_orders', cols, 'token', tokens, ['id']) : await must(ctx.target.from('shop_orders').select(cols).order('id'), 'orders');
+  // Codes taken there by other orders (the code is unique on each copy).
+  const codes = tokens ? await byIds<{ code: string; token: string }>(ctx.target, 'shop_orders', 'code, token', 'code', src.map((o) => o.code), ['id']) : tgtRows;
+  return { src, tgt: new Map(tgtRows.map((o) => [o.token, o])), codeOwner: new Map(codes.map((o) => [o.code, o.token])) };
+}
+
+function orderConflict(o: any, s: Awaited<ReturnType<typeof orderState>>): string | null {
+  const owner = s.codeOwner.get(o.code);
+  if (owner && owner !== o.token) return `order number ${o.code} is another order there`;
+  const there = s.tgt.get(o.token);
+  return there ? orderAhead(there, o) : null;
+}
+
+const planOrders: Planner = async (ctx) => {
+  const s = await orderState(ctx);
+  const out = { added: [] as SyncItem[], changed: [] as SyncItem[], same: 0, conflicts: [] as SyncConflict[], warnings: [] as string[] };
+  for (const o of s.src) {
+    const item = { key: o.token, label: orderLabel(o) };
+    const there = s.tgt.get(o.token);
+    if (there && stable(orderValue(o)) === stable(orderValue(there))) out.same++;
+    else {
+      const conflict = orderConflict(o, s);
+      if (conflict) out.conflicts.push({ ...item, reason: conflict });
+      else if (!there) out.added.push(item);
+      else out.changed.push(item);
+    }
+  }
+  if (out.added.length + out.changed.length) out.warnings.push('Orders are copied as they are: no emails are sent and no stock changes. Buyers’ names, emails and addresses go with them.');
+  return out;
+};
+
+const applyOrders: Applier = async (ctx, _group, keys) => {
+  const s = await orderState(ctx, keys);
+  const discounts = new Map((await must<{ id: number; code: string | null }>(ctx.target.from('shop_discounts').select('id, code').not('code', 'is', null), 'discounts')).map((d) => [String(d.code).toLowerCase(), d.id]));
+  const skipped: SyncConflict[] = [];
+  let written = 0;
+  for (const o of s.src) {
+    const conflict = orderConflict(o, s);
+    const row = { ...orderValue(o), discount_id: o.discount_code ? (discounts.get(String(o.discount_code).toLowerCase()) ?? null) : null };
+    const { error } = conflict ? { error: { message: conflict } } : await ctx.target.from('shop_orders').upsert(row, { onConflict: 'token' });
+    if (error) skipped.push({ key: o.token, label: orderLabel(o), reason: error.message });
+    else written++;
+  }
+  return { written, skipped };
+};
+
+async function stockState(ctx: Context, keys?: string[]) {
+  const ids = keys ? [...new Set(keys.map((k) => Number(k.split('/')[0])))] : undefined;
+  const read = (db: Db) => (ids ? byIds(db, 'shop_stock', 'product_id, variant, on_hand', 'product_id', ids, ['product_id', 'variant']) : must(db.from('shop_stock').select('product_id, variant, on_hand').order('product_id').order('variant'), 'stock'));
+  const [src, tgt] = await Promise.all([read(ctx.source), read(ctx.target)]);
+  const want = keys ? new Set(keys) : null;
+  const products = [...new Set(src.map((r) => r.product_id))];
+  const on = new Set((await byIds<{ id: number }>(ctx.target, 'entries', 'id', 'id', products)).map((e) => e.id));
+  // Comparing: products the chosen groups bring count as there.
+  if (ctx.planning && [...ctx.chosen].some((g) => g.startsWith('type:'))) {
+    const brought = await byIds<{ id: number; type: string }>(ctx.source, 'entries', 'id, type', 'id', products);
+    for (const e of brought) if (ctx.chosen.has(`type:${e.type}`)) on.add(e.id);
+  }
+  return { src: src.filter((r) => !want || want.has(stockKey(r))), tgt: new Map(tgt.map((r) => [stockKey(r), r])), products: on };
+}
+
+const planStock: Planner = async (ctx) => {
+  const s = await stockState(ctx);
+  const titles = new Map((await byIds<{ id: number; title: string }>(ctx.source, 'entries', 'id, title', 'id', [...new Set(s.src.map((r) => r.product_id))])).map((e) => [e.id, e.title]));
+  const out = { added: [] as SyncItem[], changed: [] as SyncItem[], same: 0, conflicts: [] as SyncConflict[], warnings: [] as string[] };
+  for (const r of s.src) {
+    const there = s.tgt.get(stockKey(r));
+    const item = { key: stockKey(r), label: `${titles.get(r.product_id) ?? `Product ${r.product_id}`}${r.variant === 'default' ? '' : ` (${r.variant})`}: ${r.on_hand}${there ? ` (${there.on_hand} there)` : ''}` };
+    if (!s.products.has(r.product_id)) out.conflicts.push({ ...item, reason: 'the product isn’t there' });
+    else if (!there) out.added.push(item);
+    else if (there.on_hand === r.on_hand) out.same++;
+    else out.changed.push(item);
+  }
+  if (out.added.length + out.changed.length) out.warnings.push('Stock counts replace the target’s, which its own orders have been taking off. Sync them only to set the counts there.');
+  return out;
+};
+
+const applyStock: Applier = async (ctx, _group, keys) => {
+  const s = await stockState(ctx, keys);
+  const skipped: SyncConflict[] = [];
+  let written = 0;
+  for (const r of s.src) {
+    const { error } = s.products.has(r.product_id) ? await ctx.target.from('shop_stock').upsert(r, { onConflict: 'product_id,variant' }) : { error: { message: 'the product isn’t there' } };
+    if (error) skipped.push({ key: stockKey(r), label: stockKey(r), reason: error.message });
+    else written++;
+  }
+  return { written, skipped };
+};
+
+/**
+ * Stock counts to put back from a backup taken at `at`: each count less what orders paid since took off
+ * (their counted lines, less what went back), so a restore never puts back stock that has been sold.
+ */
+async function stockLessSold(db: Db, rows: any[], at: string): Promise<any[]> {
+  if (!rows.length) return rows;
+  const paid = await must<{ lines: any }>(db.from('shop_orders').select('lines').eq('stock_taken', true).gt('paid_at', at).order('id'), 'orders');
+  const taken = new Map<string, number>();
+  for (const o of paid) {
+    const lines = typeof o.lines === 'string' ? JSON.parse(o.lines) : (o.lines ?? []);
+    for (const l of lines) if (l.track) taken.set(`${l.product}/${l.variant}`, (taken.get(`${l.product}/${l.variant}`) ?? 0) + l.quantity - (l.restocked ?? 0));
+  }
+  return rows.map((r) => ({ product_id: r.product_id, variant: r.variant, on_hand: r.on_hand - (taken.get(stockKey(r)) ?? 0) }));
+}
+
+/** Orders to put back: only those not further along now (a restore never takes an order backwards). */
+async function ordersNotAhead(db: Db, rows: any[]): Promise<{ rows: any[]; kept: string[] }> {
+  const now = new Map((await byIds(db, 'shop_orders', '*', 'token', rows.map((o) => o.token), ['id'])).map((o) => [o.token, o]));
+  const kept: string[] = [];
+  const out = rows.filter((o) => {
+    const there = now.get(o.token);
+    if (!there || stable(orderValue(there)) === stable(orderValue(o))) return !there;
+    const why = orderAhead(there, o);
+    if (why) kept.push(o.code);
+    return !why;
+  });
+  return { rows: out, kept };
+}
+
 // ---- one row, for the diff ------------------------------------------------------------------------
 
 /** A row as a sync compares it (what it would write), on one copy, or null when it isn't there. */
@@ -608,6 +795,18 @@ async function record(db: Db, kind: string, group: string, key: string): Promise
     case 'redirects': {
       const r = await one(db.from('redirects').select('*').eq('from_path', key));
       return r && Object.fromEntries(REDIRECT_FIELDS.map((k) => [k, r[k]]));
+    }
+    case 'discounts': {
+      const d = await one(db.from('shop_discounts').select('*').eq('id', Number(key)));
+      return d && omit(d, DISCOUNT_DERIVED);
+    }
+    case 'orders': {
+      const o = await one(db.from('shop_orders').select('*').eq('token', key));
+      return o && orderValue(o);
+    }
+    case 'stock': {
+      const [product, ...variant] = key.split('/');
+      return one(db.from('shop_stock').select('product_id, variant, on_hand').eq('product_id', Number(product)).eq('variant', variant.join('/')));
     }
   }
   return null;
@@ -688,6 +887,15 @@ async function currentRows(target: Db, kind: string, keys: string[]): Promise<Re
       return { settings: await byIds(target, 'settings', '*', 'key', keys) };
     case 'redirects':
       return { redirects: await byIds(target, 'redirects', '*', 'from_path', keys) };
+    case 'discounts':
+      return { shop_discounts: await byIds(target, 'shop_discounts', '*', 'id', ids) };
+    case 'orders':
+      return { shop_orders: await byIds(target, 'shop_orders', '*', 'token', keys, ['id']) };
+    case 'stock': {
+      const want = new Set(keys);
+      const rows = await byIds<any>(target, 'shop_stock', '*', 'product_id', [...new Set(keys.map((k) => Number(k.split('/')[0])))], ['product_id', 'variant']);
+      return { shop_stock: rows.filter((r) => want.has(stockKey(r))) };
+    }
   }
   return {};
 }
@@ -855,6 +1063,9 @@ const SNAPSHOT_TABLES: [string, string[]][] = [
   ['entry_terms', LINK_ORDER],
   ['entry_drafts', ['entry_id']],
   ['redirects', ['id']],
+  ['shop_discounts', ['id']],
+  ['shop_orders', ['id']],
+  ['shop_stock', ['product_id', 'variant']],
 ];
 
 /** Everything a sync covers on one copy, as stored (settings `site` and `options`); not stored images. */
@@ -912,6 +1123,9 @@ const tableKey: Record<string, (r: any) => string> = {
   templates: (r) => `${r.kind}/${r.slug}`,
   entries: (r) => String(r.id),
   redirects: (r) => r.from_path,
+  shop_discounts: (r) => String(r.id),
+  shop_orders: (r) => r.token,
+  shop_stock: stockKey,
 };
 
 /** What restoring a snapshot would do: per table, rows it puts back and rows made since (deleted only if asked). */
@@ -924,7 +1138,8 @@ export async function snapshotPreview(site: Site, path: string): Promise<{ creat
     created_at: file.created_at,
     tables: Object.keys(tableKey).map((table) => {
       const had = new Set((file.tables[table] ?? []).map(tableKey[table]));
-      return { table, restore: had.size, since: (now[table] ?? []).filter((r) => !had.has(tableKey[table](r))).length };
+      // Orders made since are never deleted (money was taken for them).
+      return { table, restore: had.size, since: table === 'shop_orders' ? 0 : (now[table] ?? []).filter((r) => !had.has(tableKey[table](r))).length };
     }),
   };
 }
@@ -952,13 +1167,17 @@ async function restoreSnapshot(db: Db, name: string, file: any, path: string, de
     entry_drafts: t.entry_drafts ?? [],
     settings: keepOwnSettings(t.settings ?? [], own),
     redirects: t.redirects ?? [],
+    shop_discounts: t.shop_discounts ?? [],
+    shop_orders: t.shop_orders ?? [],
+    shop_stock: t.shop_stock ?? [],
   };
   // Rows made since go first, so the rows written back don't clash with them (an address one of them
   // took since). Entries first (their terms and drafts go with them), then what they could point at.
   let removed = 0;
   if (deleteSince) {
     const now = await readSnapshot(db);
-    for (const [table, kind] of [['entries', 'type'], ['terms', 'taxonomy'], ['media', 'files'], ['forms', 'forms'], ['templates', 'templates'], ['redirects', 'redirects']] as const) {
+    // Orders made since stay: money was taken for them.
+    for (const [table, kind] of [['entries', 'type'], ['terms', 'taxonomy'], ['media', 'files'], ['forms', 'forms'], ['templates', 'templates'], ['redirects', 'redirects'], ['shop_stock', 'stock'], ['shop_discounts', 'discounts']] as const) {
       const had = new Set(rows[table].map(tableKey[table]));
       const since = (now[table] ?? []).map(tableKey[table]).filter((k) => !had.has(k));
       problems.push(...(await removeAdded(db, kind, since)));
@@ -973,6 +1192,9 @@ async function restoreSnapshot(db: Db, name: string, file: any, path: string, de
   problems.push(...(await putBack(db, 'type', { entries: rows.entries, entry_terms: rows.entry_terms, entry_drafts: rows.entry_drafts })));
   problems.push(...(await putBack(db, 'settings', { settings: rows.settings })));
   problems.push(...(await putBack(db, 'redirects', { redirects: rows.redirects })));
+  problems.push(...(await putBack(db, 'discounts', { shop_discounts: rows.shop_discounts })));
+  problems.push(...(await putBack(db, 'orders', { shop_orders: rows.shop_orders })));
+  problems.push(...(await putBack(db, 'stock', { shop_stock: rows.shop_stock }, file.created_at)));
   const { error } = await db.rpc('sync_reset_ids');
   if (error) problems.push(`The id counters could not be moved on: ${error.message}`);
   return { restored: Object.values(rows).reduce((n, r) => n + r.length, 0), removed, problems, backup: saved.path };
@@ -997,6 +1219,12 @@ function backupKeys(kind: string, rows: Record<string, any[]>): string[] {
       return (rows.settings ?? []).map((r) => r.key);
     case 'redirects':
       return (rows.redirects ?? []).map((r) => r.from_path);
+    case 'discounts':
+      return (rows.shop_discounts ?? []).map((r) => String(r.id));
+    case 'orders':
+      return (rows.shop_orders ?? []).map((r) => r.token);
+    case 'stock':
+      return (rows.shop_stock ?? []).map(stockKey);
   }
   return [];
 }
@@ -1078,7 +1306,7 @@ async function putBackLinks(db: Db, ids: number[], links: any[], drafts: any[]):
 }
 
 /** Put a group's saved rows back as they were. Returns problems, if any. */
-async function putBack(db: Db, kind: string, rows: Record<string, any[]>): Promise<string[]> {
+async function putBack(db: Db, kind: string, rows: Record<string, any[]>, at?: string): Promise<string[]> {
   const byId = (r: any) => String(r.id);
   switch (kind) {
     case 'type': {
@@ -1102,6 +1330,18 @@ async function putBack(db: Db, kind: string, rows: Record<string, any[]>): Promi
       return (await writeRows(db, 'settings', (rows.settings ?? []).map((r) => ({ key: r.key, value: r.value })), 'key', (r) => r.key)).problems;
     case 'redirects':
       return (await writeRows(db, 'redirects', (rows.redirects ?? []).map((r) => ({ from_path: r.from_path, ...Object.fromEntries(REDIRECT_FIELDS.map((k) => [k, r[k]])) })), 'from_path', (r) => r.from_path)).problems;
+    case 'discounts':
+      return (await writeRows(db, 'shop_discounts', (rows.shop_discounts ?? []).map((d) => omit(d, ['updated_at'])), 'id', byId)).problems;
+    case 'orders': {
+      // Never backwards: an order further along now (paid, refunded, sent since) stays as it is.
+      const { rows: back, kept } = await ordersNotAhead(db, rows.shop_orders ?? []);
+      const problems = (await writeRows(db, 'shop_orders', back.map((o) => omit(o, ['updated_at'])), 'token', (o) => o.token)).problems;
+      if (kept.length) problems.push(`Kept ${kept.length === 1 ? 'order' : 'orders'} ${kept.slice(0, 20).join(', ')}${kept.length > 20 ? '…' : ''} as ${kept.length === 1 ? 'it is' : 'they are'}: further along now than in the backup.`);
+      return problems;
+    }
+    case 'stock':
+      // Less what orders paid since took off, so sold stock isn't put back.
+      return (await writeRows(db, 'shop_stock', at ? await stockLessSold(db, rows.shop_stock ?? [], at) : (rows.shop_stock ?? []).map((r) => ({ product_id: r.product_id, variant: r.variant, on_hand: r.on_hand })), 'product_id,variant', stockKey)).problems;
   }
   return [];
 }
@@ -1178,6 +1418,21 @@ export async function removeAdded(db: Db, kind: string, keys: string[]): Promise
     case 'redirects':
       await del('redirects', 'from_path', keys);
       break;
+    case 'discounts':
+      // Orders that used one keep its code (their discount_id is cleared).
+      await del('shop_discounts', 'id', ids);
+      break;
+    case 'orders':
+      // Never deleted: money may have been taken for them, and no backup holds what happened to them since.
+      problems.push(`Kept ${keys.length === 1 ? 'an order' : `${keys.length} orders`} the sync added: a restore never deletes orders.`);
+      break;
+    case 'stock':
+      for (const key of keys) {
+        const [product, ...variant] = key.split('/');
+        const { error } = await db.from('shop_stock').delete().eq('product_id', Number(product)).eq('variant', variant.join('/'));
+        if (error) problems.push(`stock ${key}: ${error.message}`);
+      }
+      break;
   }
   return problems;
 }
@@ -1220,7 +1475,7 @@ export async function restore(site: Site, path: string, opts: { deleteSince?: bo
   }
   for (const { g, rows } of plans) {
     // Settings go back with this copy's own sync settings as they are now.
-    problems.push(...(await putBack(db, g.kind, g.kind === 'settings' ? { settings: keepOwnSettings(rows.settings ?? [], own) } : rows)));
+    problems.push(...(await putBack(db, g.kind, g.kind === 'settings' ? { settings: keepOwnSettings(rows.settings ?? [], own) } : rows, file.created_at)));
     restored += backupKeys(g.kind, rows).length;
   }
   const { error } = await db.rpc('sync_reset_ids');
@@ -1325,10 +1580,10 @@ export async function restoreJob(id: string): Promise<RestoreJob | null> {
 
 // ---- entry points ---------------------------------------------------------------------------------
 
-const PLANNERS: Record<string, Planner> = { files: planMedia, taxonomy: planTerms, forms: planForms, templates: planTemplates, type: planEntries, settings: planSettings, redirects: planRedirects };
-const APPLIERS: Record<string, Applier> = { files: applyMedia, taxonomy: applyTerms, forms: applyForms, templates: applyTemplates, type: applyEntries, settings: applySettings, redirects: applyRedirects };
+const PLANNERS: Record<string, Planner> = { files: planMedia, taxonomy: planTerms, forms: planForms, templates: planTemplates, type: planEntries, settings: planSettings, redirects: planRedirects, discounts: planDiscounts, orders: planOrders, stock: planStock };
+const APPLIERS: Record<string, Applier> = { files: applyMedia, taxonomy: applyTerms, forms: applyForms, templates: applyTemplates, type: applyEntries, settings: applySettings, redirects: applyRedirects, discounts: applyDiscounts, orders: applyOrders, stock: applyStock };
 // Groups whose rows are written with their ids: the id counters then move past them.
-const KEEPS_IDS = new Set(['files', 'taxonomy', 'forms', 'type']);
+const KEEPS_IDS = new Set(['files', 'taxonomy', 'forms', 'type', 'discounts']);
 
 const groupDef = (id: string) => {
   const g = syncGroups().find((x) => x.id === id);

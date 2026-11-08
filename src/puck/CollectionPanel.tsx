@@ -4,10 +4,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Row, Select, Text, Toggle, inputClass, type Attrs } from './fields';
 import { EntriesField } from './entry-fields';
-import { useEventsOn } from './member-settings';
+import { useSite } from './member-settings';
+import { featuresOf, showsType } from '../lib/features';
 import { Group, Space, StyleControls } from './panels';
 import { browserClient } from '../lib/db/browser';
-import { CARD_PRESETS } from '../lib/content/card-presets';
+import { CARD_PRESETS, cardOffered } from '../lib/content/card-presets';
 import { LISTABLE_TYPES, featuredOn, taxonomiesOf, taxonomyLabel, typeDef } from '../lib/site';
 
 type SetFn = (patch: Attrs) => void;
@@ -82,7 +83,9 @@ export function CollectionPanel({ a, set }: { a: Attrs; set: SetFn }) {
   const q: Attrs = a.query ?? {};
   const setQ = (patch: Attrs) => set({ query: { ...q, ...patch } });
   // Events aren't offered while they're off (Settings > Events).
-  const eventsAreOn = useEventsOn();
+  // A feature's types (events, products) only while it is on.
+  const site = useSite();
+  const shown = (t: string) => site !== undefined && showsType(t, featuresOf(site));
   const source = q.inherit ? 'page' : Array.isArray(q.include) && q.include.length ? 'picked' : a.source === 'picked' ? 'picked' : 'latest';
   const types: string[] = Array.isArray(q.postType) ? q.postType : [q.postType ?? 'post'];
   const tax: Record<string, number[]> = q.taxQuery && !Array.isArray(q.taxQuery) && !q.taxQuery.clauses ? q.taxQuery : {};
@@ -111,12 +114,12 @@ export function CollectionPanel({ a, set }: { a: Attrs; set: SetFn }) {
           }}
         />
         {source === 'page' && <Hint>Lists what the page is showing: an archive, a category or tag, or search results.</Hint>}
-        {source === 'picked' && <EntriesField title="Entries, in order" types={typeChoices().map(([t]) => t).filter((t) => t !== 'event' || eventsAreOn === true)} value={q.include} onChange={(ids) => setQ({ include: ids })} />}
+        {source === 'picked' && <EntriesField title="Entries, in order" types={typeChoices().map(([t]) => t).filter(shown)} value={q.include} onChange={(ids) => setQ({ include: ids })} />}
         {source === 'latest' && (
           <>
             <Field title="Content types">
               <div className="flex flex-wrap gap-x-3 gap-y-1">
-                {typeChoices().filter(([t]) => t !== 'event' || eventsAreOn === true).map(([t, l]) => (
+                {typeChoices().filter(([t]) => shown(t)).map(([t, l]) => (
                   <label key={t} className="flex items-center gap-1.5 text-sm">
                     <input
                       type="checkbox"
@@ -172,7 +175,7 @@ export function CollectionPanel({ a, set }: { a: Attrs; set: SetFn }) {
       <Group title="Card" open>
         <Row title="Card design">
           <select className={inputClass} value={card} onChange={(e) => set({ card: e.target.value })}>
-            {CARD_PRESETS.map((p) => (
+            {CARD_PRESETS.filter((p) => p.id === card || cardOffered(p.id, !!site && featuresOf(site).shop)).map((p) => (
               <option key={p.id} value={p.id}>
                 {p.label}
               </option>

@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { CODE_TYPES, CONTENT_TYPES, MADE_TYPES, taxonomiesOf, taxonomyLabel, typeDef } from '../lib/site';
 import { FIELD_KINDS, type FieldKind } from '../lib/site/type-settings';
-import { showsType } from '../lib/events/on';
+import { showsType, type Features } from '../lib/features';
 import type { FieldDef } from '../lib/site';
 
 /** A field as the form edits it: select options as lines. */
@@ -60,7 +60,7 @@ const payload = (d: Draft) => ({
   })),
 });
 
-export default function TypesEditor({ events }: { events: boolean }) {
+export default function TypesEditor({ features }: { features: Features }) {
   const [open, setOpen] = useState<{ type?: string; code: boolean } | null>(null);
   const isCode = (type: string) => CODE_TYPES.some((t) => t.type === type);
   return (
@@ -82,7 +82,7 @@ export default function TypesEditor({ events }: { events: boolean }) {
           </tr>
         </thead>
         <tbody>
-          {CONTENT_TYPES.filter((t) => showsType(t.type, events)).map((t) => {
+          {CONTENT_TYPES.filter((t) => showsType(t.type, features)).map((t) => {
             const code = isCode(t.type);
             return (
               <tr key={t.type} className="border-t border-admin-ink/10 align-top">

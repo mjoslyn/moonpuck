@@ -43,12 +43,13 @@ function CapacityField({ title, value, onChange, soldOut }: { title: string; val
   );
 }
 
-function PriceInput({ value, onChange, title = 'Price (empty or 0: free)', optional }: { value: number | undefined; onChange: (cents: number | undefined) => void; title?: string; optional?: boolean }) {
+export function PriceInput({ value, onChange, title = 'Price (empty or 0: free)', optional, part }: { value: number | undefined; onChange: (cents: number | undefined) => void; title?: string; optional?: boolean; part?: boolean }) {
   const [text, setText] = useState(value ? (value / 100).toFixed(2) : optional && value === 0 ? '0.00' : '');
   const bad = text.trim() !== '' && parsePrice(text) == null;
   const cents = bad ? null : parsePrice(text);
-  // The providers take nothing smaller: an order that comes to less can't be paid.
-  const low = cents != null && cents > 0 && cents < MIN_CHARGE;
+  // The providers take nothing smaller: an order that comes to less can't be paid. Not for `part` of an
+  // order (shipping, a fee, a band's limit), which only adds to it.
+  const low = !part && cents != null && cents > 0 && cents < MIN_CHARGE;
   return (
     <Row title={title}>
       <input

@@ -8,7 +8,7 @@ import type { Db } from './db/query';
 import { siteDb } from './db/site';
 import { env, hostEnv, useSavedKeys } from './env';
 
-export type Service = 'anthropic' | 'stripe' | 'square' | 'mailgun';
+export type Service = 'anthropic' | 'stripe' | 'square' | 'mailgun' | 'shippo';
 
 /** Each service's settings: secret ones are shown by their last 4 characters, the others as they are. */
 export const SERVICES: Record<Service, { label: string; secret: string[]; plain: string[]; guarded: boolean }> = {
@@ -16,6 +16,7 @@ export const SERVICES: Record<Service, { label: string; secret: string[]; plain:
   stripe: { label: 'Stripe', secret: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'], plain: [], guarded: true },
   square: { label: 'Square', secret: ['SQUARE_ACCESS_TOKEN', 'SQUARE_WEBHOOK_SIGNATURE_KEY'], plain: ['SQUARE_LOCATION_ID', 'SQUARE_ENVIRONMENT', 'SQUARE_WEBHOOK_URL'], guarded: true },
   mailgun: { label: 'Mailgun', secret: ['MAILGUN_API_KEY', 'MAILGUN_WEBHOOK_SIGNING_KEY'], plain: ['MAILGUN_DOMAIN', 'MAILGUN_REGION'], guarded: true },
+  shippo: { label: 'Shippo', secret: ['SHIPPO_API_KEY', 'SHIPPO_WEBHOOK_TOKEN'], plain: [], guarded: true },
 };
 
 export const namesOf = (s: Service) => [...SERVICES[s].secret, ...SERVICES[s].plain];

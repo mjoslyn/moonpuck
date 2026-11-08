@@ -26,10 +26,25 @@
   const q = new URLSearchParams(location.search);
   const u = { c: q.get('utm_campaign') || undefined, s: q.get('utm_source') || undefined, m: q.get('utm_medium') || undefined };
   send({ t: 'view', r: document.referrer, v: visitor(), ...(u.c || u.s ? { u } : {}) });
+  // The campaign this visit came from, for the shop's orders (Shop > Stats): kept for this tab only
+  // (sessionStorage), and while a consent banner is on only once the visitor accepts.
+  const keepCampaign = () => {
+    if (!(u.c || u.s) || (needsConsent && read('site_consent') !== 'all')) return;
+    try {
+      sessionStorage.setItem('site.campaign', JSON.stringify(u));
+    } catch {}
+  };
+  keepCampaign();
+  addEventListener('c-consent', keepCampaign);
   // Accepting cookies on this page starts the visitor cookie (counted from the next page).
   addEventListener('c-consent', () => visitor());
   // Removed on rejecting them.
-  addEventListener('c-consent-reject', () => (document.cookie = 'site_vid=; Max-Age=0; Path=/'));
+  addEventListener('c-consent-reject', () => {
+    document.cookie = 'site_vid=; Max-Age=0; Path=/';
+    try {
+      sessionStorage.removeItem('site.campaign');
+    } catch {}
+  });
   // A link clicked (or middle-clicked into a new tab); links within the page (#...) and scripts aren't.
   const clicked = (e) => {
     if (e.type === 'auxclick' && e.button !== 1) return;

@@ -919,6 +919,69 @@ Its settings:
 
 - **Shows first**: **Email preferences** or **Unsubscribe**.
 
+### Shop
+
+Shown only while your site has a shop (an admin turns it on under **Settings**, **Shop**: see
+[Selling things](/admins/shop/)).
+
+#### Add to cart
+
+The product's options as choices, its price, a quantity and the button. On a product's page, or in a
+product's card, it sells that product.
+
+![Add to cart on a product's page](../../../assets/guide/shop-product-page.png)
+
+Its settings:
+
+- **Product**: leave it empty to sell the page's own product; choose one to sell it anywhere.
+- **Button**.
+- **Ask how many**.
+
+#### Product gallery
+
+The product's pictures: its featured image large, with thumbnails of the rest below (its gallery images,
+then its variants' own pictures). Clicking a thumbnail, or using the arrow keys on one, shows it large.
+When a visitor chooses a variant in **Add to cart**, its picture shows.
+
+![The Product gallery block](../../../assets/guide/blocks/product-gallery.png)
+
+Its settings:
+
+- **Product**: leave it empty for the page's own product.
+- **Shape**: Each picture's own shape, Square, Landscape (4:3) or Portrait (3:4).
+
+#### Product price
+
+The product's price, or "From" the lowest when its variants differ, with any compare-at price struck
+through. While the product is on sale, the sale price with the usual price struck through and a **Sale**
+mark.
+
+Its settings:
+
+- **Product**: leave it empty for the page's or card's own product.
+
+#### Cart
+
+The checkout, in two columns: on the left the visitor's email (Contact), name and address (Delivery),
+shipping or pickup and **Pay**; on the right the order summary, with each item's picture, quantity to
+change and price, a discount code and the totals. On a phone the summary comes first, folded behind
+**Show order summary** with the total. After paying, it shows their order. The cart at
+`/cart/` shows it on its own; a page you make with that address needs this block.
+
+![The Cart block](../../../assets/guide/shop-cart.png)
+
+Its settings:
+
+- **When it is empty**: the message shown.
+
+#### Cart link
+
+A link to the cart with the number of things in it, for the header.
+
+Its settings:
+
+- **Label**.
+
 ### Advanced
 
 #### HTML

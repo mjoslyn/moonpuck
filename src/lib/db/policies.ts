@@ -63,6 +63,8 @@ export const POLICIES: Record<string, TablePolicy> = {
   templates: all(editors, editors),
   terms: all(editors, editors),
   ticket_emails: all(editors, editors),
+  // Stock counts, set in a product's settings (they save as they change).
+  shop_stock: all(editors, editors),
   contact_lists: all(editors, admins),
   contacts: all(editors, admins),
   mail_lists: all(editors, admins),
@@ -74,6 +76,11 @@ export const POLICIES: Record<string, TablePolicy> = {
   not_found: { select: editors, insert: nobody, update: nobody, delete: editors },
   // Orders and waitlists change through the attendee list's actions, which write as the server.
   ticket_orders: readOnly(editors),
+  // Shop orders: editors read; the server writes (checkout, payment, the Orders screen's actions).
+  shop_orders: readOnly(editors),
+  shop_order_events: readOnly(editors),
+  // Discounts: editors make and change them (Shop > Discounts).
+  shop_discounts: all(editors, editors),
   ticket_waitlist: readOnly(editors),
   mail_suppressions: readOnly(admins),
   mail_log: readOnly(admins),

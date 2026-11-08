@@ -1,4 +1,4 @@
-// The payment providers' webhooks, for forms and tickets alike: one endpoint per provider, so one
+// The payment providers' webhooks, for forms, tickets and the shop alike: one endpoint per provider, so one
 // signing secret each. Stripe: Developers > Webhooks, <site>/api/payments/stripe, events
 // checkout.session.completed, .async_payment_succeeded, .async_payment_failed, .expired and
 // charge.refunded and charge.refund.updated; its signing secret is STRIPE_WEBHOOK_SECRET. Square: Developer Console > Webhooks,
@@ -10,6 +10,7 @@ import { providerOf, type PaymentProvider } from '../../../lib/payments';
 import { env } from '../../../lib/payments/common';
 import { formsWebhook } from '../../../lib/forms/checkout';
 import { ticketsWebhook } from '../../../lib/tickets/orders';
+import { shopWebhook } from '../../../lib/shop/orders';
 
 const SECRET: Record<PaymentProvider, string> = { stripe: 'STRIPE_WEBHOOK_SECRET', square: 'SQUARE_WEBHOOK_SIGNATURE_KEY' };
 
@@ -27,6 +28,7 @@ export const POST: APIRoute = async ({ params, request, url }) => {
     if (reported) {
       await formsWebhook(name, reported);
       await ticketsWebhook(name, reported, url.origin);
+      await shopWebhook(name, reported, url.origin);
     }
   } catch (e) {
     // A failure answers 500, so the provider tries again later.

@@ -11,6 +11,8 @@ This repository is the upstream. Each site is its own repository with this one a
 remote. Its history starts from this one, with a commit that swaps the example `src/site/` for its own.
 
 - Core changes are made here, committed and pushed, then merged into each site:
+  `npm run core:update` (`scripts/update-core.mjs`: checks for conflicts before merging, keeps the
+  site's `AGENTS.md`, `README.md`, `.env.example` and `wrangler.jsonc`; see README.md), or
   `git fetch upstream && git merge upstream/main`. They merge cleanly as long as the site only changes
   `src/site/`, its own migrations (`db/migrations/*_site_*.sql`: wrangler reads only that folder),
   `AGENTS.md`, `README.md`, its env and its `wrangler.jsonc` (names and ids of its Worker, database,
@@ -45,7 +47,8 @@ Everything that differs between sites lives in `src/site/`:
   offer them; `taxonomiesOf`), `fields` with `compose` hints, `describe`,
   `logoField`, default `card`, `order`) and taxonomies (label, URL `base`, the type a term page `lists`,
   its terms' own `fields`; `category` and `tag` are required; `event`, `venue` and `event_category`
-  come with the core's Events feature, extended with `events`, see Events; admins add taxonomies and
+  come with the core's Events feature, extended with `events`, see Events; `product` and `product_category`
+  with its Shop, extended with `shop`, see Shop; admins add taxonomies and
   types of their own, see Collections and tags). Core code reads it only through `src/lib/site` (`CONTENT_TYPES`,
   `COMPOSABLE_TYPES`, `LISTABLE_TYPES`, `RECORD_TYPES`, `PAGELESS_TYPES`, `TYPE_BASES`,
   `ARCHIVE_PATHS`, `TAXONOMY_BASES`, `fieldsFor`, `categoryOf`, `termPageType`, `SITE_TZ`): the
@@ -350,7 +353,8 @@ Backups) copies content
 between this site and another copy of it (production and a local copy), either way: entries of chosen
 types (with their terms and unpublished changes), terms of chosen taxonomies, files (media rows and
 every storage object: sizes, the kept original, AVIF/WebP copies), templates, parts and patterns,
-forms, settings (`site`, `options`; the site icon's files too) and redirects. A sync runs from the copy
+forms, settings (`site`, `options`; the site icon's files too), redirects, and the shop's discounts, orders
+and stock counts (see the Shop's Sync and backups). A sync runs from the copy
 that has the other's address (`SYNC_REMOTE_URL`, `SYNC_REMOTE_NAME`; production can't reach a local
 copy). Both copies share a secret (`SYNC_SECRET`, at least 32 characters): the copy running the sync
 sends its queries to the other's `/api/sync/remote` and its file calls to `/api/sync/files`
@@ -476,14 +480,17 @@ range and sort; `statsCsv`, formulas guarded). Pages are cached
 for everyone, so `public/assets/js/stats.js` (on every page but previews and Not found) reports the view
 and each link followed (`click` and middle-click; not `#` links) with `sendBeacon` to `POST /api/stats`,
 which counts them by day in the site's time zone (`stat_hit`, table `site_stats`: `day`, `kind` view,
-visitor, click or referrer, `path`, `target`, `hits`; migration `*_site_stats.sql`). No cookies, storage or
+visitor, click or referrer, `path`, `target`, `hits`; migration `*_site_stats.sql`). No cookies, storage (but the visit's campaign, below) or
 addresses: a visitor is counted once a day by a hash of the day, `AUTH_SECRET`, their address and browser
 (`site_stat_visitors`, emptied after the day by the hourly run, `pruneStats`). A link is kept as its path
 on the site, or host and path elsewhere, `mailto:`/`tel:` as written, without query or fragment
 (`statTarget`); a referrer as its host (`referrerHost`). Machines (`scannerAgent`) and signed-in editors
 aren't counted; addresses that aren't pages (`/admin`, `/api`, `/media`...) are refused (`statPath`). **Campaigns**: a view whose address has `utm_campaign`
 or `utm_source` (with `utm_medium`) counts under kind `campaign`, target `campaign|source|medium`
-(`campaignKey`; migration `*_site_stats_campaigns.sql`), listed and exported with the others. **Make a
+(`campaignKey`; migration `*_site_stats_campaigns.sql`), listed and exported with the others. stats.js also
+keeps a landing address's utm_ values in the tab's `sessionStorage` (`site.campaign`; while a consent banner
+is on, only once the visitor accepts, and removed on rejecting), which the cart sends with a shop order
+(`shop_orders.campaign`, `campaignKey`; migration `*_shop_orders_campaign.sql`) for Shop > Stats. **Make a
 campaign link**, a button beside that table's heading opening a dialog (`src/admin/CampaignLink.tsx`; `campaignLink`
 in `src/lib/campaign-link.ts`; what was typed stays while the page is open), adds a campaign's name, source and optional medium to a page on the site (a path or the link picker; the
 home page when empty; other sites refused), lower case with hyphens for spaces and no `|` (`campaignPart`),
@@ -532,7 +539,7 @@ its scripts run in order, once the visitor accepts in the consent banner (`snipp
 
 Settings > Email log (admins; `settings.site.mail_log` { enabled, days }, `src/lib/mail-log.ts`, migration
 `*_mail_log.sql`): while it is on, `sendMail` (`src/lib/forms/mail.ts`) keeps each email the site sends in
-`mail_log`, sent, failed (with the error) or not sent (no mail set up): its kind (`Mail.kind`: form, ticket,
+`mail_log`, sent, failed (with the error) or not sent (no mail set up): its kind (`Mail.kind`: form, ticket, shop,
 account, admin, other), recipients, sender, reply-to, subject, how it went out and its HTML and text. An
 email marked `secret` (account emails: password links, invitations, address confirmations, `sendLink` in
 `src/lib/auth/mail.ts`) is kept without its body (`withheld`), so nobody reading the log can use its link.
@@ -610,7 +617,7 @@ conversation.
   in the Workers cache, tagged `pages` (and each page's path). A successful admin write
   (POST, PUT, PATCH or DELETE under `/api/admin/`) clears that tag from the middleware
   (`cache.invalidate`; a 2xx answer, or the 303 a form post such as a bulk action answers with), so edits show at once; previews (and the email builder's event lookups), Claude drafting, accessibility marks,
-  submissions, users, the attendee list and sync requests other than a sync into this copy or a restore don't
+  submissions, users, the attendee list, the shop's orders and discounts and sync requests other than a sync into this copy or a restore don't
   (`changesPages`). A failed purge is logged and the edit shows within the minute. Pages that depend on
   who views them (see Members) aren't cached. Under `astro dev`
   nothing is cached. The first cover or hero image on a page loads at high priority (`optimizeImages`).
@@ -745,11 +752,12 @@ options, merge tags, canvas stand-ins, preview); a notification's is `formEmailK
 (`src/forms/form-email.ts`), ticket emails have their own.
 **Templates** (the builder's Templates panel, `src/forms/EmailTemplates.tsx`; table `email_templates`,
 editors only, migration `*_email_templates.sql`; `src/lib/email-templates.ts`): saved designs with their
-plain text, per kit (`templates` in `EmailKit`: `mailing` for campaigns and digests, `form`, `ticket`),
+plain text, per kit (`templates` in `EmailKit`: `mailing` for campaigns and digests, `form`, `ticket`,
+`shop`; migration `*_email_templates_shop.sql` added the last),
 to save the email as, save over, start from (Use) or delete. A template can be the default for one kind
 of email (`default_for`, unique; `TEMPLATE_DEFAULTS`): new campaigns, digests, forms and form
-notifications start from theirs (`defaultTemplate`), and a ticket email nobody designed is sent from
-its kind's (`ticket:<kind>`). Not synced or backed up.
+notifications start from theirs (`defaultTemplate`), and a ticket or order email nobody designed is sent
+from its kind's (`ticket:<kind>`, `shop:<kind>`). Not synced or backed up.
 **Compose** (the form builder's header, and the Confirmation and Notifications tabs;
 `src/forms/ComposeForm.tsx`, POST `/api/admin/forms/compose`, `src/lib/forms/compose.ts`): from what the
 editor says the form is for and the form as it is (`formOutline`), Claude (`quickAsk` with
@@ -836,10 +844,11 @@ to replace one whole (the calendar views stay under `/events/`). The core reads 
 `website` and `schedule`; on venues `address`, `city`, `state`, `zip`, `country`, `phone` and `website`.
 
 Off, nothing is deleted, but the admin hides events, venues and event categories (Content's menu,
-Taxonomies, Settings > Types and Search; `showsType`, `showsTaxonomy`) and the site shows none:
+Taxonomies, Settings > Types and Search; `showsType`, `showsTaxonomy` in `src/lib/features.ts`, as for the
+Shop) and the site shows none:
 `resolve` answers Not found for the event listing, calendar views, event pages and occurrences and the
 term pages of taxonomies that list events; the feeds, ticket checkout, waitlist and availability
-endpoints answer 404; the loader's scope leaves event entries out (`noEvents`: collections, search,
+endpoints answer 404; the loader's scope leaves event entries out (`off`, `offTypes`: collections, search,
 menus); `EVENT_BLOCKS` render nothing (a note in the editor) and load nothing; email Events blocks list
 none; and the hourly ticket emails don't run. The editor doesn't offer event and ticket blocks, the
 email Events block or the event type in collections and Compose, and the admin hides Tickets and
@@ -1218,6 +1227,260 @@ never subscribes anyone again); the settings are, with the others. Migration `*_
   clicks and Mailgun's events for the address, keeps the hash, an earlier bounce or complaint staying its
   reason, adds them to Mailgun's unsubscribes) and Export as CSV (formulas guarded).
 
+## Shop (preview)
+
+An optional feature, on under Settings > Shop (`settings.site.shop`: `enabled`, `currency`, `weightUnit`;
+`shopSettings`, `shopOn`, `src/lib/shop/config.ts`), built in phases: phase 1 has
+products, options, variants, stock and the cart; phase 2, checkout (payments, manual shipping rates and
+pickup, tax, orders, the Orders screen, discounts, order emails, stats, and orders and stock in sync and backups), and phase 3 (the Stock screen, low-stock alerts, digital downloads, and carrier rates, labels and tracking) are built. Off, nothing is deleted: the admin hides the core's product type and
+product categories (`showsType`, `showsTaxonomy`, `src/lib/features.ts`), the site serves none of them
+(`resolve`, the loader's `off` types), the shop's blocks render nothing (`SHOP_BLOCKS`) and its endpoints
+answer 404.
+
+- **Products**: the core's `product` type (`/product/<slug>/`, listed at `/shop/`) and `product_category`
+  taxonomy (`/shop/category/<slug>/`), added by `withShop` (`src/lib/shop/types.ts`) and changed by the
+  site config's `shop` (`ShopConfig`: `product`, `category`). A site that lists its own `product` type
+  keeps it whole and shown while the shop is off (`SHOP_CORE_TYPES` is then empty); the shop's settings
+  apply to it while the shop is on.
+- **What a product sells** (its fields under the reserved key `shop`, `productOf`; edited in its
+  settings, Shop, `src/puck/ProductForm.tsx`): price and compare-at price in cents (no price: not for
+  sale), SKU, weight, shipped, pickup only, taxed, most per order, count stock, and up to 3 options with
+  their values. Each combination is a variant (`variantsFor`; one `default` variant without options) with
+  a stable id and its own price, compare-at price, SKU, weight and image (media id), or `off` (not sold);
+  changing the options keeps each variant whose values stay. **Sales** (`sale`, `Sale`, `saleOf`, `saleRuns`): a start and end
+  (ISO; either open), a sale price or percent off, and members' sale prices or percent off by level
+  (`memberPrices`, `memberDiscounts`); a variant's `salePrice` and `memberSalePrices` come first. While
+  it runs (`resolveVariant` at `now`), a variant's `price` is its sale price when lower (`regular` the
+  usual one, `compareAt` the higher of the two, `sale` set), so every reader (`sellable`, the quote,
+  checkout, the blocks) charges and shows it; `unitFor` gives members the lowest of their member price
+  (from the usual price), their sale price and the sale price. The Product price and Add to cart blocks
+  mark it (`c-price__sale`). A combination stored without a variant reads
+  with an id made from its values (`comboId`), the same each time.
+- **Stock**: table `shop_stock` (product, variant, on hand; migration `*_shop_stock.sql`), kept apart
+  from the product's fields so a product's save never overwrites a count; the settings save each count
+  as it changes (editors write it). A product that doesn't count stock has no limit; one that does and has
+  no row has none left (`leftOf`, `src/lib/shop/stock.ts`).
+- **Blocks** (`src/render/c/shop.ts`; the editor's Shop category while it is on): **Product price**
+  (`product-price`: its price, or From the lowest; the compare-at price struck through), **Add to cart**
+  (`add-to-cart`: options as choices, quantity, button; the product it names, else the page's or card's),
+  **Product gallery** (`product-gallery`: the product's pictures, `productImages`: its featured image, its `gallery` (media ids from its Shop settings, at most `MAX_GALLERY`, 30), then the own pictures of the variants Add to cart sells, each once; large with thumbnails that show and link to the same picture as the large one, `aspect` crops them; `public/assets/js/product-gallery.js` shows a thumbnail's picture in place and, on `c-product:variant`, which cart.js's Add to cart for the same product sends only when the variant chosen changes (and keeps on the form as `data-variant-image` for a gallery starting after it), the variant's picture; in a collection's cards the products' pictures load with the cards, `loadEntryMedia`; Sync counts them as media the product uses, `mediaRefs`; the starter `single-product` template has it), **Cart** (`cart`) and **Cart link** (`cart-link`, the number of items). Collections get a `product`
+  card design unless the site has its own (`card-presets.ts`), offered while the shop is on
+  (`cardOffered`) and never the default (`DEFAULT_CARD` is the site's first).
+- **Cart**: kept in the visitor's browser (`localStorage`, `public/assets/js/cart.js`, added by these
+  blocks), so their pages stay cached and shared. The script adds to the cart, asks what's left of the
+  page's products (`GET /api/shop/availability?ids=`, no-store: per product the most one order can take
+  of each variant, `maxQuantity`, and whether this visitor may buy it, the button then saying Members
+  only), swaps the variant's image into its own product's (the card's, or for the page's own product,
+  `data-own`, the page's Featured image outside cards) and fills the Cart block from the server's
+  prices (`POST /api/shop/quote`, `quoteCart` in `src/lib/shop/cart.ts`: lines cleaned by `cleanCart`, at
+  most 50 of up to 99 each; each priced as sold now, cut to what's left (`fewer`), `sold-out` or `gone`;
+  the subtotal in the shop's currency). Both read as the visitor sees the site (`visibleTo`). `/cart/`
+  (`CART_PATH`) is a built-in page with a Cart block unless a page has that address. The script
+  builds the cart as a two-column checkout (`.c-checkout-layout`; the Cart block's `data-checkout`: the
+  countries the zones cover, US states, the country to begin on): the form (`.c-checkout`: Contact, the
+  email and the news tick; Delivery, the country and state (re-quoting the cart for them and the option
+  chosen: `destination`, `option`), name, the address for a shipped order (shown before an option is
+  chosen when nothing can be picked up) and phone; the shipping and pickup options; Payment, with Pay)
+  and the order summary (`.c-summary`: each line's image with its quantity, options, quantity to change,
+  total and Remove; a discount code, `code`, re-quoted on Apply; the totals), first and folded behind
+  **Show order summary** below 900px; what the buyer typed is kept for the visit (`sessionStorage`).
+- **Orders** (`src/lib/shop/orders.ts`, table `shop_orders`, migration `*_shop_orders.sql`; editors read,
+  the server writes): `POST /api/shop/checkout` (`startShopCheckout`) prices the cart again as the visitor
+  sees the site (a line with any problem answers `changed`), checks the option and address (`cleanAddress`:
+  a country code, a US state's code), works out the totals (`cartTotals`, Stripe Tax only while Stripe
+  takes the payment, `taxInForce`) and makes the order with `shop_order_create`, which inserts it only if
+  every counted line has that many left (on hand less unexpired holds and paid orders not yet taken off)
+  and the buyer has fewer than 5 unpaid orders in an hour by email and by address, in the one statement;
+  30 orders a minute in all. The order keeps a copy of its lines (`lines`: title, options, SKU, unit
+  price, quantity, total, discount and tax shares, `track`, `restocked`), the option chosen (`shipping`),
+  the address for a shipped one, the totals and `tax_by` (`site`, or `stripe`, whose tax is recorded when
+  paid). Then the provider's checkout with the lines, shipping and tax as items (Stripe Tax: automatic tax
+  with each product's code, shipping's and untaxed lines' own), or, with nothing to pay, paid at once. An
+  unpaid order holds its stock for Settings > Shop's minutes (plus two). `/api/shop/return` and the
+  payment webhooks (`shopWebhook`, beside the forms' and tickets') ask the provider; `markShopPaid` marks it
+  paid once (a cancelled or expired order paid anyway too, with a note), then `shop_take_stock` takes its
+  counted lines off `shop_stock` once (`stock_taken`) and the buyer's confirmation and the shop's copy
+  (`SHOP_NOTIFY_EMAIL`, else `FORMS_ADMIN_EMAIL`, else the config's `adminEmail`; unless `shop.notify` is
+  false) go once (`emailed_at`; see Order emails). Refunds made at the provider update `refunded_amount` and a full one marks the order
+  refunded, without restocking. The hourly run expires holds (`expireShopHolds`). What's left
+  (`loadStock`) is on hand less what orders hold (`loadHeld`). `/cart/?order=<token>` shows the order (the
+  Cart block, loaded by a server hook, `src/lib/shop/page-data.ts`; never cached, noindex): paid, being
+  confirmed, or not completed; a paid one empties the buyer's cart. `/cart/?checkout=cancelled` after the
+  provider's Cancel.
+- **The Orders screen** (the admin bar's Shop > Orders while the shop is on, `/admin/shop/`; editors): orders by
+  tab (to send or hand over: paid, not yet fulfilled, with something to send; paid; awaiting payment;
+  cancelled and expired; refunded; all), searched by code, email or name (`ordersQuery`), 50 a page, and
+  Export CSV (`GET /api/admin/shop/orders.csv`, a row per line, formulas guarded; `ordersCsvRows`). An
+  order's page (`/admin/shop/<id>/`) shows its lines, totals, buyer, address or pickup location and
+  payment, with its actions (POST `/api/admin/shop/orders`, which doesn't clear the page cache): mark
+  shipped with a tracking number (emailing the buyer) or picked up (`fulfilOrder`, `fulfilled`,
+  `fulfilled_at`, `tracking`), the shop's notes, resend the confirmation, cancel (`cancelShopOrder`: an
+  unpaid one, its hold let go, after asking the provider; a free or fully refunded one), refund (admins;
+  part or all at the provider, `refundShopOrder`, with its own idempotency key while its outcome is unknown,
+  `refund_attempt`, as ticket refunds) and put lines back in stock (`restockOrder`, `shop_restock`: each
+  line at most what was bought, checked in the statement that records it, `lines[].restocked`; only once
+  the order's stock was taken off). Cancel and refund take the lines to put back with them.
+- **Order history and notes** (`src/lib/shop/history.ts`, table `shop_order_events`, migration
+  `*_shop_order_events.sql`; editors read, the server writes): each order's events with when and who
+  (`by`, the editor's name or email; empty for the site): placed, paid, every email (`sendOrderMail`: its
+  subject, recipients and whether it went), fulfilled, label, delivered, refund (on the page and by the
+  provider's webhook), restock, cancelled, expired, status, and notes (`addNote`, the `note` action; the
+  notes kept in `shop_orders.notes` before became each order's first note). Shown on the order's page,
+  newest first. Not synced or backed up (they stay with the copy's orders).
+- **Order statuses** (`src/lib/shop/statuses.ts`, safe in the browser; Settings > Shop, Order statuses,
+  `settings.site.shop.statuses`, `orderStatusesFrom`): the shop's own steps, `{ id, name, notify, email }`,
+  at most 30. An order's is `shop_orders.custom_status` (its id, '' for none; synced with the order), set
+  on its page (`setOrderStatus`, the `status` action: recorded in its history and, when the status
+  `notify`s and the page leaves Email the buyer ticked, the buyer emailed: the status's design, else
+  `STATUS_EMAIL`, `{order_status}` its name). The Orders screen shows it and filters by it (`?status=`,
+  `-` for none; `ordersQuery`, the CSV too).
+- **Carrier rates, labels and tracking** (`src/lib/shop/carrier.ts`, `fulfilment.ts`; `tracking.ts` safe in the
+  browser): Shippo's REST API (no SDK; `SHIPPO_API_KEY` under Settings > Connections, `SHIPPO_API_BASE` a
+  stand-in for tests) behind a `Carrier` interface (`rates`, `buyLabel`, `tracks`, `track`, `follow`). Settings >
+  Shop's `carrier` (`CarrierSettings`, `cleanCarrier`, `carrierProblem`): live rates on, in place of the
+  zones' rates or beside them (`only`), the ship-from address, the box (inches for pounds and ounces,
+  else centimetres) and its empty weight, the carriers offered (`CARRIERS`). `shippingSources` gives
+  checkout and the quote the manual zones and `carrierSource`, whose rates come only for an address with
+  a ZIP code (the cart asks for it beside the country and re-quotes as the address changes; any country
+  is offered), for the shipped lines' weight plus the box's, of the carriers chosen and in the shop's
+  currency (Shippo's `amount`, or `amount_local` in the account's currency), one per carrier and service
+  (the cheapest), as options `carrier:<carrier>:<service>` (`offered`, which the label rates share; kept 10
+  minutes per address and weight, the address as rates depend on it, `rateKey`: country, state, ZIP, city and
+  street in one case and spacing, so checkout charges what the cart showed; the oldest go past 500). A
+  cart's new lookups are limited per visitor and in all, in each running copy of the Worker
+  (`mayLookUp`: 30 per visitor, by address or IPv6 /64, and 300 in all, in 10 minutes); past them the
+  visitor gets no carrier rates for a while, and checkout isn't limited. The cart keeps the buyer's focus
+  and cursor across the re-price (`data-co`), and the ZIP is needed only for an order that is posted. The order keeps the option (`shipping.carrier`, `service`) and each
+  shipped line's `weight`. An order's page (editors) lists the label rates (`labelRates`, the buyer's
+  service marked) and buys one (`buyLabel`: the order claimed first, a label marked as being bought set only
+  where there is none, so overlapping purchases buy one; let go if the purchase fails; then
+  `shop_orders.label` with the label's address, and `fulfilOrder` shipped with its tracking and carrier,
+  emailing the buyer); a tracking number typed with a carrier (`shop_orders.carrier`: any carrier's code,
+  a label's from any carrier on the account; none chosen clears it) is followed through Shippo (`follow`). A test token (`shippo_test_`) tracks only Shippo's test numbers (`SHIPPO_TRANSIT`, `SHIPPO_DELIVERED`...)
+  under the carrier `shippo` (`SHIPPO_TEST_CARRIER`, offered on an order's page while the token is a test one,
+  `carrierTesting`): `tracks` says which carriers it can read, and other numbers (a test label's) are neither
+  followed nor read by the hourly run, and Check the tracking now says why. Tracking updates come to
+  `POST /api/shop/carrier/shippo?token=<SHIPPO_WEBHOOK_TOKEN>` (made when Shippo is connected; the token compared in constant time, `sameString`), which takes
+  only the number and reads each order's tracking again from Shippo (`refreshTracking`:
+  `tracking_status`); the hourly run reads those not delivered of the last 30 days, at most 50, those
+  unchecked longest first among all of them (`refreshDueTracking`); **Check the tracking now** on the order. Delivered, the buyer gets the Delivered
+  email once (`delivered_at`, set where null). Without a key a number with a carrier links to the
+  carrier's own page (`trackingLink`). Migration `*_shop_orders_carrier.sql`.
+- **Digital downloads** (`src/lib/shop/downloads.ts`): a product's `download` (`downloadOf`: a path under a
+  random folder of the store's private `shop-downloads/` folder, its name, size and type), uploaded from its
+  Shop settings (POST `/api/admin/shop/downloads`, the file as the body and its name in X-File-Name,
+  streamed to the store, up to `DOWNLOAD_MAX_MB`, 200; `storeDownload`). The quote carries its name (the
+  quote endpoint leaves its stored path out) and the order keeps it on the line as bought (`lines[].download`, `downloads` its count). Once paid, the order's
+  page (the Cart block's order view) and its confirmation (`{downloads}`, the Order details block's
+  `downloads`, in the built-in confirmation) link to `GET /api/shop/download?order=<token>&line=<n>`
+  (`serveDownload`, working while the shop is off too): closed for an order not paid (refunded ones
+  included) or past Settings > Shop's `downloadDays` (default 30, 0 always), else `shop_download` counts
+  it in the statement that allows it (under `downloadLimit`, default 5, 0 none) and the file is streamed
+  as an attachment, no-store and noindex. The admin's order page shows each line's count. Files in
+  `shop-downloads/` aren't synced or backed up.
+- **Stock screen and low-stock alerts** (Shop > Stock, `/admin/shop/stock/`, editors; `src/admin/StockTable.tsx`,
+  `src/lib/shop/low-stock.ts`; `stateOf` and `StockRow` in `stock.ts`, safe in the browser): every variant
+  of the products that count stock (not in the trash), with on hand (changed in place, saved to
+  `shop_stock` as the product's own settings save it), held by orders (`loadHeld`), left and its
+  low-stock mark (the product's `lowStock`, else Settings > Shop's `lowStock`, default 3, 0 never), marked
+  Low or Out of stock (variants not sold aren't), filtered All / Low or out / Out of stock and searched by
+  name or SKU. A sale that takes stock off (`afterPaid`, after the order's emails) runs `alertLowStock`:
+  the order's variants now at or under their mark that the shop hasn't been told of are claimed
+  (`shop_stock.low_alerted_at`, set where it is null) and emailed to the shop (SHOP_NOTIFY_EMAIL, else
+  the forms' address, else the config's), unless `lowStockAlerts` is false. Raising a count re-arms it (a
+  trigger clears `low_alerted_at` when `on_hand` goes up; migration `*_shop_stock_low.sql`).
+- **Shop stats** (Shop > Stats, `/admin/shop/stats/`, editors; `src/lib/shop/stats.ts`): over the Stats
+  screen's ranges (`statsRange`), from paid and refunded orders by the day they were paid in the site's
+  time zone (`summarizeOrders`): net sales (paid less refunded), orders, items, the average order, buyers
+  and those who ordered more than once, checkouts started and never paid, the shipping, tax and discounts
+  in the sales, a bar a day (a week past 90 days), the products that sold most (after their share of
+  discounts), the discounts used, sales by campaign (the order's `campaign`: the utm_ values its visit came
+  with) and how orders were sent. Orders in another currency than the shop's
+  are left out and counted; at most `SHOP_STATS_MAX_ORDERS` (20,000) are read. Each table downloads as
+  CSV (`GET /api/admin/shop/stats.csv?table=daily|products|discounts|campaigns` with the range, formulas
+  guarded). An order's page and the orders CSV show its campaign.
+- **Sync and backups** (`src/lib/sync.ts`; Settings > Sync): groups `shop:discounts` (by id, as forms),
+  `shop:orders` (by token: each copy's orders have their own ids; written without id, member or discount
+  id, the target's discount of the same code set, so nothing is sent and no stock changes) and
+  `shop:stock` (by product and variant; `optIn`, left out of All, with a warning). An order never goes
+  backwards (`orderAhead`: further along in status, refunds, fulfilment or stock taken off, or changed
+  later, on the target is a conflict). Snapshots and sync backups hold `shop_discounts`, `shop_orders` and
+  `shop_stock`; a restore never deletes an order (not even with Also delete), puts back only orders not
+  further along now (`ordersNotAhead`), and stock as the backup has it less what orders paid since took
+  off (`stockLessSold`). Backups so hold buyers' details: they stay in the private `sync-backups/` folder,
+  downloaded by admins only.
+- **Order emails** (`src/lib/shop/email.ts`, safe in the browser; Settings > Shop, Emails,
+  `settings.site.shop.emails`, `shopEmailsFrom`): the buyer's confirmation (when paid, and Resend
+  confirmation), shipped (marking an order shipped, with its tracking), refunded (a refund made on its
+  page, with `{refund}`, that refund's amount; not one made in the provider's dashboard) and the shop's
+  copy, and delivered (the carrier said so), each a subject, an email builder design and an optional plain
+  text, as ticket emails; `{carrier}` and `{tracking_link}` name the carrier and link its tracking page. Sent
+  (`sendShopEmail`, email log kind `shop`): the site's design, else the default template for its kind
+  (`shop:<kind>`), else `DEFAULT_SHOP_EMAILS` (`shopEmailToSend`; a subject left empty is the built-in
+  one). Rendered with the forms' renderer: the merge tags `SHOP_MERGE_TAGS` (`shopTagValues`, buyer's
+  values escaped), the Order details block (`SHOP_ORDER_DETAILS`: the order as a table, its items, totals,
+  where it goes, order number, tracking, refund, the buyer's contact) and the Payment block (a paid
+  order's, `orderPayment`; none for free ones). The builder's kit is `src/admin/shop-email.ts`, its
+  preview a sample order (`SAMPLE_SHOP_ORDER`) rendered in the browser; the cards are
+  `src/admin/EmailCard.tsx`, which ticket emails share.
+- **Discounts** (`src/lib/shop/discounts.ts`, safe in the browser; `src/lib/shop/discount-lookup.ts`;
+  table `shop_discounts`, migration `*_shop_discounts.sql`, editors write): a code (`cleanCode`: letters,
+  digits, dashes and underscores, matched without regard to case; unique) or automatic (`code` null);
+  percent off, an amount off in cents or free shipping; on the whole order, some products or some product
+  categories (with the categories under them, `widen`); a minimum subtotal, start and end, uses in all
+  (`max_uses`), once per email, members only (of `levels`), on or off. Saved from Shop > Discounts
+  (`/admin/shop/discounts/`, a list with each one's uses, sales and what it took off from paid orders;
+  `/admin/shop/discounts/<id>/` and `new/`, `src/admin/DiscountForm.tsx`; POST
+  `/api/admin/shop/discounts`, cleaned by `cleanDiscount`, which doesn't clear the page cache). One per order: the code typed when the cart
+  fits it (`applyDiscount` says why not: dates, minimum, nothing it applies to), else the automatic one
+  that saves the most, shipping included (`pickDiscount`). `discountCandidates` finds them for the buyer:
+  the code's (unknown, not running, members only, used up, or already used by that email) or the
+  automatic ones they may take; uses are paid orders and unexpired holds. The quote takes `code` and
+  answers `discount` and `discountProblem`; checkout refuses a code that doesn't fit (`error: 'discount'`)
+  and `shop_order_create` counts the uses and the email's again in the statement that makes the order
+  (`p_limits.discount`; a use taken meanwhile answers `{ ok: false, discount }`). The discount is spread
+  over the lines it applies to (`orderTotals`' `discountLines`), tax after it; a line with a share goes to
+  the provider as one item at its total less the share. The order keeps `discount_id` (null once the
+  discount is deleted) and `discount_code`, shown on its page, emails and the order view.
+- **Member pricing** (while Members is on; the product's Shop settings, Members): per level, a percent
+  off every variant's price (`memberDiscounts`) or a price of their own (`memberPrices`, which a variant
+  can set for itself, its `memberPrices`), and members only (`membersOnly`, of `levels`; none: any level).
+  A product category takes a percent off per level too (Content > Taxonomies, Details, Member pricing;
+  `terms.fields.memberDiscounts`, a reserved key, saved for the product type's main taxonomy), for its
+  products and those of the categories under it (`categoryDiscounts`, the largest for each level).
+  `unitFor` and `mayBuyProduct` (`src/lib/shop/config.ts`) decide for an active member's level: the
+  variant's member price, else the product's, else the product's percent off, else its categories',
+  never above the price. Add to cart
+  says what members save or pay and that a product is for members only, with a sign-in link, the
+  same for everyone so the page stays cached; the quote charges a member their price (`listUnit` keeps the
+  price before it) and gives others a members-only line no quantity (`members-only`), which the cart shows
+  once and takes out, as it does a sold-out one.
+- **Checkout settings** (Settings > Shop, under `settings.site.shop`; `checkoutSettings`,
+  `checkoutSettingsFrom`, `src/lib/shop/checkout-settings.ts`, `src/admin/ShopCheckoutSettings.tsx`; cleaned
+  on save, only what isn't the default kept): the payment provider, the minutes an unpaid order holds its
+  stock (`hold`, 30-120, default 60), shipping zones (`zones`: name, places, rates), pickup locations
+  (`pickup`: name, address, hours, fee, place for tax), the Email me news tick (`news`: the mailing lists
+  it signs up to and its words, `DEFAULT_NEWS_LABEL`; shown at checkout while Mailing is on and lists are
+  chosen; ticked, checkout calls the mailing sign-up, `signUp` with source `shop:checkout`, so the buyer is
+  confirmed by email as with a Subscribe block) and tax (`tax`: `mode` rates or Stripe Tax, the
+  store's `rate` and per-place `regions` in percent, `onShipping`, Stripe's `taxCode`; Stripe Tax only while payments go through Stripe, `taxInForce`, else the rates; while Stripe Tax isn't active on the account, `GET /v1/tax/settings`, Stripe refuses checkouts asking for it, so the setting warns with what it lacks: `GET /api/admin/shop/stripe-tax`, `taxReadiness` in `src/lib/payments/stripe.ts`). Places
+  (`src/lib/shop/places.ts`) are ISO countries, US states as `US-NY`, and `*` for everywhere else.
+- **Totals** (`src/lib/shop/totals.ts`, safe in the browser): a zone is the first, in order, with a place
+  covering the address, a `*` zone only when none names it (`zoneFor`); a rate is flat or by subtotal or
+  shipped weight bands (min inclusive, max exclusive; a cart in no band isn't offered it), free over a
+  subtotal (`ratePrice`). Rates come from `ShippingSource`s (the manual zones, `manualSource`; a carrier's,
+  `carrierSource`), a failing source left out, listed cheapest first, then pickup (`shippingChoices`); a cart with a
+  pickup-only line gets only pickup, one with nothing shipped none. Tax is per line after its share of the
+  discount (`spreadDiscount`, `orderTotals`), at the most specific region's rate for the address, or the
+  chosen pickup location's place, else the store's (`taxRateFor`); with Stripe Tax it is left to checkout.
+  The quote endpoint takes `destination` and `option` and answers `shipping`, `chosen` and `totals` too
+  (`cartTotals`).
+- **Templates**: turning the shop on the first time makes `single-product` (the Product gallery beside the product's categories
+  over its name), `archive-product` (a Filters block by product category over the products) and
+  `taxonomy-product_category` (a category's name and description over its products)
+  (`SHOP_TEMPLATES`, `ensureShopTemplates`, `src/lib/shop/templates.ts`) when no templates have those
+  addresses; `npm run seed` does the same while it is on.
+
 ## Editor
 
 `/admin/` (a session, see Accounts; `profiles.role`: editor, admin, or viewer = no access). The admin bar's **?**
@@ -1289,8 +1552,9 @@ The admin bar (`src/layouts/Admin.astro`, its items from `adminNav` in `src/lib/
 dropdown (each type shown, its list at `/admin/?type=<type>`, then Taxonomies, then Templates in a section
 of its own, `section`; the content list has no tabs of its own for the types), a **Compose** dropdown
 (each type with a page, at `/admin/compose/?type=<type>`; then Form and, while Mailing is on, Campaign;
-then Template, Template part and Pattern), Media, Stats, a **Forms** dropdown (Forms, Submissions) and a **People** dropdown (Users and Members
-for admins, Mailing Lists and Tickets, each while its feature is on; a group of one shows as its link),
+then Template, Template part and Pattern), Media, Stats, a **Forms** dropdown (Forms, Submissions), a **People** dropdown (Users and Members
+for admins, Mailing Lists and Tickets, each while its feature is on; a group of one shows as its link)
+and a **Shop** dropdown (Orders, Discounts, Stock, Stats) while the shop is on,
 then a gear for Settings (admins), **?**, View site and the account menu. Below 1024px it all sits behind
 one menu button, the groups as headings. The dropdowns are `details[data-menu]`: one open at a time, closed
 by a click elsewhere or Escape.
@@ -1316,8 +1580,8 @@ builder's and campaign editor's Compose dialogs, or the editor's panel, whose co
 
 **Settings** (admins; `src/puck/SiteSettings.tsx`, page `src/pages/admin/settings/[...section].astro`): a side
 menu of sections in groups (`SETTINGS_GROUPS`, `src/lib/admin/settings-sections.ts`): Site (General, Menu,
-Social, Search, Types, the site's own options, Popups, Stats, Code snippets), Features (Events, Tickets, Members, Mailing Lists, marked
-On or Off), Services (Connections), Admin (Accessibility, Appearance) and Upkeep (Redirects, Email log, Sync,
+Social, Search, Types, the site's own options, Popups, Stats, Code snippets), Features (Events, Tickets, Members, Mailing Lists, Shop,
+marked On or Off), Services (Connections), Admin (Accessibility, Appearance) and Upkeep (Redirects, Email log, Sync,
 Backups); a Section dropdown on phones. Each section has its own address, `/admin/settings/<section>/`
 (General `/admin/settings/`; `sectionOf`, `settingsPath`); the screen moves between them in place, so
 unsaved changes carry over, and an old `#<section>` link (and `admin`, now `appearance`) forwards to it.
@@ -1424,7 +1688,7 @@ takes more, so local runs don't show these): a row's `json_object` has 16 column
   Previews render as the editor with no scope.
 - A signed-in person's (`locals.db`, set by the middleware: `sessionDb`) follows the policies in
   `src/lib/db/policies.ts`, the database's row security as it was: editors read every table and write
-  content, media, forms, templates, compose and segments; admins also write settings, redirects, lists,
+  content, media, forms, templates, compose, segments and shop stock; admins also write settings, redirects, lists,
   contacts and members; ticket orders and waitlists change only through the server; editors save
   campaigns only as drafts, change digests only while off and change their
   own profile but not its role; anyone else gets nothing. Reads a role may not make return no rows;
@@ -1453,7 +1717,8 @@ only add; one that switches block types or settings goes out with `npm run deplo
 - Bindings: `DB` (D1), `BUCKET` (R2), `IMAGES` (Cloudflare Images), `JOBS` (a queue: Compose turns, campaign
   sending runs and restores, each run once with up to 15 minutes, `src/lib/jobs.ts`),
   `CF_VERSION_METADATA` (the page cache's validators). The Cron Triggers: mailing every 5 minutes and at
-  06:20 UTC, snapshots at 07:00 UTC, ticket emails and the statistics' and email log's pruning hourly (`SCHEDULES`).
+  06:20 UTC, snapshots at 07:00 UTC, ticket emails, the shop's expired holds and parcels' tracking, and the statistics' and email log's pruning
+  hourly (`SCHEDULES`).
 - Variables and secrets reach the code as `process.env` (`nodejs_compat`); secrets are set with
   `npx wrangler secret put`. Code reads them with `env()` (`src/lib/env.ts`), which reads `.env` through
   `import.meta.env` under `astro dev` only: a build would write the build machine's `.env` values into
@@ -1476,13 +1741,14 @@ only add; one that switches block types or settings goes out with `npm run deplo
 ### Connections
 
 Settings > Connections (admins; `src/admin/Connections.tsx`, GET and POST `/api/admin/connections`)
-keeps the keys for Claude, Stripe, Square and Mailgun (`SERVICES` in `src/lib/site-keys.ts`), so an admin
+keeps the keys for Claude, Stripe, Square, Mailgun and Shippo (`SERVICES` in `src/lib/site-keys.ts`), so an admin
 sets a service up by pasting one key. `connect` (`src/lib/connections.ts`) checks it with the service and
 sets the service up: Stripe's webhook endpoint at `/api/payments/stripe` (`STRIPE_EVENTS`; its signing
 secret kept; a key Stripe can't be asked about is refused, and a restricted key without webhook access is
 saved with a note to set the webhook up by hand),
 Square's environment found from the token, its location (chosen when there are several) and a webhook
-subscription (signature key and address kept), Mailgun's region found from the key, its sending domain
+subscription (signature key and address kept), Shippo's token checked and its tracking webhook made (`track_updated`, to an address with a random
+token of its own, `SHIPPO_WEBHOOK_TOKEN`), Mailgun's region found from the key, its sending domain
 (chosen when there are several), its webhooks (`MAILGUN_EVENTS`, this site's address added beside any
 already there, up to Mailgun's 3, so another copy of the site keeps its own) and signing key. With the key
 unchanged and its secret saved, Stripe's endpoint and Square's subscription stay as they are (their

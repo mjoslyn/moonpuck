@@ -37,14 +37,18 @@ Merges stay clean as long as the site only changes:
 ## Taking core updates
 
 ```sh
-git fetch upstream
-git merge upstream/main
+npm run core:update                                # fetch upstream/main, check for conflicts, merge
+npm run core:update -- --check                     # only check what would come in, and any conflicts
 npx wrangler d1 migrations apply DB --remote       # if there are new migrations
 npx tsx --env-file=.env scripts/migrate-content.ts # if stored content needs migrating
 ```
 
-On a conflict, a site keeps its own `AGENTS.md`, `README.md`, `.env.example` and
-`wrangler.jsonc`.
+`core:update` (`scripts/update-core.mjs`) stops before changing anything without the `upstream` remote,
+with uncommitted changes or with a merge under way. It tries the merge first and lists every file that
+would conflict. On a conflict, a site keeps its own `AGENTS.md`, `README.md`, `.env.example` and
+`wrangler.jsonc`; any other conflict (a core file the site has changed) stops it with the branch as it
+was. It then merges, lists the new migrations and runs `npm install` when the dependencies changed. By
+hand: `git fetch upstream && git merge upstream/main`.
 
 ### Migrations
 

@@ -66,7 +66,7 @@ renamed things come out of the docs too.
 2. Test on the example site, and for anything that real content exercises, in a site: in
    `../<site>`, `git fetch <path to this repository> main && git merge --no-commit FETCH_HEAD`,
    restart its dev server if config or dependencies changed, and test there.
-3. Push moonpuck (it deploys nothing), then in the site `git fetch upstream && git merge upstream/main`
+3. Push moonpuck (it deploys nothing), then in the site `npm run core:update` (or `git fetch upstream && git merge upstream/main`)
    and commit; a site keeps its own `AGENTS.md`, `README.md`, `.env.example` and `wrangler.jsonc`
    when they conflict. The site's owner pushes the site, which deploys it.
 4. Stored content changes and how to check changes: `CORE.md` (Changing stored content, Checking
@@ -96,3 +96,10 @@ Concise and factual: what changed, why, and any measurements; no editorial frami
   deploy: Images' trim, the cache purge, SMTP over sockets, and a real site's move (its own tables,
   row sizes against D1's 2 MB).
 - Core tests that run on the example site's content (several e2e scripts assume a site's content).
+- The shop (CORE.md, Shop; the full plan and its decisions: `docs/shop-plan.md`): phase 2, checkout (payments
+  through `src/lib/payments`, manual shipping rates and pickup, tax, discounts, orders with stock holds,
+  refunds with a restock choice, order emails, stats, orders and stock in sync and backups), is built; phase 3 (the Stock
+  screen, low-stock alerts, digital downloads, Shippo rates, labels and tracking) is built and checked
+  against Shippo's test API; its tracking webhook still to check on a deployed copy. Stripe is checked against
+  its test API (connecting, checkout, cancel and expiry, Stripe Tax, refunds from the order page and the
+  dashboard, its events' shapes); webhook delivery from Stripe itself still to check on a deployed copy.

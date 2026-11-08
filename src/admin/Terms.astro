@@ -12,23 +12,23 @@ import { termLink } from '../lib/permalink';
 import { TAXONOMY_BASES } from '../lib/site';
 import { termPagesOn, termTemplate, templateLabel } from '../lib/templates';
 import TermDetails from './TermDetails';
-import { showsTaxonomy, showsType } from '../lib/events/on';
+import { showsTaxonomy, showsType, type Features } from '../lib/features';
 
 interface Props {
   taxonomy: string;
-  /** Whether events are on (Settings > Events): event categories are hidden while they're off. */
-  events: boolean;
+  /** Which features are on (Settings > Events, Shop): their taxonomies are hidden while off. */
+  features: Features;
   error?: string | null;
   notice?: string | null;
 }
-const { taxonomy, events, error, notice } = Astro.props;
-const taxonomies = site.taxonomies.filter((t) => showsTaxonomy(t.name, events));
+const { taxonomy, features, error, notice } = Astro.props;
+const taxonomies = site.taxonomies.filter((t) => showsTaxonomy(t.name, features));
 const db = Astro.locals.db;
 const tax = taxonomies.find((t) => t.name === taxonomy) ?? taxonomies[0];
 const flat = isFlat(tax.name);
 const isAdmin = Astro.locals.user?.role === 'admin';
 // The types a taxonomy can belong to (globals take none), its own now, and those the site's code sets.
-const typeChoices = CONTENT_TYPES.filter((c) => c.type !== 'global' && showsType(c.type, events));
+const typeChoices = CONTENT_TYPES.filter((c) => c.type !== 'global' && showsType(c.type, features));
 const made = MADE_TAXONOMIES.find((t) => t.name === tax.name);
 const ownTypes = tax.name === 'tag' ? [] : typesOfTaxonomy(tax.name);
 const codeTypes = made ? [] : codeTypesOf(tax.name);
