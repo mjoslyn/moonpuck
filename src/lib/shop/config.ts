@@ -4,6 +4,7 @@
 // weight and image. Its stock is kept apart (table shop_stock, per variant), so saving a product never
 // overwrites a count. Prices are in minor units (cents). Safe in the browser.
 import { checkoutSettingsFrom, type CheckoutSettings } from './checkout-settings';
+import { shopEmailsFrom, type ShopEmail, type ShopEmailKind } from './email';
 import { byLevel, isActive, type MemberRow } from '../members/config';
 
 /** The shop's blocks: offered in the editor, and shown on the site, only while the shop is on. */
@@ -47,11 +48,17 @@ export function shopSettings(site: Record<string, any> | null | undefined): Shop
   };
 }
 
+type SavedShop = Partial<ShopSettings> & Partial<CheckoutSettings> & { emails?: Partial<Record<ShopEmailKind, ShopEmail>>; notify?: false };
+
 /** The shop's settings as saved (Settings > Shop): only what differs from the defaults, the checkout's
- *  (src/lib/shop/checkout-settings.ts) with them. */
-export function shopSettingsFrom(raw: unknown): (Partial<ShopSettings> & Partial<CheckoutSettings>) | undefined {
+ *  (src/lib/shop/checkout-settings.ts) and the emails with them. */
+export function shopSettingsFrom(raw: unknown): SavedShop | undefined {
   const s = shopSettings({ shop: raw });
-  const out: Partial<ShopSettings> & Partial<CheckoutSettings> = { ...checkoutSettingsFrom(raw as Record<string, any>) };
+  const out: SavedShop = { ...checkoutSettingsFrom(raw as Record<string, any>) };
+  // The order emails (src/lib/shop/email.ts) and whether the shop gets a copy of each order.
+  const emails = shopEmailsFrom((raw as any)?.emails);
+  if (Object.keys(emails).length) out.emails = emails;
+  if ((raw as any)?.notify === false) out.notify = false;
   if (s.enabled) out.enabled = true;
   if (s.currency !== 'USD') out.currency = s.currency;
   if (s.weightUnit !== 'lb') out.weightUnit = s.weightUnit;

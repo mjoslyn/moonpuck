@@ -12,7 +12,6 @@ import { MIN_CHARGE, formatMoney } from '../payments/money';
 import { sendMail } from '../forms/mail';
 import { site } from '../site';
 import { env } from '../env';
-import { esc } from '../../render/html';
 import { buyerAddress, newCode, newToken, siteOrigin } from '../tickets/orders';
 import { CART_PATH, shopOn, shopSettings } from './config';
 import { quoteCart, type QuoteLine } from './cart';
@@ -20,6 +19,10 @@ import { checkoutSettings, taxInForce } from './checkout-settings';
 import { cleanPlace, placeName, US_STATES } from './places';
 import { cartTotals, type ShipOption } from './totals';
 import { discountCandidates } from './discount-lookup';
+import { addressLines, shopEmail, shopEmailsFrom, shopEmailToSend, type ShopEmailKind } from './email';
+import { defaultTemplate } from '../email-templates';
+import { emailEvents } from '../events/email';
+import { SITE_TZ } from '../site';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** Orders the shop takes in a minute (all buyers together), against floods. */
@@ -141,8 +144,7 @@ export function cleanAddress(raw: any): ShopAddress | null {
 }
 
 /** An address on lines, for emails and the order page. */
-export const addressLines = (a: ShopAddress | null | undefined): string[] =>
-  a ? [a.line1, a.line2, [a.city, [a.state, a.zip].filter(Boolean).join(' ')].filter(Boolean).join(', '), placeName(a.country)].filter((x): x is string => !!x) : [];
+export { addressLines };
 
 async function siteSettings(db: Db) {
   const { data } = await db.from('settings').select('value').eq('key', 'site').maybeSingle();
@@ -377,56 +379,27 @@ export async function orderByToken(db: Db, token: string): Promise<ShopOrder | n
 /** Where the shop's notices go: SHOP_NOTIFY_EMAIL, else the forms' admin address, else the config's. */
 const notifyAddress = () => env('SHOP_NOTIFY_EMAIL') || env('FORMS_ADMIN_EMAIL') || site.adminEmail;
 
-/** An order's summary as email HTML: its lines, shipping, tax and total, and where it goes. */
-export function orderSummaryHtml(o: ShopOrder, origin: string): string {
-  const money = (n: number) => esc(formatMoney(n, o.currency));
-  const row = (label: string, value: string, strong = false) => `<tr><td style="padding:6px 0">${strong ? `<strong>${label}</strong>` : label}</td><td style="padding:6px 0;text-align:right">${strong ? `<strong>${value}</strong>` : value}</td></tr>`;
-  const lines = o.lines.map((l) => row(`${esc(l.title)}${l.label ? ` <span style="color:#666">(${esc(l.label)})</span>` : ''} × ${l.quantity}`, money(l.total))).join('');
-  const ship = o.shipping
-    ? row(`${o.shipping.kind === 'pickup' ? 'Pickup' : 'Shipping'}: ${esc(o.shipping.name)}`, o.shipping_total ? money(o.shipping_total) : 'Free')
-    : '';
-  const where =
-    o.fulfilment === 'pickup' && o.shipping
-      ? `<p><strong>Pick up at ${esc(o.shipping.name)}</strong><br>${esc(o.shipping.address ?? '').replace(/\n/g, '<br>')}${o.shipping.hours ? `<br>${esc(o.shipping.hours)}` : ''}</p>`
-      : o.address
-        ? `<p><strong>Shipping to</strong><br>${esc(o.name)}<br>${addressLines(o.address).map(esc).join('<br>')}</p>`
-        : '';
-  return (
-    `<table role="presentation" style="width:100%;border-collapse:collapse">${lines}` +
-    (o.discount ? row(`Discount${o.discount_code ? ` (${esc(o.discount_code)})` : ''}`, `−${money(o.discount)}`) : '') +
-    ship +
-    (o.tax ? row('Tax', money(o.tax)) : '') +
-    row('Total', money(o.total), true) +
-    `</table>${where}<p><a href="${esc(`${origin}${CART_PATH}?order=${o.token}`)}">View your order</a></p>`
-  );
-}
-
-/** The buyer's confirmation of a paid order. */
-async function sendBuyerConfirmation(o: ShopOrder, origin: string) {
-  await sendMail({
-    to: [o.email],
-    subject: `Your order ${o.code} from ${site.name}`,
-    html: `<p>Thank you, ${esc(o.name)}. We have your order <strong>${esc(o.code)}</strong>.</p>${orderSummaryHtml(o, origin)}`,
-    kind: 'shop',
-  });
+/**
+ * One of an order's emails (src/lib/shop/email.ts): the design from Settings > Shop, else the default
+ * template for its kind, else the built-in one; to the buyer, or (admin) to the shop, replying to the buyer.
+ */
+export async function sendShopEmail(kind: ShopEmailKind, o: ShopOrder, origin: string, refund?: number) {
+  const db = serviceClient();
+  const siteValue = await siteSettings(db);
+  const own = shopEmailsFrom(siteValue.shop?.emails)[kind];
+  const email = shopEmailToSend(kind, own, own?.design ? null : await defaultTemplate(db, `shop:${kind}`));
+  const extras = { order: `${origin}${CART_PATH}?order=${o.token}`, admin: `${origin}/admin/shop/${o.id}/`, siteName: site.name, refund, timeZone: SITE_TZ };
+  const mail = shopEmail(email, o, extras, origin, await emailEvents(db, email.design, origin));
+  if (kind !== 'admin') return sendMail({ to: [o.email], ...mail, kind: 'shop' });
+  const to = notifyAddress();
+  return to && siteValue.shop?.notify !== false ? sendMail({ to: [to], replyTo: o.email, ...mail, kind: 'shop' }) : false;
 }
 
 /** The buyer's confirmation and the shop's copy of a paid order. */
 async function sendOrderEmails(o: ShopOrder, origin: string) {
-  const summary = orderSummaryHtml(o, origin);
-  await sendBuyerConfirmation(o, origin);
-  const to = notifyAddress();
-  if (to) {
-    await sendMail({
-      to: [to],
-      replyTo: o.email,
-      subject: `New order ${o.code}: ${formatMoney(o.total, o.currency)}`,
-      html: `<p>${esc(o.name)} (${esc(o.email)}${o.phone ? `, ${esc(o.phone)}` : ''}) placed order <strong>${esc(o.code)}</strong>.</p>${summary}`,
-      kind: 'shop',
-    });
-  }
+  await sendShopEmail('confirmation', o, origin);
+  await sendShopEmail('admin', o, origin);
 }
-
 
 // ---- The Orders screen ------------------------------------------------------------------------
 
@@ -455,7 +428,7 @@ export async function fulfilOrder(db: Db, id: number, kind: 'shipped' | 'picked_
   if (o.status !== 'paid') throw new Error('Only paid orders can be marked shipped or picked up.');
   const t = text(tracking, 300);
   await db.from('shop_orders').update({ fulfilled: kind, fulfilled_at: kind ? new Date().toISOString() : null, tracking: kind === 'shipped' ? t : '' }).eq('id', id);
-  if (kind === 'shipped') await sendShippedEmail({ ...o, tracking: t }, siteOrigin(origin));
+  if (kind === 'shipped') await sendShopEmail('shipped', { ...o, tracking: t }, siteOrigin(origin));
 }
 
 /** An order's notes for the shop (not shown to the buyer). */
@@ -468,7 +441,7 @@ export async function saveNotes(db: Db, id: number, notes: string) {
 export async function resendShopConfirmation(db: Db, id: number, origin?: string) {
   const o = await loadOrder(db, id);
   if (o.status !== 'paid') throw new Error('Only paid orders have a confirmation to send.');
-  await sendBuyerConfirmation(o, siteOrigin(origin));
+  await sendShopEmail('confirmation', o, siteOrigin(origin));
 }
 
 /**
@@ -505,7 +478,7 @@ export async function cancelShopOrder(db: Db, id: number, restock: Restock = {},
  * says. All of it marks the order refunded. Each refund has its own idempotency key, kept while its
  * outcome is unknown, so a retried one is made once (as ticket refunds).
  */
-export async function refundShopOrder(db: Db, id: number, amount: number, restock: Restock = {}): Promise<{ refunded: number; full: boolean; restocked: Restock }> {
+export async function refundShopOrder(db: Db, id: number, amount: number, restock: Restock = {}, origin?: string): Promise<{ refunded: number; full: boolean; restocked: Restock }> {
   const o = await loadOrder(db, id);
   if (o.status !== 'paid' && o.status !== 'refunded') throw new Error('Only paid orders can be refunded.');
   const left = o.total - o.refunded_amount;
@@ -525,18 +498,10 @@ export async function refundShopOrder(db: Db, id: number, amount: number, restoc
     const { data: now } = await db.from('shop_orders').select('refunded_amount').eq('id', id).single();
     total = Math.max(Number(now?.refunded_amount) || 0, o.refunded_amount + amount);
     await db.from('shop_orders').update({ refunded_amount: total, ...(total >= o.total ? { status: 'refunded' } : {}) }).eq('id', id).in('status', ['paid', 'refunded']);
+    // The buyer is told; a failed email doesn't undo the refund.
+    await sendShopEmail('refunded', { ...o, refunded_amount: total, status: total >= o.total ? 'refunded' : o.status }, siteOrigin(origin), amount).catch((e) => console.error(`shop: refund email for order ${o.code}: ${(e as Error).message}`));
   }
   return { refunded: total, full: total >= o.total, restocked: o.stock_taken ? await restockOrder(db, id, restock) : {} };
-}
-
-/** The shipped email: the order's summary and its tracking. */
-async function sendShippedEmail(o: ShopOrder, origin: string) {
-  await sendMail({
-    to: [o.email],
-    subject: `Your order ${o.code} from ${site.name} has shipped`,
-    html: `<p>Good news, ${esc(o.name)}: your order <strong>${esc(o.code)}</strong> is on its way.</p>${o.tracking ? `<p>Tracking: <strong>${esc(o.tracking)}</strong></p>` : ''}${orderSummaryHtml(o, origin)}`,
-    kind: 'shop',
-  });
 }
 
 /** The orders as CSV rows (the Orders screen's export): one row per line. */

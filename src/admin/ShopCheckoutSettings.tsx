@@ -1,6 +1,6 @@
 // Settings > Shop's checkout settings (settings.site.shop; src/lib/shop/checkout-settings.ts): who takes
 // payments, how long an unpaid order holds its stock, shipping zones with their rates, pickup locations
-// and tax. Saved with the other settings.
+// and tax, and the order emails. Saved with the other settings.
 import { useState } from 'react';
 import { Num, Row, Segmented, Select, Text, Toggle, inputClass } from '../puck/fields';
 import { PriceInput } from '../puck/TicketsForm';
@@ -8,6 +8,17 @@ import type { PaymentProvider, ProviderStatus } from '../lib/payments';
 import { formatMoney } from '../lib/payments/money';
 import { checkoutSettings, DEFAULT_HOLD, DEFAULT_TAX_CODE, newId, type PickupLocation, type RateBand, type ShippingRate, type ShippingZone, type TaxSettings } from '../lib/shop/checkout-settings';
 import { countryChoices, ELSEWHERE, placeName, US_STATES } from '../lib/shop/places';
+import { DEFAULT_SHOP_EMAILS, SHOP_EMAIL_KINDS, type ShopEmail, type ShopEmailKind } from '../lib/shop/email';
+import { site } from '../lib/site';
+import { EmailCard } from './EmailCard';
+import { shopEmailKit } from './shop-email';
+
+const EMAIL_HELP: Record<ShopEmailKind, string> = {
+  confirmation: 'To the buyer when an order is paid, or at once when there is nothing to pay. Resend confirmation on an order sends it again.',
+  shipped: 'To the buyer when an order is marked shipped, with its tracking number.',
+  refunded: 'To the buyer when you refund an order on its page, all or part.',
+  admin: 'The copy of each paid order to the shop: SHOP_NOTIFY_EMAIL, else the site’s admin address.',
+};
 
 const small = 'rounded-sm border border-admin-ink/20 px-2 py-1 text-xs font-semibold hover:border-admin-ink/50';
 const heading = 'mt-5 mb-1 block text-xs font-semibold tracking-wider text-admin-muted uppercase';
@@ -35,6 +46,7 @@ export default function ShopCheckoutSettings({ value, currency, weightUnit, prov
   const setPickup = (id: string, patch: Partial<PickupLocation>) => set({ pickup: c.pickup.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
   const setTax = (patch: Partial<TaxSettings>) => set({ tax: { ...c.tax, ...patch } });
   const stripeTax = provider === 'stripe';
+  const emails = (value.emails ?? {}) as Partial<Record<ShopEmailKind, ShopEmail>>;
 
   return (
     <>
@@ -158,6 +170,25 @@ export default function ShopCheckoutSettings({ value, currency, weightUnit, prov
         </>
       )}
       <p className="mb-3 text-xs text-admin-muted">Each product's Taxed switch decides whether it is taxed. The shop adds the tax you set up; it doesn't register for or file tax for you.</p>
+
+      <span className={heading}>Emails</span>
+      <p className="mb-2 text-xs text-admin-muted">Designed in the email builder, with the order's details as merge tags and an Order details block.</p>
+      {SHOP_EMAIL_KINDS.map(([kind, label]) => (
+        <EmailCard
+          key={kind}
+          label={label}
+          help={EMAIL_HELP[kind]}
+          value={emails[kind] ?? {}}
+          fallback={DEFAULT_SHOP_EMAILS[kind]}
+          templateKey={`shop:${kind}`}
+          makeKit={(subject) => shopEmailKit(kind, subject, site.name)}
+          note="Saved with the settings."
+          onChange={(patch) => set({ emails: { ...emails, [kind]: { ...(emails[kind] ?? {}), ...patch } } })}
+          onReset={() => set({ emails: { ...emails, [kind]: { ...(emails[kind] ?? {}), design: undefined, text: undefined } } })}
+        >
+          {kind === 'admin' && <Toggle title="Send the shop a copy of each order" value={value.notify !== false} onChange={(notify) => set({ notify })} />}
+        </EmailCard>
+      ))}
     </>
   );
 }

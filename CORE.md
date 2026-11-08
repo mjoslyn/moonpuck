@@ -533,7 +533,7 @@ its scripts run in order, once the visitor accepts in the consent banner (`snipp
 
 Settings > Email log (admins; `settings.site.mail_log` { enabled, days }, `src/lib/mail-log.ts`, migration
 `*_mail_log.sql`): while it is on, `sendMail` (`src/lib/forms/mail.ts`) keeps each email the site sends in
-`mail_log`, sent, failed (with the error) or not sent (no mail set up): its kind (`Mail.kind`: form, ticket,
+`mail_log`, sent, failed (with the error) or not sent (no mail set up): its kind (`Mail.kind`: form, ticket, shop,
 account, admin, other), recipients, sender, reply-to, subject, how it went out and its HTML and text. An
 email marked `secret` (account emails: password links, invitations, address confirmations, `sendLink` in
 `src/lib/auth/mail.ts`) is kept without its body (`withheld`), so nobody reading the log can use its link.
@@ -746,11 +746,12 @@ options, merge tags, canvas stand-ins, preview); a notification's is `formEmailK
 (`src/forms/form-email.ts`), ticket emails have their own.
 **Templates** (the builder's Templates panel, `src/forms/EmailTemplates.tsx`; table `email_templates`,
 editors only, migration `*_email_templates.sql`; `src/lib/email-templates.ts`): saved designs with their
-plain text, per kit (`templates` in `EmailKit`: `mailing` for campaigns and digests, `form`, `ticket`),
+plain text, per kit (`templates` in `EmailKit`: `mailing` for campaigns and digests, `form`, `ticket`,
+`shop`; migration `*_email_templates_shop.sql` added the last),
 to save the email as, save over, start from (Use) or delete. A template can be the default for one kind
 of email (`default_for`, unique; `TEMPLATE_DEFAULTS`): new campaigns, digests, forms and form
-notifications start from theirs (`defaultTemplate`), and a ticket email nobody designed is sent from
-its kind's (`ticket:<kind>`). Not synced or backed up.
+notifications start from theirs (`defaultTemplate`), and a ticket or order email nobody designed is sent
+from its kind's (`ticket:<kind>`, `shop:<kind>`). Not synced or backed up.
 **Compose** (the form builder's header, and the Confirmation and Notifications tabs;
 `src/forms/ComposeForm.tsx`, POST `/api/admin/forms/compose`, `src/lib/forms/compose.ts`): from what the
 editor says the form is for and the form as it is (`formOutline`), Claude (`quickAsk` with
@@ -1225,7 +1226,7 @@ never subscribes anyone again); the settings are, with the others. Migration `*_
 An optional feature, on under Settings > Shop (`settings.site.shop`: `enabled`, `currency`, `weightUnit`;
 `shopSettings`, `shopOn`, `src/lib/shop/config.ts`), built in phases on a preview branch: phase 1 has
 products, options, variants, stock and the cart; phase 2, checkout (payments, manual shipping rates and
-pickup, tax, orders, the Orders screen and discounts), is built, with order emails in the email builder next. Off, nothing is deleted: the admin hides the core's product type and
+pickup, tax, orders, the Orders screen, discounts and order emails), is built, with sync and backups next. Off, nothing is deleted: the admin hides the core's product type and
 product categories (`showsType`, `showsTaxonomy`, `src/lib/features.ts`), the site serves none of them
 (`resolve`, the loader's `off` types), the shop's blocks render nothing (`SHOP_BLOCKS`) and its endpoints
 answer 404.
@@ -1283,8 +1284,8 @@ answer 404.
   payment webhooks (`shopWebhook`, beside the forms' and tickets') ask the provider; `markShopPaid` marks it
   paid once (a cancelled or expired order paid anyway too, with a note), then `shop_take_stock` takes its
   counted lines off `shop_stock` once (`stock_taken`) and the buyer's confirmation and the shop's copy
-  (`SHOP_NOTIFY_EMAIL`, else `FORMS_ADMIN_EMAIL`, else the config's `adminEmail`; email log kind `shop`) go
-  once (`emailed_at`). Refunds made at the provider update `refunded_amount` and a full one marks the order
+  (`SHOP_NOTIFY_EMAIL`, else `FORMS_ADMIN_EMAIL`, else the config's `adminEmail`; unless `shop.notify` is
+  false) go once (`emailed_at`; see Order emails). Refunds made at the provider update `refunded_amount` and a full one marks the order
   refunded, without restocking. The hourly run expires holds (`expireShopHolds`). What's left
   (`loadStock`) is on hand less what orders hold (`loadHeld`). `/cart/?order=<token>` shows the order (the
   Cart block, loaded by a server hook, `src/lib/shop/page-data.ts`; never cached, noindex): paid, being
@@ -1303,6 +1304,19 @@ answer 404.
   `refund_attempt`, as ticket refunds) and put lines back in stock (`restockOrder`, `shop_restock`: each
   line at most what was bought, checked in the statement that records it, `lines[].restocked`; only once
   the order's stock was taken off). Cancel and refund take the lines to put back with them.
+- **Order emails** (`src/lib/shop/email.ts`, safe in the browser; Settings > Shop, Emails,
+  `settings.site.shop.emails`, `shopEmailsFrom`): the buyer's confirmation (when paid, and Resend
+  confirmation), shipped (marking an order shipped, with its tracking), refunded (a refund made on its
+  page, with `{refund}`, that refund's amount; not one made in the provider's dashboard) and the shop's
+  copy, each a subject, an email builder design and an optional plain text, as ticket emails. Sent
+  (`sendShopEmail`, email log kind `shop`): the site's design, else the default template for its kind
+  (`shop:<kind>`), else `DEFAULT_SHOP_EMAILS` (`shopEmailToSend`; a subject left empty is the built-in
+  one). Rendered with the forms' renderer: the merge tags `SHOP_MERGE_TAGS` (`shopTagValues`, buyer's
+  values escaped), the Order details block (`SHOP_ORDER_DETAILS`: the order as a table, its items, totals,
+  where it goes, order number, tracking, refund, the buyer's contact) and the Payment block (a paid
+  order's, `orderPayment`; none for free ones). The builder's kit is `src/admin/shop-email.ts`, its
+  preview a sample order (`SAMPLE_SHOP_ORDER`) rendered in the browser; the cards are
+  `src/admin/EmailCard.tsx`, which ticket emails share.
 - **Discounts** (`src/lib/shop/discounts.ts`, safe in the browser; `src/lib/shop/discount-lookup.ts`;
   table `shop_discounts`, migration `*_shop_discounts.sql`, editors write): a code (`cleanCode`: letters,
   digits, dashes and underscores, matched without regard to case; unique) or automatic (`code` null);

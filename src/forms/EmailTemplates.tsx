@@ -52,7 +52,7 @@ export function EmailTemplates({ kit, design, text, onUse, onClose }: { kit: Tem
           Close
         </button>
       </div>
-      <p className="mb-2 text-xs text-admin-muted">Save this email to start others from it. A default is what new emails of that kind start from{kit === 'ticket' ? ', and what a ticket email nobody has changed is sent as' : ''}.</p>
+      <p className="mb-2 text-xs text-admin-muted">Save this email to start others from it. A default is what new emails of that kind start from{kit === 'ticket' ? ', and what a ticket email nobody has changed is sent as' : kit === 'shop' ? ', and what an order email nobody has changed is sent as' : ''}.</p>
       <div className="mb-4 flex gap-2">
         <input className={`${input} min-w-0 flex-1`} placeholder="Template name" aria-label="Template name" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && save()} />
         <button type="button" className="rounded-sm bg-admin-ink px-3 py-1 text-xs font-semibold text-white hover:bg-admin-accent" onClick={save}>

@@ -101,7 +101,7 @@ Under the cart, visitors check out:
 6. They come back to a page with their order, and get a receipt by email.
 
 Each order is emailed to the site's admin address too (or the address set as `SHOP_NOTIFY_EMAIL`), and
-listed under **Orders**.
+listed under **Orders**. The emails can be changed under **Settings**, **Shop** (see Emails below).
 
 What someone is paying for is put aside while they pay, so two people can't buy the last one. If they
 don't pay within the time set under **Settings**, **Shop**, it goes back on sale. Stock comes off the
@@ -126,7 +126,8 @@ Click an order to see what was bought, the totals, the buyer, where it goes and 
 - **Notes**: for the shop only; the buyer never sees them.
 - **Resend confirmation**: emails the buyer their receipt again.
 - **Refund** (admins): type how much to give back, all or part. The money goes back to their card through
-  Stripe or Square. Refunding all of it marks the order refunded.
+  Stripe or Square, and the buyer gets an email saying how much. Refunding all of it marks the order
+  refunded.
 - **Cancel order**: for an order that wasn't paid for, or one with nothing left to pay back (free, or
   refunded in full).
 - **Put back in stock**: for each item, how many go back on the shelf. Fill these in before you refund or
@@ -220,3 +221,18 @@ addresses can't be shipped to. Each zone's rates:
 
 Each product's **Taxed** switch decides whether it is taxed. The shop adds the tax you set up; it
 doesn't register for or file tax for you.
+
+**Emails**: the emails an order sends, each with a **Subject** and **Edit email**, which opens the email
+builder:
+
+- **Order confirmation**: to the buyer when the order is paid.
+- **Shipped**: to the buyer when you mark the order shipped, with its tracking number.
+- **Refunded**: to the buyer when you refund the order on its page, all or part.
+- **Copy to the shop**: each paid order, to the shop. **Send the shop a copy of each order** turns it off.
+
+In the builder, the **Order details** block shows the order (what was bought and the totals), or one part
+of it: the items, the totals, where it goes, the order number, the tracking number, the refund or the
+buyer's details. Merge tags such as `{first_name}`, `{code}`, `{total}` and `{tracking}` fill in the
+order's details; the builder lists them all. **Preview** shows the email with a sample order.
+**Templates** saves a design to start others from; a template set as the default for one of these emails
+is sent until you design your own here. **Reset to the default** goes back to it.

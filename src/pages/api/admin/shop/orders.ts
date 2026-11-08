@@ -42,7 +42,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
       case 'refund': {
         // Money goes back: admins only.
         if (locals.user?.role !== 'admin') return new Response('Only admins can refund orders.', { status: 403 });
-        return Response.json({ ok: true, ...(await refundShopOrder(db, id, Math.round(Number(body.amount) || 0), restockOf(body.restock))) });
+        return Response.json({ ok: true, ...(await refundShopOrder(db, id, Math.round(Number(body.amount) || 0), restockOf(body.restock), url.origin)) });
       }
       case 'restock':
         return Response.json({ ok: true, restocked: await restockOrder(db, id, restockOf(body.restock)) });

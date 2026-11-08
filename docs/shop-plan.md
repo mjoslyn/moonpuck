@@ -36,10 +36,11 @@ Done so far: the checkout settings (provider, hold, zones and rates, pickup, tax
 (`src/lib/shop/orders.ts`: the Cart's checkout, `shop_order_create` with stock holds, the return, the
 webhook, stock taken off when paid, holds expiring, the order's page, plain confirmation emails) and the
 Orders screen (tabs, search, CSV; mark shipped with tracking or picked up, notes, resend, cancel, refund
-and restock by line), and discounts (`src/lib/shop/discounts.ts`, `discount-lookup.ts`, Shop > Discounts).
+and restock by line), and discounts (`src/lib/shop/discounts.ts`, `discount-lookup.ts`, Shop > Discounts), and the order emails in
+the email builder (`src/lib/shop/email.ts`; confirmation, shipped, refunded and the shop's copy).
 An order keeps its lines on the order (`shop_orders.lines`, JSON) rather than in a
 table of their own, so the order and its lines are written in one statement with the stock check. Next:
-the order emails in the email builder, and sync and backups.
+sync and backups.
 
 ### Settings > Shop
 
@@ -144,7 +145,7 @@ the order emails in the email builder, and sync and backups.
 
 The email builder with a `shop` kit (merge tags, an Order details block, the Payment block) and default
 templates per kind (`shop:<kind>`): confirmation, shipped, refunded, the admin's copy. An optional
-"Email me news" tick at checkout signs up through Mailing (double opt-in).
+"Email me news" tick at checkout signs up through Mailing (double opt-in): not built yet.
 
 ### Sync and backups
 
