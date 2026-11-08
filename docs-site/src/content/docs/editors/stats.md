@@ -80,7 +80,8 @@ aren't in this list.
 ## Campaigns
 
 Visits that came by a link tagged with a campaign, with their **Campaign**, **Source**, **Medium** and
-**Visits**. A part left out of the link shows as **(none)**.
+**Visits**. A part left out of the link shows as **(none)**. When the shop is on, **Shop**, **Stats** shows the sales each
+campaign brought.
 
 ### Making a campaign link
 
