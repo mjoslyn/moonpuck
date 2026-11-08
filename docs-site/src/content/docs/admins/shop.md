@@ -86,6 +86,16 @@ On a paid order's page, under **Shipping**:
   now** asks Shippo at once; otherwise it comes in by itself, and is checked hourly.
 - When the carrier says the parcel was delivered, the buyer gets the **Delivered** email, once.
 
+With a test token, labels are test labels (nothing is charged or sent) and Shippo tracks only its own
+test numbers. To try tracking, mark the order shipped with one of them:
+
+- **Tracking number**: `SHIPPO_PRE_TRANSIT`, `SHIPPO_TRANSIT`, `SHIPPO_DELIVERED`, `SHIPPO_RETURNED` or
+  `SHIPPO_FAILURE`.
+- **Carrier**: Shippo test numbers (offered only while the token is a test one).
+
+A test label's own tracking number can't be checked: **Check the tracking now** says so, and the hourly
+check leaves it out.
+
 ## Downloads
 
 A product can be a file buyers download: an e-book, a pattern, a print-at-home ticket.

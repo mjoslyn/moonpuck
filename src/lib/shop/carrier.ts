@@ -67,12 +67,18 @@ export interface Carrier {
   /** The rates for a parcel, priced in `currency` (rates the service can't give in it are left out). */
   rates(from: CarrierAddress, to: CarrierAddress, parcel: Parcel, currency: string): Promise<CarrierRate[]>;
   buyLabel(rateId: string): Promise<Label>;
+  /** Whether it can read this carrier's tracking (a test key reads only the service's own test numbers). */
+  tracks(carrier: string): boolean;
   track(carrier: string, number: string): Promise<TrackingStatus>;
   /** Ask for tracking updates of a number not bought through it (a label bought there is followed on its own). */
   follow(carrier: string, number: string): Promise<void>;
 }
 
 export class CarrierError extends Error {}
+
+/** Shippo's test tokens track only its own test numbers, under the carrier `shippo` (SHIPPO_TRANSIT, SHIPPO_DELIVERED...). */
+export const SHIPPO_TEST_CARRIER = 'shippo';
+const testKey = () => String(env('SHIPPO_API_KEY') ?? '').startsWith('shippo_test_');
 
 const base = () => (env('SHIPPO_API_BASE') || 'https://api.goshippo.com').replace(/\/$/, '');
 
@@ -128,18 +134,24 @@ export const shippoCarrier: Carrier = {
     if (t?.status !== 'SUCCESS' || !t.label_url) throw new CarrierError(`The label wasn’t bought${t?.messages?.[0]?.text ? `: ${t.messages[0].text}` : ''}.`);
     return { id: String(t.object_id), trackingNumber: String(t.tracking_number ?? ''), trackingUrl: String(t.tracking_url_provider ?? ''), labelUrl: String(t.label_url) };
   },
+  tracks: (carrier) => !testKey() || carrier === SHIPPO_TEST_CARRIER,
   async track(carrier, number) {
+    if (!shippoCarrier.tracks(carrier)) throw new CarrierError(`Shippo’s test token tracks only its test numbers (carrier “Shippo test numbers”, such as SHIPPO_TRANSIT or SHIPPO_DELIVERED), not ${carrier} ones.`);
     const t = await shippo('GET', `/tracks/${encodeURIComponent(carrier)}/${encodeURIComponent(number)}`);
     const s = t?.tracking_status ?? {};
     return { status: String(s.status ?? 'UNKNOWN'), details: String(s.status_details ?? ''), at: s.status_date ? String(s.status_date) : null };
   },
   async follow(carrier, number) {
+    if (!shippoCarrier.tracks(carrier)) return;
     await shippo('POST', '/tracks/', { carrier, tracking_number: number });
   },
 };
 
 /** The carrier in use: Shippo, while its key is set. */
 export const activeCarrier = (): Carrier | null => (shippoCarrier.configured() ? shippoCarrier : null);
+
+/** Whether the carrier service is on a test key (its labels are test labels, its tracking test numbers). */
+export const carrierTesting = () => shippoCarrier.configured() && testKey();
 
 export const shipFrom = (f: ShipFrom): CarrierAddress => ({ name: f.name || f.company || 'Shop', company: f.company || undefined, street1: f.street1, street2: f.street2 || undefined, city: f.city, state: f.state || undefined, zip: f.zip, country: f.country, phone: f.phone || undefined, email: f.email || undefined });
 

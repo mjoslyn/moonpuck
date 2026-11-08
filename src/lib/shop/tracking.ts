@@ -18,8 +18,8 @@ export function trackingLink(carrier: string, number: string): string {
   return '';
 }
 
-/** A carrier's name: CARRIERS' own, else its code made readable (`canada_post`: Canada Post). */
-export const carrierName = (token: string) => CARRIERS.find(([k]) => k === token)?.[1] ?? token.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+/** A carrier's name: CARRIERS' own (or Shippo's test numbers' `shippo`), else its code made readable (`canada_post`: Canada Post). */
+export const carrierName = (token: string) => (token === 'shippo' ? 'Shippo test numbers' : undefined) ?? CARRIERS.find(([k]) => k === token)?.[1] ?? token.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 /** A carrier's tracking status in words (Shippo's: PRE_TRANSIT, TRANSIT, DELIVERED, RETURNED, FAILURE, UNKNOWN). */
 export const TRACKING_WORDS: Record<string, string> = {

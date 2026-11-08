@@ -99,5 +99,5 @@ Concise and factual: what changed, why, and any measurements; no editorial frami
 - The shop (CORE.md, Shop; the full plan and its decisions: `docs/shop-plan.md`), on the preview branch until it is merged: phase 2, checkout (payments
   through `src/lib/payments`, manual shipping rates and pickup, tax, discounts, orders with stock holds,
   refunds with a restock choice, order emails, stats, orders and stock in sync and backups), is built; phase 3 (the Stock
-  screen, low-stock alerts, digital downloads, Shippo rates, labels and tracking) is built, Shippo still to
-  check with a real test token.
+  screen, low-stock alerts, digital downloads, Shippo rates, labels and tracking) is built and checked
+  against Shippo's test API; its tracking webhook still to check on a deployed copy.

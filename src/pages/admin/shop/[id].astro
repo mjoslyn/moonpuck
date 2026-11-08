@@ -9,7 +9,7 @@ import { formatMoney } from '../../../lib/payments/money';
 import { addressLines, type ShopOrder } from '../../../lib/shop/orders';
 import { CARRIERS } from '../../../lib/shop/checkout-settings';
 import { carrierName, trackingLink, TRACKING_WORDS } from '../../../lib/shop/tracking';
-import { activeCarrier } from '../../../lib/shop/carrier';
+import { activeCarrier, carrierTesting, SHIPPO_TEST_CARRIER } from '../../../lib/shop/carrier';
 import { orderWeight } from '../../../lib/shop/fulfilment';
 
 const id = Number(Astro.params.id) || 0;
@@ -22,6 +22,8 @@ const when = (s: string | null) => (s ? new Date(s).toLocaleString('en-US', { ti
 const STATUS: Record<string, string> = { paid: 'Paid', pending: 'Awaiting payment', cancelled: 'Cancelled', expired: 'Expired: not paid in time', refunded: 'Refunded' };
 const left = o.total - o.refunded_amount;
 const carrierOn = !!activeCarrier();
+// A test token tracks only Shippo's test numbers, under a carrier of their own.
+const testing = carrierTesting();
 const trackingHref = o.tracking && o.carrier ? trackingLink(o.carrier, o.tracking) : '';
 // Lines whose stock was taken off and not all put back yet.
 const restockable = o.stock_taken ? o.lines.map((l, i) => ({ ...l, i, room: l.track ? l.quantity - (l.restocked ?? 0) : 0 })).filter((l) => l.room > 0) : [];
@@ -114,7 +116,8 @@ const canRefund = isAdmin && o.status === 'paid' && o.provider !== 'free' && lef
               <select id="carrier" name="carrier" class="rounded border border-admin-ink/15 bg-white px-2 py-1.5">
                 <option value="">Another, or not known</option>
                 {CARRIERS.map(([k, label]) => <option value={k} selected={o.carrier === k}>{label}</option>)}
-                {o.carrier && !CARRIERS.some(([k]) => k === o.carrier) && <option value={o.carrier} selected>{carrierName(o.carrier)}</option>}
+                {testing && <option value={SHIPPO_TEST_CARRIER} selected={o.carrier === SHIPPO_TEST_CARRIER}>{carrierName(SHIPPO_TEST_CARRIER)}</option>}
+                {o.carrier && o.carrier !== (testing ? SHIPPO_TEST_CARRIER : '') && !CARRIERS.some(([k]) => k === o.carrier) && <option value={o.carrier} selected>{carrierName(o.carrier)}</option>}
               </select>
               <button class="justify-self-start rounded bg-admin-accent px-3 py-1.5 text-white hover:bg-admin-accent-dark">{o.fulfilled ? 'Save and email the buyer again' : 'Mark shipped and email the buyer'}</button>
             </form>

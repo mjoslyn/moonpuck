@@ -113,15 +113,18 @@ export async function trackingWebhook(token: string, body: any, origin?: string)
 
 /** The hourly run: shipped orders of the last 30 days not yet delivered, read again (at most 50 a run, longest unchecked first), for updates missed. */
 export async function refreshDueTracking(): Promise<number> {
-  if (!activeCarrier()) return 0;
+  const carrier = activeCarrier();
+  if (!carrier) return 0;
   const db = serviceClient();
   const since = new Date(Date.now() - 30 * 86400_000).toISOString();
   // Every open parcel of the window (not only the oldest), then those unchecked longest first.
   const { data } = await allRows<ShopOrder>(db.from('shop_orders').select('*').eq('fulfilled', 'shipped').is('delivered_at', null).neq('carrier', '').neq('tracking', '').gte('fulfilled_at', since).order('id'));
   const due = (data ?? [])
+    .filter((o) => carrier.tracks(o.carrier))
     .filter((o) => !o.tracking_status || Date.now() - Date.parse(o.tracking_status.checked_at) > 3 * 3600_000)
     .sort((a, b) => Date.parse(a.tracking_status?.checked_at ?? '1970-01-01') - Date.parse(b.tracking_status?.checked_at ?? '1970-01-01'))
     .slice(0, 50);
+  // (With a test key, a test label's real-looking number can't be read: it is left out, not tried hourly.)
   let n = 0;
   for (const o of due) if (await refreshTracking(db, o).catch((e) => (console.error(`shop: tracking ${o.code}: ${(e as Error).message}`), null))) n++;
   return n;

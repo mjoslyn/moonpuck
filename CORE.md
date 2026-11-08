@@ -1310,7 +1310,7 @@ answer 404.
   the order's stock was taken off). Cancel and refund take the lines to put back with them.
 - **Carrier rates, labels and tracking** (`src/lib/shop/carrier.ts`, `fulfilment.ts`; `tracking.ts` safe in the
   browser): Shippo's REST API (no SDK; `SHIPPO_API_KEY` under Settings > Connections, `SHIPPO_API_BASE` a
-  stand-in for tests) behind a `Carrier` interface (`rates`, `buyLabel`, `track`, `follow`). Settings >
+  stand-in for tests) behind a `Carrier` interface (`rates`, `buyLabel`, `tracks`, `track`, `follow`). Settings >
   Shop's `carrier` (`CarrierSettings`, `cleanCarrier`, `carrierProblem`): live rates on, in place of the
   zones' rates or beside them (`only`), the ship-from address, the box (inches for pounds and ounces,
   else centimetres) and its empty weight, the carriers offered (`CARRIERS`). `shippingSources` gives
@@ -1330,7 +1330,10 @@ answer 404.
   where there is none, so overlapping purchases buy one; let go if the purchase fails; then
   `shop_orders.label` with the label's address, and `fulfilOrder` shipped with its tracking and carrier,
   emailing the buyer); a tracking number typed with a carrier (`shop_orders.carrier`: any carrier's code,
-  a label's from any carrier on the account; none chosen clears it) is followed through Shippo (`follow`). Tracking updates come to
+  a label's from any carrier on the account; none chosen clears it) is followed through Shippo (`follow`). A test token (`shippo_test_`) tracks only Shippo's test numbers (`SHIPPO_TRANSIT`, `SHIPPO_DELIVERED`...)
+  under the carrier `shippo` (`SHIPPO_TEST_CARRIER`, offered on an order's page while the token is a test one,
+  `carrierTesting`): `tracks` says which carriers it can read, and other numbers (a test label's) are neither
+  followed nor read by the hourly run, and Check the tracking now says why. Tracking updates come to
   `POST /api/shop/carrier/shippo?token=<SHIPPO_WEBHOOK_TOKEN>` (made when Shippo is connected), which takes
   only the number and reads each order's tracking again from Shippo (`refreshTracking`:
   `tracking_status`); the hourly run reads those not delivered of the last 30 days, at most 50, those
