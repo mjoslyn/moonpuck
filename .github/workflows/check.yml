@@ -1,5 +1,6 @@
-# Type check, the unit tests (each with a database of its own, checked against D1's limits) and the
-# checks that need no database, on every push and pull request.
+# Type check, the build (which parses the .astro pages the type check doesn't), the unit tests (each with
+# a database of its own, checked against D1's limits) and the checks that need no database, on every
+# push and pull request.
 name: Check
 
 on:
@@ -21,6 +22,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: npm run build
       - run: npm test
       - run: npx tsx scripts/checks/recurrence.ts
       - run: npx tsx scripts/checks/formatting.ts

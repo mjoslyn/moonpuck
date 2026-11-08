@@ -19,7 +19,6 @@ const statuses = orderStatusesFrom((siteRow?.value as any)?.shop?.statuses);
 const own = statuses.some((x) => x.id === params.get('status')) || params.get('status') === '-' ? params.get('status')! : '';
 const ownName = (id: string | undefined) => statuses.find((x) => x.id === id)?.name;
 const page = Math.max(1, Math.min(10_000, Math.floor(Number(params.get('page'))) || 1));
-const { data: siteRow } = await db.from('settings').select('value').eq('key', 'site').maybeSingle();
 const on = shopOn(siteRow?.value);
 const { data, count, error } = await ordersQuery(db, tab, search, own).range((page - 1) * PER_PAGE, page * PER_PAGE - 1);
 if (error) throw error;

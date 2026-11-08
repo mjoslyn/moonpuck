@@ -60,7 +60,8 @@ renamed things come out of the docs too.
 
 ## Workflow
 
-1. Change and commit here. `npm run check` (TypeScript) and `npm test` (unit tests, `tests/`) must pass;
+1. Change and commit here. `npm run check` (TypeScript), `npm run build` (it parses the `.astro` pages, which the
+   type check doesn't) and `npm test` (unit tests, `tests/`) must pass;
    a fix comes with a test that fails without it. The same commit updates the docs (see Keep the docs
    current).
 2. Test on the example site, and for anything that real content exercises, in a site: in

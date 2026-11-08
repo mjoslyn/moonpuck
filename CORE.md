@@ -1815,7 +1815,7 @@ DB binding, and every statement sent to it is checked against D1's limits first 
 value), so a query local SQLite takes and D1 refuses fails there. Tests import the code they test
 directly (no dev server); a bug fixed gets a test beside the others of its area.
 
-`.github/workflows/check.yml` runs `npm run check`, `npm test`, the three checks above and
+`.github/workflows/check.yml` runs `npm run check`, `npm run build` (the type check doesn't parse `.astro` pages; the build does), `npm test`, the three checks above and
 `scripts/checks/private-address.ts` on every push and pull request.
 
 `scripts/safety-e2e.ts` (uploads, form limits, shared addresses, stale saves, tags, search, roles, restore as a job) and
