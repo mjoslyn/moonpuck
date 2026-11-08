@@ -6,6 +6,9 @@ const FONTS =
 const SHARE_ALT = 'Moonpuck, the open source website builder: Hand it the flyer. Get the page.';
 const description =
   'Moonpuck is an open source website builder for small organisations, with Claude built in. Events, tickets, members, mailing lists and a shop come with it, on your own Cloudflare account.';
+// Turnstile's site key for the contact form (public; its secret is the Worker's). Cloudflare's always-passing
+// test key under astro dev.
+const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || (import.meta.env.DEV ? '1x00000000000000000000AA' : '');
 ---
 <!doctype html>
 <html lang="en">
@@ -31,6 +34,7 @@ const description =
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href={FONTS}>
+<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <style is:global>
 body{margin:0;background:#2350E6}
 a{color:#120C1F}a:hover{color:#000000}
@@ -44,6 +48,16 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 .mp-card{border:3px solid #120C1F;border-radius:18px;padding:24px 24px 26px}
 @media (max-width:900px){.mp-nav{display:none!important}.mp-compose{display:none!important}}
 @media (max-width:600px){.mp-wrap{padding-inline:16px}.mp-h1{font-size:60px!important}.mp-h2{font-size:44px!important}.mp-step{font-size:40px!important}.mp-lead{font-size:24px!important}.mp-rail{display:none!important}}
+.mp-build-list{margin:32px 0 0;padding:0 0 0 1.1em;display:grid;gap:12px;font-size:18px;line-height:1.45}
+.mp-form{display:grid;gap:14px;background:#FFFFFF;border:3px solid #120C1F;border-radius:18px;padding:28px}
+.mp-field{display:grid;gap:6px;font-size:14px;font-weight:600}
+.mp-field em{font-style:normal;font-weight:400;color:#4A4458}
+.mp-field input,.mp-field textarea{box-sizing:border-box;width:100%;padding:12px 14px;border:2px solid #120C1F;border-radius:10px;font:inherit;font-weight:400;font-size:16px;background:#FFFFFF;color:#120C1F}
+.mp-field input:focus,.mp-field textarea:focus{outline:3px solid #2350E6;outline-offset:1px}
+.mp-trap{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+.mp-form-note{margin:0;padding:12px 14px;border-radius:10px;font-weight:600;background:#C5E975}
+.mp-form-note.is-error{background:#FFD3C9}
+.mp-form-small{margin:0;font-size:14px;color:#4A4458}
 </style>
 </head>
 <body>
@@ -63,6 +77,7 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 <a href="#events" class="mp-nav-link mp-label" style="font-size: 13px">Events</a>
 <a href="#developers" class="mp-nav-link mp-label" style="font-size: 13px">Developers</a>
 <a href="/docs/" class="mp-nav-link mp-label" style="font-size: 13px">Docs</a>
+<a href="#build" class="mp-nav-link mp-label" style="font-size: 13px">We'll build it</a>
 </nav>
 <a href="https://github.com/mjoslyn/moonpuck" class="mp-pill" style="background: #F5D8EF; color: #120C1F">GitHub</a>
 </header>
@@ -141,6 +156,7 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 40px">
 <a href="/docs/local-setup/" class="mp-pill" style="background: #F5D8EF; color: #120C1F">Get started</a>
 <a href="#compose" class="mp-pill" style="background: #1B2A6B; color: #DCD8FF">How Compose works</a>
+<a href="#build" class="mp-pill" style="border: 2px solid #F7F0F5; color: #F7F0F5">Have us build it</a>
 </div>
 </div>
 </div>
@@ -288,8 +304,37 @@ src/site/
   styles/tokens.css
 
 <span style="color: #9898FF"># take core updates</span>
-<span style="color: #FDF152">git fetch upstream &amp;&amp; git merge upstream/main</span>
+<span style="color: #FDF152">npm run core:update</span>
 <span style="color: #FDF152">npm run deploy</span></pre>
+</div>
+</section>
+
+<!-- BUILD IT FOR YOU: the form posts to the Worker (worker.js, POST /api/contact), which checks Turnstile and emails it. -->
+<section id="build" style="background: #FDF152; padding: 104px 0 112px">
+<div class="mp-wrap" style="display: flex; flex-wrap: wrap; gap: 56px; align-items: flex-start">
+<div style="flex: 1 1 440px; min-width: 0">
+<p class="mp-label" style="margin: 0 0 18px">Rather not do it yourself?</p>
+<h2 class="mp-serif mp-h2" style="margin: 0; font-size: 80px; line-height: 1">We'll build it for you</h2>
+<p class="mp-serif mp-lead" style="margin: 28px 0 0; font-size: 30px; line-height: 1.25">Tell us about your organisation and we'll set up your moonpuck site, move your content over, and launch it on your own domain. Then it's yours to run.</p>
+<ul class="mp-build-list">
+<li><strong>Your design:</strong> your colours, fonts and logo, as page templates your team can keep using.</li>
+<li><strong>Your content:</strong> pages, posts, events and pictures brought over from your old site.</li>
+<li><strong>The features you need:</strong> events and tickets, members, mailing lists or a shop, set up and ready.</li>
+<li><strong>Launched and handed over:</strong> on your own Cloudflare account and domain, with your editors shown round.</li>
+</ul>
+</div>
+<form class="mp-form" method="post" action="/api/contact" data-contact style="flex: 1 1 420px; min-width: 0">
+<p class="mp-form-note" data-contact-outcome role="status" aria-live="polite" hidden></p>
+<label class="mp-field"><span>Email <em>(needed)</em></span><input type="email" name="email" required autocomplete="email" maxlength="200"></label>
+<label class="mp-field"><span>Name</span><input type="text" name="name" autocomplete="name" maxlength="100"></label>
+<label class="mp-field"><span>Organisation</span><input type="text" name="organisation" autocomplete="organization" maxlength="150"></label>
+<label class="mp-field"><span>Your site now</span><input type="text" name="site" inputmode="url" autocomplete="url" maxlength="300" placeholder="example.org"></label>
+<label class="mp-field"><span>Message</span><textarea name="message" rows="5" maxlength="5000" placeholder="What you do, what the site needs, and when."></textarea></label>
+<label class="mp-trap" aria-hidden="true">Leave this empty <input type="text" name="nickname" tabindex="-1" autocomplete="off"></label>
+<div class="cf-turnstile" data-sitekey={TURNSTILE_SITE_KEY} data-theme="light"></div>
+<button type="submit" class="mp-pill" style="background: #120C1F; color: #FDF152; border: 0; cursor: pointer; justify-self: start">Send</button>
+<p class="mp-form-small">Or email <a href="mailto:info@moonpuck.com">info@moonpuck.com</a>.</p>
+</form>
 </div>
 </section>
 
@@ -300,6 +345,7 @@ src/site/
 <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center">
 <a href="/docs/local-setup/" class="mp-pill" style="background: #1B2A6B; color: #DCD8FF">Read the setup guide</a>
 <a href="https://github.com/mjoslyn/moonpuck" class="mp-pill" style="border: 2px solid #120C1F; color: #120C1F">View on GitHub</a>
+<a href="#build" class="mp-pill" style="border: 2px solid #120C1F; color: #120C1F">Or have us build it</a>
 </div>
 </div>
 </section>
@@ -317,9 +363,43 @@ src/site/
 <a href="/editors/" class="mp-nav-link mp-label" style="font-size: 13px">Editor guide</a>
 <a href="/admins/" class="mp-nav-link mp-label" style="font-size: 13px">Admin guide</a>
 <a href="https://github.com/mjoslyn/moonpuck" class="mp-nav-link mp-label" style="font-size: 13px">GitHub</a>
+<a href="mailto:info@moonpuck.com?subject=Build%20my%20moonpuck%20site" class="mp-nav-link mp-label" style="font-size: 13px">info@moonpuck.com</a>
 </nav>
 </div>
 </footer>
 </div>
+<script is:inline>
+// The contact form (worker.js, POST /api/contact): sent in place, its outcome shown above it. Without this
+// it posts as usual and the page comes back with ?contact=<outcome>.
+(() => {
+  const form = document.querySelector('[data-contact]');
+  if (!form) return;
+  const outcome = form.querySelector('[data-contact-outcome]');
+  const MESSAGES = { sent: 'Thank you: we will be in touch.', invalid: 'Please give a valid email address.', check: 'The check that you are a person did not pass. Please try again.', unavailable: 'Your message could not be sent just now. Please email info@moonpuck.com.' };
+  const show = (text, error) => {
+    outcome.textContent = text;
+    outcome.hidden = false;
+    outcome.classList.toggle('is-error', !!error);
+  };
+  const was = new URLSearchParams(location.search).get('contact');
+  if (was && MESSAGES[was]) show(MESSAGES[was], was !== 'sent');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    try {
+      const res = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } });
+      const answer = await res.json().catch(() => null);
+      show(answer?.message || MESSAGES.unavailable, !answer?.ok);
+      if (answer?.ok) form.reset();
+    } catch {
+      show(MESSAGES.unavailable, true);
+    }
+    // A token is good once: a new one for the next try.
+    window.turnstile?.reset?.();
+    button.disabled = false;
+  });
+})();
+</script>
 </body>
 </html>

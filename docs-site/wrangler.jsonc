@@ -1,11 +1,28 @@
 // moonpuck.com: the home page and the docs, built by `npm run build` into ./dist and served as static
-// files by a Worker. Deploy with `npx wrangler deploy` (Workers Builds runs it on every push to main).
+// files by a Worker (worker.js), which also runs the home page's contact form (POST /api/contact: a
+// Turnstile check, then an email through Email Routing). Deploy with `npx wrangler deploy` (Workers
+// Builds runs it on every push to main).
+//
+// The form needs, once:
+// - Turnstile: a widget for moonpuck.com in the Cloudflare dashboard; its site key as
+//   PUBLIC_TURNSTILE_SITE_KEY in the build's environment (Workers Builds > Variables), and its secret key
+//   with `npx wrangler secret put TURNSTILE_SECRET_KEY`.
+// - Email Routing on moonpuck.com, with CONTACT_TO (below) a verified destination address; the email is
+//   sent from CONTACT_FROM, an address on moonpuck.com.
 {
   "name": "moonpuck-site",
+  "main": "worker.js",
   "compatibility_date": "2026-10-01",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "404-page"
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
+  },
+  "send_email": [{ "name": "CONTACT" }],
+  "vars": {
+    "CONTACT_TO": "info@moonpuck.com",
+    "CONTACT_FROM": "form@moonpuck.com"
   },
   "routes": [{ "pattern": "moonpuck.com", "custom_domain": true }]
 }
