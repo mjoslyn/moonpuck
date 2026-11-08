@@ -15,7 +15,9 @@ import { env } from '../env';
 import { buyerAddress, newCode, newToken, siteOrigin } from '../tickets/orders';
 import { CART_PATH, shopOn, shopSettings } from './config';
 import { quoteCart, type QuoteLine } from './cart';
-import { checkoutSettings, taxInForce } from './checkout-settings';
+import { checkoutSettings, DEFAULT_NEWS_LABEL, taxInForce } from './checkout-settings';
+import { mailingOn } from '../mailing/config';
+import { signUp } from '../mailing/contacts';
 import { cleanPlace, placeName, US_STATES } from './places';
 import { cartTotals, type ShipOption } from './totals';
 import { discountCandidates } from './discount-lookup';
@@ -238,6 +240,10 @@ export async function startShopCheckout(body: any, origin: string, viewer: Viewe
   if (made?.client) return fail('limit');
   if (made?.discount) return { error: 'discount', message: 'That discount was used up just now. Take it out or try another.' };
   if (!made?.ok) return fail('sold-out', made?.line ? { line: made.line } : {});
+  // Email me news, ticked: a sign-up to the lists chosen in Settings > Shop, confirmed by email as any.
+  if (body?.news === true && mailingOn(siteValue) && settings.news.lists.length) {
+    await signUp(db, { email, name, lists: settings.news.lists, source: 'shop:checkout', consentText: settings.news.label || DEFAULT_NEWS_LABEL, ip, origin: siteOrigin(origin) }).catch((e) => console.error(`shop: news sign-up failed: ${(e as Error).message}`));
+  }
   if (tax.mode === 'stripe') await db.from('shop_orders').update({ tax_by: 'stripe' }).eq('id', made.id);
   const orderPage = `${CART_PATH}?order=${token}`;
   if (free) {

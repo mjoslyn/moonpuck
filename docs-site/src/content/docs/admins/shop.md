@@ -92,7 +92,8 @@ member pricing comes first; a product in several categories takes the largest di
 
 Under the cart, visitors check out:
 
-1. They give their name, email and, if they like, a phone number.
+1. They give their name, email and, if they like, a phone number, and can tick **Email me news and
+   offers** when you offer it.
 2. They choose how to get the order: one of your shipping rates for their country (and state, in the US),
    or a pickup location. Only rates that fit their order are offered.
 3. For shipping, they give their address.
@@ -240,6 +241,11 @@ addresses can't be shipped to. Each zone's rates:
 
 Each product's **Taxed** switch decides whether it is taxed. The shop adds the tax you set up; it
 doesn't register for or file tax for you.
+
+**Email me news** (while Mailing Lists is on): tick the mailing lists a box at checkout signs buyers
+up to, and change its words if you like. The box starts unticked. A buyer who ticks it gets an email to
+confirm, as with a Subscribe block, and is on the lists only once they do. With no list ticked here,
+checkout has no box.
 
 **Emails**: the emails an order sends, each with a **Subject** and **Edit email**, which opens the email
 builder:

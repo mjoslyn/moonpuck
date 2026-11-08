@@ -303,6 +303,15 @@
       field('Email', textInput('email', { type: 'email', required: true, autocomplete: 'email' })),
       field('Phone (optional)', textInput('phone', { type: 'tel', autocomplete: 'tel' })),
     );
+    // Email me news (Settings > Shop): unticked until the buyer ticks it; confirmed by email.
+    if (offer.news) {
+      const tick = el('input', { type: 'checkbox', checked: !!co.news });
+      tick.addEventListener('change', () => {
+        co.news = tick.checked;
+        keepCo();
+      });
+      details.append(el('label', { className: 'c-checkout__news' }, [tick, ' ', el('span', { textContent: offer.news })]));
+    }
     form.append(details);
 
     if (shipping.needs !== 'none') {
@@ -405,7 +414,7 @@
         const r = await fetch('/api/shop/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lines: read(), name: co.name, email: co.email, phone: co.phone, option: co.option, address, code: co.code || null, campaign: visitCampaign() }),
+          body: JSON.stringify({ lines: read(), name: co.name, email: co.email, phone: co.phone, option: co.option, address, code: co.code || null, campaign: visitCampaign(), news: !!(offer.news && co.news) }),
           cache: 'no-store',
         });
         const answer = await r.json().catch(() => null);

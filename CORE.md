@@ -1377,7 +1377,10 @@ answer 404.
   `checkoutSettingsFrom`, `src/lib/shop/checkout-settings.ts`, `src/admin/ShopCheckoutSettings.tsx`; cleaned
   on save, only what isn't the default kept): the payment provider, the minutes an unpaid order holds its
   stock (`hold`, 30-120, default 60), shipping zones (`zones`: name, places, rates), pickup locations
-  (`pickup`: name, address, hours, fee, place for tax) and tax (`tax`: `mode` rates or Stripe Tax, the
+  (`pickup`: name, address, hours, fee, place for tax), the Email me news tick (`news`: the mailing lists
+  it signs up to and its words, `DEFAULT_NEWS_LABEL`; shown at checkout while Mailing is on and lists are
+  chosen; ticked, checkout calls the mailing sign-up, `signUp` with source `shop:checkout`, so the buyer is
+  confirmed by email as with a Subscribe block) and tax (`tax`: `mode` rates or Stripe Tax, the
   store's `rate` and per-place `regions` in percent, `onShipping`, Stripe's `taxCode`; Stripe Tax only while payments go through Stripe, `taxInForce`, else the rates). Places
   (`src/lib/shop/places.ts`) are ISO countries, US states as `US-NY`, and `*` for everywhere else.
 - **Totals** (`src/lib/shop/totals.ts`, safe in the browser): a zone is the first, in order, with a place

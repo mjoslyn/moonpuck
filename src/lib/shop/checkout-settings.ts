@@ -73,6 +73,13 @@ export interface TaxSettings {
   taxCode: string;
 }
 
+/** The checkout's "Email me news" tick: the mailing lists it signs the buyer up to (none: no tick). */
+export interface NewsTick {
+  lists: number[];
+  label?: string;
+}
+export const DEFAULT_NEWS_LABEL = 'Email me news and offers';
+
 export interface CheckoutSettings {
   provider?: 'stripe' | 'square';
   /** Minutes an unpaid order holds its stock (30-120). */
@@ -80,6 +87,7 @@ export interface CheckoutSettings {
   zones: ShippingZone[];
   pickup: PickupLocation[];
   tax: TaxSettings;
+  news: NewsTick;
 }
 
 const text = (v: unknown, max = 120) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
@@ -182,6 +190,10 @@ export function checkoutSettings(shop: Record<string, any> | null | undefined): 
     zones: cleanZones(s.zones),
     pickup: cleanPickup(s.pickup),
     tax: cleanTax(s.tax),
+    news: {
+      lists: [...new Set((Array.isArray(s.news?.lists) ? s.news.lists : []).map((x: unknown) => Math.trunc(Number(x))).filter((n: number) => n > 0))].slice(0, 20) as number[],
+      ...(text(s.news?.label, 200) ? { label: text(s.news?.label, 200) } : {}),
+    },
   };
 }
 
@@ -201,6 +213,7 @@ export function checkoutSettingsFrom(raw: Record<string, any> | null | undefined
   if (c.pickup.length) out.pickup = c.pickup;
   const t = c.tax;
   if (t.mode !== 'rates' || t.rate || t.regions.length || t.onShipping || t.taxCode !== DEFAULT_TAX_CODE) out.tax = t;
+  if (c.news.lists.length) out.news = c.news;
   return out;
 }
 

@@ -13,7 +13,8 @@ import { CART_PATH, categoryDiscounts, maxQuantity, priceRange, productOf, sella
 import { leftOf, type StockMap } from '../../lib/shop/stock';
 import { ARCHIVE_PATHS } from '../../lib/site';
 import { ACCOUNT_PATH, memberSettings } from '../../lib/members/config';
-import { checkoutSettings } from '../../lib/shop/checkout-settings';
+import { checkoutSettings, DEFAULT_NEWS_LABEL } from '../../lib/shop/checkout-settings';
+import { mailingOn } from '../../lib/mailing/config';
 import { COUNTRY_CODES, ELSEWHERE, placeName, US_STATES } from '../../lib/shop/places';
 import type { ShopOrder } from '../../lib/shop/orders';
 
@@ -158,7 +159,9 @@ function checkoutOffer(env: Env) {
   const codes = places.includes(ELSEWHERE) ? COUNTRY_CODES : [...new Set(places.map((p) => p.split('-')[0]))];
   const countries = codes.map((code): [string, string] => [code, placeName(code)]).sort((x, y) => x[1].localeCompare(y[1]));
   const first = places.find((p) => p !== ELSEWHERE)?.split('-')[0];
-  return { countries, states: US_STATES.slice(), country: first ?? countries[0]?.[0] ?? '', pickup: c.pickup.length > 0 };
+  // The Email me news tick's words, while Mailing is on and lists are chosen for it.
+  const news = mailingOn(env.ctx.settings.site) && c.news.lists.length ? c.news.label || DEFAULT_NEWS_LABEL : undefined;
+  return { countries, states: US_STATES.slice(), country: first ?? countries[0]?.[0] ?? '', pickup: c.pickup.length > 0, ...(news ? { news } : {}) };
 }
 
 /** A buyer's order, as the cart's page shows it after checkout (paid, being confirmed, or not completed). */

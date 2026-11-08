@@ -368,3 +368,11 @@
 .c-cart-link__count[hidden] {
   display: none;
 }
+
+/* The checkout's Email me news tick. */
+.c-checkout__news {
+  display: flex;
+  gap: 0.5em;
+  align-items: baseline;
+  font-size: 0.95em;
+}

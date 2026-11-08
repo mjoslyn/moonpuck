@@ -89,6 +89,26 @@ describe('sending', () => {
   });
 });
 
+describe('Email me news', () => {
+  beforeEach(() => {
+    process.env.MAIL_LINK_SECRET = 'a-test-link-secret-that-is-long-enough';
+  });
+  it('signs a buyer who ticks it up to the lists chosen, confirmed by email; no tick, no sign-up', async () => {
+    const list = (await db.from('mail_lists').insert({ name: 'Shop news' }).select('id').single()).data!.id as number;
+    const { data } = await db.from('settings').select('value').eq('key', 'site').maybeSingle();
+    await db.from('settings').upsert({ key: 'site', value: { ...(data?.value as object), mailing: { enabled: true }, shop: { ...SHOP, news: { lists: [list], label: 'Send me the shop’s news' } } } });
+    const p = await product(500);
+    const body = (email: string, news: boolean) => ({ lines: [{ product: p, variant: 'default', quantity: 1 }], name: 'Nell News', email, option: 'pickup:store', news });
+    await startShopCheckout(body('nell@example.org', true), 'http://localhost');
+    await startShopCheckout(body('nope@example.org', false), 'http://localhost');
+    const c = (await db.from('contacts').select('id, status, consent_source, consent_text').eq('email', 'nell@example.org').single()).data!;
+    expect(c).toMatchObject({ status: 'pending', consent_source: 'shop:checkout', consent_text: 'Send me the shop’s news' });
+    expect((await db.from('contact_lists').select('list_id, status').eq('contact_id', c.id)).data).toEqual([{ list_id: list, status: 'pending' }]);
+    expect(sent.map((m) => [m.to[0], m.subject])).toContainEqual(['nell@example.org', expect.stringMatching(/Confirm/)]);
+    expect((await db.from('contacts').select('id').eq('email', 'nope@example.org')).data).toEqual([]);
+  });
+});
+
 describe('the emails', () => {
   it('keeps the emails as saved, and a copy turned off', () => {
     expect(shopSettingsFrom({ emails: { shipped: { subject: 'Sent', design: design('<p>x</p>') }, refunded: {} }, notify: false })).toMatchObject({ emails: { shipped: { subject: 'Sent' } }, notify: false });

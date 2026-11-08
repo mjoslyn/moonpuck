@@ -11,6 +11,8 @@ import { countryChoices, ELSEWHERE, placeName, US_STATES } from '../lib/shop/pla
 import { DEFAULT_SHOP_EMAILS, SHOP_EMAIL_KINDS, type ShopEmail, type ShopEmailKind } from '../lib/shop/email';
 import { site } from '../lib/site';
 import { EmailCard } from './EmailCard';
+import type { MailList } from '../lib/mailing/config';
+import { DEFAULT_NEWS_LABEL } from '../lib/shop/checkout-settings';
 import { shopEmailKit } from './shop-email';
 
 const EMAIL_HELP: Record<ShopEmailKind, string> = {
@@ -27,7 +29,7 @@ const remove = 'text-xs text-[#c4592a]';
 
 type Raw = Record<string, any>;
 
-export default function ShopCheckoutSettings({ value, currency, weightUnit, providers, onChange }: { value: Raw; currency: string; weightUnit: string; providers: Record<PaymentProvider, ProviderStatus>; onChange: (v: Raw) => void }) {
+export default function ShopCheckoutSettings({ value, currency, weightUnit, providers, mailLists, onChange }: { value: Raw; currency: string; weightUnit: string; providers: Record<PaymentProvider, ProviderStatus>; mailLists: MailList[] | null; onChange: (v: Raw) => void }) {
   const set = (patch: Raw) => onChange({ ...value, ...patch });
   // As typed (the server cleans it on save, so text keeps its spaces while typed); the defaults where
   // nothing is set. Every zone, rate and location has an id: made here, or by the cleaning on save.
@@ -47,6 +49,7 @@ export default function ShopCheckoutSettings({ value, currency, weightUnit, prov
   const setTax = (patch: Partial<TaxSettings>) => set({ tax: { ...c.tax, ...patch } });
   const stripeTax = provider === 'stripe';
   const emails = (value.emails ?? {}) as Partial<Record<ShopEmailKind, ShopEmail>>;
+  const news: { lists: number[]; label?: string } = { lists: [], ...(value.news ?? {}) };
 
   return (
     <>
@@ -170,6 +173,27 @@ export default function ShopCheckoutSettings({ value, currency, weightUnit, prov
         </>
       )}
       <p className="mb-3 text-xs text-admin-muted">Each product's Taxed switch decides whether it is taxed. The shop adds the tax you set up; it doesn't register for or file tax for you.</p>
+
+      <span className={heading}>Email me news</span>
+      {mailLists === null ? (
+        <p className="mb-3 text-xs text-admin-muted">With Mailing Lists on (Settings &gt; Mailing Lists), checkout can offer buyers a tick to sign up to your lists.</p>
+      ) : !mailLists.length ? (
+        <p className="mb-3 text-xs text-admin-muted">Make a mailing list under People &gt; Mailing Lists to offer it at checkout.</p>
+      ) : (
+        <>
+          <p className="mb-2 text-xs text-admin-muted">A tick at checkout, unticked to begin with. Ticked, the buyer is signed up to the lists chosen here once they confirm by email, as with a Subscribe block.</p>
+          <fieldset className="mb-3">
+            <legend className="mb-1 text-xs text-admin-muted">Lists it signs up to (none: no tick)</legend>
+            {mailLists.map((l) => (
+              <label key={l.id} className="mr-4 inline-flex items-center gap-1 text-sm">
+                <input type="checkbox" checked={news.lists.includes(l.id)} onChange={(e) => set({ news: { ...news, lists: e.target.checked ? [...news.lists, l.id] : news.lists.filter((x) => x !== l.id) } })} />
+                {l.name}
+              </label>
+            ))}
+          </fieldset>
+          {news.lists.length > 0 && <Text title="The tick's words" value={value.news?.label ?? ''} placeholder={DEFAULT_NEWS_LABEL} onChange={(label) => set({ news: { ...news, label: label || undefined } })} />}
+        </>
+      )}
 
       <span className={heading}>Emails</span>
       <p className="mb-2 text-xs text-admin-muted">Designed in the email builder, with the order's details as merge tags and an Order details block.</p>
