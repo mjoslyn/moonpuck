@@ -1238,7 +1238,8 @@ product categories (`showsType`, `showsTaxonomy`, `src/lib/features.ts`), the si
 answer 404.
 
 - **Products**: the core's `product` type (`/product/<slug>/`, listed at `/shop/`) and `product_category`
-  taxonomy (`/shop/category/<slug>/`), added by `withShop` (`src/lib/shop/types.ts`) and changed by the
+  taxonomy (`/shop/category/<slug>/`; the type has a `featured` field of its own, so collections can list
+  featured products alone), added by `withShop` (`src/lib/shop/types.ts`) and changed by the
   site config's `shop` (`ShopConfig`: `product`, `category`). A site that lists its own `product` type
   keeps it whole and shown while the shop is off (`SHOP_CORE_TYPES` is then empty); the shop's settings
   apply to it while the shop is on.
@@ -1260,7 +1261,10 @@ answer 404.
   from the product's fields so a product's save never overwrites a count; the settings save each count
   as it changes (editors write it). A product that doesn't count stock has no limit; one that does and has
   no row has none left (`leftOf`, `src/lib/shop/stock.ts`).
-- **Blocks** (`src/render/c/shop.ts`; the editor's Shop category while it is on): **Product price**
+- **Blocks** (`src/render/c/shop.ts`; the editor's Shop category while it is on): **Product** (`shop-product`:
+  one product on any page, the one it names else the page's or card's; its featured image and name linking
+  to its page, its excerpt, and Add to cart for it, or its price alone; `layout` card or side by side,
+  `square`, `showExcerpt`, `showButton`, `label`, `showQuantity`), **Product price**
   (`product-price`: its price, or From the lowest; the compare-at price struck through), **Add to cart**
   (`add-to-cart`: options as choices, quantity, button; the product it names, else the page's or card's),
   **Product gallery** (`shop-gallery`, a name sites don't use: a site block of the same name as a core feature's block would be replaced by it, since the feature's blocks register after the site's; the product's pictures, `productImages`: its featured image, its `gallery` (media ids from its Shop settings, at most `MAX_GALLERY`, 30), then the own pictures of the variants Add to cart sells, each once; large with thumbnails that show and link to the same picture as the large one, `aspect` crops them; `public/assets/js/shop-gallery.js` shows a thumbnail's picture in place and, on `c-product:variant`, which cart.js's Add to cart for the same product sends only when the variant chosen changes (and keeps on the form as `data-variant-image` for a gallery starting after it), the variant's picture; in a collection's cards the products' pictures load with the cards, `loadEntryMedia`; Sync counts them as media the product uses, `mediaRefs`; the starter `single-product` template has it), **Cart** (`cart`) and **Cart link** (`cart-link`, the number of items). Collections get a `product`

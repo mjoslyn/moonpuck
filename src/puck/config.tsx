@@ -8,7 +8,7 @@ import { NewsletterPanel, SubscribePanel } from './SubscribePanel';
 import { FormStylePanel } from './FormStyle';
 import { EVENT_BLOCKS } from '../lib/events/on';
 import { SHOP_BLOCKS } from '../lib/shop/config';
-import { GALLERY_ASPECTS } from '../render/c/shop';
+import { GALLERY_ASPECTS, PRODUCT_LAYOUTS } from '../render/c/shop';
 import { SITE_BLOCKS } from '../lib/site/render';
 import { taxonomiesOf } from '../lib/site';
 import { SITE_EDITOR } from '../lib/site/editor';
@@ -55,6 +55,18 @@ Object.assign(PANELS, {
     </>
   ),
   members: (a: Attrs, set: (p: Attrs) => void) => <MembersPanel a={a} set={set} />,
+  'shop-product': (a: Attrs, set: (p: Attrs) => void) => (
+    <>
+      <EntryField title="Product" entryType="product" value={a.product} onChange={(id) => set({ product: id || undefined })} />
+      <Select title="Layout" value={a.layout ?? 'card'} options={PRODUCT_LAYOUTS} onChange={(v) => set({ layout: v === 'card' ? undefined : v })} />
+      <Toggle title="Square picture" value={a.square !== false} onChange={(v) => set({ square: v ? undefined : false })} />
+      <Toggle title="Show its description (excerpt)" value={a.layout === 'side' ? a.showExcerpt !== false : !!a.showExcerpt} onChange={(v) => set({ showExcerpt: v })} />
+      <Toggle title="Add to cart button" value={a.showButton !== false} onChange={(v) => set({ showButton: v ? undefined : false })} />
+      {a.showButton !== false && <Text title="Button" value={a.label} placeholder="Add to cart" onChange={(v) => set({ label: v || undefined })} />}
+      {a.showButton !== false && <Toggle title="Ask how many" value={a.showQuantity === true} onChange={(v) => set({ showQuantity: v || undefined })} />}
+      <p className="mb-2 text-xs text-admin-muted">One product, on any page: its picture and name link to its page, with its price and options. Without a product chosen, the page's or card's own.</p>
+    </>
+  ),
   'product-price': (a: Attrs, set: (p: Attrs) => void) => (
     <>
       <EntryField title="Product" entryType="product" value={a.product} onChange={(id) => set({ product: id || undefined })} />
@@ -200,6 +212,7 @@ const LABELS: Record<string, string> = {
   'member-link': 'Member sign-in link',
   'product-price': 'Product price',
   'add-to-cart': 'Add to cart',
+  'shop-product': 'Product',
   'shop-gallery': 'Product gallery',
   cart: 'Cart',
   'cart-link': 'Cart link',

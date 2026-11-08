@@ -12,6 +12,7 @@ import { downsize, mediaImage, mediaImgTag, mediaUrl } from '../../lib/media/ima
 import { CART_PATH, categoryDiscounts, maxQuantity, priceRange, productImages, productOf, sellable, shopSettings, unitFor, type Product } from '../../lib/shop/config';
 import { leftOf, type StockMap } from '../../lib/shop/stock';
 import { ARCHIVE_PATHS } from '../../lib/site';
+import { permalink } from '../../lib/permalink';
 import { ACCOUNT_PATH, memberSettings } from '../../lib/members/config';
 import { carrierProblem, checkoutSettings, DEFAULT_NEWS_LABEL } from '../../lib/shop/checkout-settings';
 import { mailingOn } from '../../lib/mailing/config';
@@ -287,7 +288,44 @@ const productGallery: Renderer = (b, env) => {
   return `<div ${root(a, ['c-shop-gallery'])} data-shop-gallery data-product="${e.id}"><div class="c-shop-gallery__main">${slides}</div>${thumbs}</div>`;
 };
 
+/** The layouts the Product block offers. */
+export const PRODUCT_LAYOUTS: [string, string][] = [
+  ['card', 'A card: the picture over its name, price and button'],
+  ['side', 'Side by side: the picture beside its name, description, price and button'],
+];
+
+/**
+ * One product on any page (the Product block): its featured image and name linking to its page, its
+ * excerpt (side by side, or when asked for), then Add to cart for it with its price and options, or its
+ * price alone. The product it names; empty, the page's or card's own.
+ */
+const shopProduct: Renderer = (b, env, inner) => {
+  const e = productEntry(b, env);
+  if (!e) return note(env, 'Product: choose the product to show in its settings.');
+  const p = productOf(e.fields);
+  if (!p || !sellable(p).length) return note(env, `${e.title}: give it a price in its settings, under Shop, to sell it here.`);
+  const a = b.attrs;
+  const side = a.layout === 'side';
+  const href = escAttr(permalink(e));
+  const m = e.featured_media_id ? env.ctx.loader.media.get(e.featured_media_id) : undefined;
+  const picture = m ? `<a class="c-shop-product__image" href="${href}" tabindex="-1" aria-hidden="true">${mediaImgTag(mediaImage(m, side ? 'large' : 'medium_large', a.square === false ? { alt: '' } : { ratio: 1, alt: '', style: 'aspect-ratio:1/1;object-fit:cover' }), { loading: 'lazy' })}</a>` : '';
+  const excerpt = (side ? a.showExcerpt !== false : !!a.showExcerpt) && e.excerpt ? `<p class="c-shop-product__excerpt">${esc(e.excerpt)}</p>` : '';
+  const own = { product: e.id };
+  const buy =
+    a.showButton === false
+      ? productPrice({ ...b, id: `${b.id}-price`, attrs: own }, env, inner)
+      : addToCart({ ...b, id: `${b.id}-buy`, attrs: { ...own, label: a.label, showQuantity: a.showQuantity === true } }, env, inner);
+  const heading = Math.min(Math.max(Number(a.level) || 3, 2), 4);
+  return (
+    `<div ${root(a, ['c-shop-product', side ? 'is-side' : 'is-card'])}>` +
+    picture +
+    `<div class="c-shop-product__body"><h${heading} class="c-shop-product__title"><a href="${href}">${esc(e.title)}</a></h${heading}>${excerpt}${buy}</div>` +
+    `</div>`
+  );
+};
+
 export const SHOP_RENDERERS: Record<string, Renderer> = {
+  'shop-product': shopProduct,
   'product-price': productPrice,
   'add-to-cart': addToCart,
   'shop-gallery': productGallery,

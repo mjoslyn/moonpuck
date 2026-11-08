@@ -937,6 +937,25 @@ Its settings:
 - **Button**.
 - **Ask how many**.
 
+#### Product
+
+One product on any page: its picture and name (both linking to its page), and its price with **Add to
+cart** and its options. To list several products, use a **Collection** block with Products ticked and
+the Product card design (and **Featured only** for the products marked Featured).
+
+![The Product block, side by side](../../../assets/guide/blocks/shop-product.png)
+
+Its settings:
+
+- **Product**: the product to show. Leave it empty for the page's or card's own.
+- **Layout**: A card (the picture over its name, price and button) or Side by side (the picture beside
+  them).
+- **Square picture**: on, the picture is cropped square; off, its own shape.
+- **Show its description (excerpt)**: on or off (on by default side by side).
+- **Add to cart button**: off shows the price alone.
+- **Button**: its words (empty: Add to cart).
+- **Ask how many**: on or off.
+
 #### Product gallery
 
 The product's pictures: its featured image large, with thumbnails of the rest below (its gallery images,

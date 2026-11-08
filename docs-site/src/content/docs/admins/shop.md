@@ -36,6 +36,8 @@ A product without a price isn't for sale. The other settings under **Shop**:
 - **Pickup only**: collected, never posted.
 - **Taxed**: untick it for things you don't charge tax on.
 - **Most per order**: leave it empty for no limit.
+- **Featured** (in the product's settings, with its details): mark the products to feature. A Collection
+  block with Products ticked can show featured ones only.
 - **Members** (when your site has Members turned on): for each member level, what they pay: The usual
   price, A percent off, or A price of their own. Members never pay more than the usual price.
   **Members only** limits who may buy it, with the levels that may. The product's page says what
