@@ -6,7 +6,7 @@ import Admin from '../../../../layouts/Admin.astro';
 import { SITE_TZ } from '../../../../lib/site';
 import { formatMoney } from '../../../../lib/payments/money';
 import { donationSettings } from '../../../../lib/donations/config';
-import type { Donation, DonationPlan } from '../../../../lib/donations/donations';
+import { atHome, type Donation, type DonationPlan } from '../../../../lib/donations/donations';
 
 const id = Number(Astro.params.id) || 0;
 const db = Astro.locals.db;
@@ -21,7 +21,8 @@ const isAdmin = Astro.locals.user?.role === 'admin';
 const money = (n: number) => formatMoney(n, p.currency);
 const when = (x: string | null) => (x ? new Date(x).toLocaleString('en-US', { timeZone: SITE_TZ, month: 'short', day: 'numeric', year: 'numeric' }) : '');
 const STATUS: Record<string, string> = { incomplete: 'Not started', active: 'Active', past_due: 'The last payment failed; Stripe tries again', cancelled: 'Cancelled' };
-const live = p.status === 'active' || p.status === 'past_due';
+const home = atHome(p, Astro.url.origin);
+const live = (p.status === 'active' || p.status === 'past_due') && home;
 const paid = gifts.filter((g) => g.status === 'paid');
 ---
 <Admin title={`Monthly gift: ${p.name}`}>
@@ -36,10 +37,11 @@ const paid = gifts.filter((g) => g.status === 'paid');
       {p.dedication && <><dt class="text-admin-muted">In honor or memory of</dt><dd>{p.dedication}</dd></>}
       {p.goal && <><dt class="text-admin-muted">Goal</dt><dd>{s.goals.find((g) => g.id === p.goal)?.name ?? p.goal}</dd></>}
       <dt class="text-admin-muted">Stripe subscription</dt><dd>{p.subscription ?? 'none yet'}</dd>
+      {p.home && <><dt class="text-admin-muted">Started on</dt><dd>{p.home}{!home && <span class="text-[#b45309]"> (another copy of the site: its payments and changes are looked after there)</span>}</dd></>}
     </dl>
   </section>
   <section class="mt-4 flex flex-wrap gap-3">
-    {p.subscription && <button type="button" data-plan="refresh" class="rounded border border-admin-ink/15 bg-white px-3 py-1.5 text-sm hover:border-admin-accent hover:text-admin-accent">Check at Stripe</button>}
+    {p.subscription && home && <button type="button" data-plan="refresh" class="rounded border border-admin-ink/15 bg-white px-3 py-1.5 text-sm hover:border-admin-accent hover:text-admin-accent">Check at Stripe</button>}
     {isAdmin && live && <button type="button" data-plan="cancel" class="rounded border border-[#b3261e]/40 bg-white px-3 py-1.5 text-sm text-[#b3261e] hover:border-[#b3261e]">Cancel monthly gift</button>}
   </section>
   <p id="plan-status" role="status" class="mt-3 text-sm text-admin-muted"></p>

@@ -419,6 +419,18 @@ at any depth, is refused. Its writes clear its page cache.
   the screen polls `GET /api/admin/sync?restoreJob=<id>`. One run claims a job (a claim file made only
   once) and writes a heartbeat every 30 seconds; a running restore silent for 3 minutes is reported as
   cut off, naming its before-restore backup.
+- **Records matched by token** (shop orders, monthly donors, gifts: a `Ledger` each, `planLedger`,
+  `applyLedger`, `ledgerNotAhead`): each copy gives them their own ids, so they match by token; columns
+  naming another such row by id (a gift's `plan_id`) are compared and written by that row's token, and
+  other unique columns (an order's or gift's number, a gift's invoice) taken there by another row are
+  conflicts. They are written with the source's `updated_at`, so a row a sync wrote carries the source's
+  time: an edit on the source since shows as a change, and only an edit on the target is stamped by the
+  target's clock, a conflict (`it changed there since`), as is a row further along there (status, refunds,
+  fulfilment, stock taken off: the ledger's `progress`). A restore puts a row back unless it is further
+  along now or was changed after the backup or snapshot was taken (its `created_at`), so restoring a
+  sync's backup undoes the rows that sync wrote; rows kept as they are aren't counted as restored, and
+  the report names them. `compareGroups` and `writeGroup` run a comparison or a group's writes between any
+  two databases (`plan` and `apply` give them the two copies; tests give them two files, `fileD1`).
 - Mailing's contacts, campaigns, sends and clicks aren't synced or backed up, and a restore leaves
   them alone: a snapshot restore can't subscribe anyone again (see Mailing).
 - A site with **Protect this site from syncs** on (`settings.site.sync_protected`, set in its own Settings > Sync)
@@ -1405,13 +1417,12 @@ answer 404.
   CSV (`GET /api/admin/shop/stats.csv?table=daily|products|discounts|campaigns` with the range, formulas
   guarded). An order's page and the orders CSV show its campaign.
 - **Sync and backups** (`src/lib/sync.ts`; Settings > Sync): groups `shop:discounts` (by id, as forms),
-  `shop:orders` (by token: each copy's orders have their own ids; written without id, member or discount
+  `shop:orders` (a ledger, see Records matched by token under Sync: written without id, member or discount
   id, the target's discount of the same code set, so nothing is sent and no stock changes) and
   `shop:stock` (by product and variant; `optIn`, left out of All, with a warning). An order never goes
-  backwards (`orderAhead`: further along in status, refunds, fulfilment or stock taken off, or changed
-  later, on the target is a conflict). Snapshots and sync backups hold `shop_discounts`, `shop_orders` and
+  backwards (`orderAhead`). Snapshots and sync backups hold `shop_discounts`, `shop_orders` and
   `shop_stock`; a restore never deletes an order (not even with Also delete), puts back only orders not
-  further along now (`ordersNotAhead`), and stock as the backup has it less what orders paid since took
+  further along or changed since, and stock as the backup has it less what orders paid since took
   off (`stockLessSold`). Backups so hold buyers' details: they stay in the private `sync-backups/` folder,
   downloaded by admins only.
 - **Order emails** (`src/lib/shop/email.ts`, safe in the browser; Settings > Shop, Emails,
@@ -1508,16 +1519,19 @@ at Stripe) are still recorded. A gift gives no membership.
   `kind` once or monthly, `plan_id`, provider refs, `invoice` (unique: a monthly payment is recorded once),
   `amount` the gift, `fee` covered, `total` charged, `refunded_amount`, `refund_attempt`, donor, anonymous,
   dedication, goal, the page it was given on, the visit's `campaign`); `donation_plans`, one per monthly
-  gift (status incomplete, active, past_due or cancelled; Stripe's `customer` and `subscription`, and the
-  gift's details).
+  gift (status incomplete, active, past_due or cancelled; Stripe's `customer` and `subscription`, the copy
+  it started on, `home`, and the gift's details).
 - **Sync and backups** (`src/lib/sync.ts`; Settings > Sync): groups `donations:plans` (Monthly donors)
-  and `donations:gifts` (Donations), in that order, both matched by token (each copy's rows have their
-  own ids). A gift's monthly gift is written as the target's plan with the same token (compared as its
-  token, `giftValue`); one whose plan isn't on the target is skipped (sync Monthly donors too). Nothing is
-  sent and nothing changes at Stripe. Neither goes backwards (`donationAhead`: further along in status or
-  refunds, or changed later, on the target is a conflict). Snapshots and sync backups hold `donations` and
-  `donation_plans`; a restore never deletes either (not even with Also delete) and puts back only those not
-  further along now (`donationsNotAhead`). Backups so hold donors' names and emails.
+  and `donations:gifts` (Donations), in that order, both ledgers matched by token as the shop's orders
+  (see Records matched by token under Sync). A gift's monthly donor is compared and written by its token
+  (the target's plan with that token); one whose plan isn't on the target, and isn't brought by a chosen
+  Monthly donors group, is a conflict when comparing. A receipt number or invoice another gift has there
+  is a conflict too. Nothing is sent and nothing changes at Stripe: a monthly gift is looked after only by
+  the copy it started on (`donation_plans.home`, `SITE_URL` or the request's address then, migration
+  `*_donation_plans_home.sql`; `atHome`): another copy with the plan, even with a webhook on the same
+  Stripe account, records none of its payments, sends no emails, and refuses Cancel, Update your card and
+  Check at Stripe for it. Snapshots and sync backups hold `donations` and `donation_plans`; a restore never
+  deletes either (not even with Also delete). Backups so hold donors' names and emails.
 - **Blocks** (`src/render/c/donations.ts`; the editor's Donations category, `src/puck/DonationPanels.tsx`):
   **Donate** (`donate`: Give once / Monthly, preset amounts (the block's `amounts` else the settings') and
   Other, cover the fees, name, email, dedication, anonymous, news, a honeypot; the `goal` it counts

@@ -99,6 +99,12 @@ async function localD1(): Promise<D1Database> {
   const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f: string) => f.endsWith('.sqlite') && f !== 'metadata.sqlite') : [];
   const file = env('D1_LOCAL_FILE') || (files.length === 1 ? path.join(dir, files[0]) : '');
   if (!file) throw new Error(files.length ? `Several local databases in ${dir}: set D1_LOCAL_FILE` : `No local database: run npx wrangler d1 migrations apply DB --local`);
+  return fileD1(file);
+}
+
+/** A SQLite file on this machine as a D1 database (scripts in Node, and tests that need a second copy). */
+export async function fileD1(file: string): Promise<D1Database> {
+  const { DatabaseSync } = (await import(/* @vite-ignore */ 'node:sqlite' as string)) as { DatabaseSync: new (file: string) => SqliteDatabase };
   const db = new DatabaseSync(file);
   db.exec('PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
   return {

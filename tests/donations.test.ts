@@ -81,7 +81,7 @@ describe('one-time gifts', () => {
     expect(created.at(-1).items.map((i: any) => [i.name, i.unit])).toEqual([[expect.stringContaining('Gift'), 5000], ['Fees covered', 186]]);
 
     paid.add(d.provider_ref!);
-    await donationsWebhook('stripe', { kind: 'checkout', ref: d.provider_ref! });
+    await donationsWebhook('stripe', { kind: 'checkout', ref: d.provider_ref! }, 'http://localhost');
     await markDonationPaid(db, d, { paymentId: 'again' });
     expect(await latest()).toMatchObject({ status: 'paid', provider_payment: `pi_${d.provider_ref}` });
     expect(sent.map((m) => m.to[0])).toEqual([d.email, expect.any(String)]);
@@ -139,7 +139,7 @@ describe('monthly gifts', () => {
     expect((await plan(first.plan_id!)).status).toBe('incomplete');
 
     subs.paid.add(first.provider_ref!);
-    await donationsWebhook('stripe', { kind: 'checkout', ref: first.provider_ref! });
+    await donationsWebhook('stripe', { kind: 'checkout', ref: first.provider_ref! }, 'http://localhost');
     const p = await plan(first.plan_id!);
     expect(p).toMatchObject({ status: 'active', subscription: `sub_${first.provider_ref}`, customer: `cus_${first.provider_ref}` });
     expect(await latest()).toMatchObject({ status: 'paid', invoice: `in_first_${first.provider_ref}` });
@@ -147,14 +147,14 @@ describe('monthly gifts', () => {
     expect(sent[0].html).toContain(`?plan=${p.token}`);
 
     // The first invoice's own event is the checkout's: nothing more.
-    await donationsWebhook('stripe', { kind: 'invoice', invoice: `in_first_${first.provider_ref}`, subscription: p.subscription!, reason: 'subscription_create', failed: false });
+    await donationsWebhook('stripe', { kind: 'invoice', invoice: `in_first_${first.provider_ref}`, subscription: p.subscription!, reason: 'subscription_create', failed: false }, 'http://localhost');
     expect((await db.from('donations').select('id').eq('plan_id', p.id)).data).toHaveLength(1);
 
     // A later month, delivered twice.
     subs.invoices.in_2 = { paymentId: 'pi_2', amount: 2500, paid: true };
     sent.length = 0;
-    await donationsWebhook('stripe', { kind: 'invoice', invoice: 'in_2', subscription: p.subscription!, reason: 'subscription_cycle', failed: false });
-    await donationsWebhook('stripe', { kind: 'invoice', invoice: 'in_2', subscription: p.subscription!, reason: 'subscription_cycle', failed: false });
+    await donationsWebhook('stripe', { kind: 'invoice', invoice: 'in_2', subscription: p.subscription!, reason: 'subscription_cycle', failed: false }, 'http://localhost');
+    await donationsWebhook('stripe', { kind: 'invoice', invoice: 'in_2', subscription: p.subscription!, reason: 'subscription_cycle', failed: false }, 'http://localhost');
     const months = (await db.from('donations').select('*').eq('plan_id', p.id).order('id')).data as Donation[];
     expect(months).toHaveLength(2);
     expect(months[1]).toMatchObject({ status: 'paid', kind: 'monthly', provider_payment: 'pi_2', amount: 2500 });
@@ -162,19 +162,36 @@ describe('monthly gifts', () => {
 
     // A failed month: behind, the donor told once.
     sent.length = 0;
-    await donationsWebhook('stripe', { kind: 'invoice', invoice: 'in_3', subscription: p.subscription!, reason: 'subscription_cycle', failed: true });
-    await donationsWebhook('stripe', { kind: 'invoice', invoice: 'in_3', subscription: p.subscription!, reason: 'subscription_cycle', failed: true });
+    await donationsWebhook('stripe', { kind: 'invoice', invoice: 'in_3', subscription: p.subscription!, reason: 'subscription_cycle', failed: true }, 'http://localhost');
+    await donationsWebhook('stripe', { kind: 'invoice', invoice: 'in_3', subscription: p.subscription!, reason: 'subscription_cycle', failed: true }, 'http://localhost');
     expect((await plan(p.id)).status).toBe('past_due');
     expect(sent).toHaveLength(1);
     expect(sent[0].subject).toContain('didn’t go through');
 
     // Cancelled from the donor's page; Stripe's own event after it changes nothing.
     sent.length = 0;
-    await cancelPlan(db, await plan(p.id));
-    await donationsWebhook('stripe', { kind: 'subscription', subscription: p.subscription!, status: 'canceled' });
+    await cancelPlan(db, await plan(p.id), 'http://localhost');
+    await donationsWebhook('stripe', { kind: 'subscription', subscription: p.subscription!, status: 'canceled' }, 'http://localhost');
     expect(subs.cancelled).toEqual([p.subscription]);
     expect((await plan(p.id)).status).toBe('cancelled');
     expect(sent).toHaveLength(1);
+  });
+});
+
+describe('a monthly donor from another copy', () => {
+  it('is left alone here: no gifts recorded, no emails, no changes at Stripe', async () => {
+    const id = (await db.from('donation_plans').insert({ token: 'plan-elsewhere-xxxxxxxxxxxxxxx', status: 'active', subscription: 'sub_elsewhere', amount: 2500, total: 2500, name: 'E', email: 'e@example.org', home: 'https://other-copy.example' }).select('id').single()).data!.id as number;
+    subs.invoices.in_else = { paymentId: 'pi_else', amount: 2500, paid: true };
+    sent.length = 0;
+    await donationsWebhook('stripe', { kind: 'invoice', invoice: 'in_else', subscription: 'sub_elsewhere', reason: 'subscription_cycle', failed: false }, 'http://localhost');
+    await donationsWebhook('stripe', { kind: 'invoice', invoice: 'in_else_2', subscription: 'sub_elsewhere', reason: 'subscription_cycle', failed: true }, 'http://localhost');
+    await donationsWebhook('stripe', { kind: 'subscription', subscription: 'sub_elsewhere', status: 'canceled' }, 'http://localhost');
+    expect((await db.from('donations').select('id').eq('plan_id', id)).data).toEqual([]);
+    expect(sent).toEqual([]);
+    expect((await plan(id)).status).toBe('active');
+    const before = subs.cancelled.length;
+    await expect(cancelPlan(db, await plan(id), 'http://localhost')).rejects.toThrow(/started on https:\/\/other-copy\.example/);
+    expect(subs.cancelled.length).toBe(before);
   });
 });
 

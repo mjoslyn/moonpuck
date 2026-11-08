@@ -20,7 +20,7 @@ export const POST: APIRoute = async ({ request, url }) => {
       return back('cancelled');
     }
     if (action === 'card') {
-      const to = await planCardUrl(plan, manageLink(origin, plan)).catch((e) => (console.warn(`donations: card portal for plan ${plan.id}: ${(e as Error).message}`), null));
+      const to = await planCardUrl(plan, manageLink(origin, plan), origin).catch((e) => (console.warn(`donations: card portal for plan ${plan.id}: ${(e as Error).message}`), null));
       return to ? new Response(null, { status: 303, headers: { Location: to, 'Cache-Control': 'no-store' } }) : back('no-card');
     }
   } catch (e) {

@@ -120,5 +120,8 @@ Donors can cancel their own gift from the link in their receipts.
   copy of the site (**Monthly donors** and **Donations**). A sync or restore never deletes a gift, never
   takes one back to an earlier state (a refund stays a refund), sends no receipts and changes nothing at
   Stripe. Backups hold donors' names and emails: keep downloaded backups private.
+- A monthly gift is looked after by the copy of the site it started on. Another copy you sync it to
+  shows it, but records none of its payments, sends its donor nothing, and can't cancel it: its page
+  there says where it started.
 - The site doesn't file tax returns or send year-end statements for you. Export the year's gifts as CSV
   for that.

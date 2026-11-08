@@ -81,6 +81,8 @@ export interface DonationPlan {
   goal: string;
   page: string;
   campaign: string;
+  /** The copy of the site it started on (its address): only that copy acts on its Stripe events. */
+  home: string;
   started_at: string | null;
   cancelled_at: string | null;
   failed_at: string | null;
@@ -176,7 +178,7 @@ export async function startDonation(body: Record<string, unknown>, origin: strin
   const code = newCode();
   let planId: number | null = null;
   if (monthly) {
-    const { data: plan, error } = await db.from('donation_plans').insert({ token: newToken(), amount, fee, total, currency: s.currency, ...details }).select('id').single();
+    const { data: plan, error } = await db.from('donation_plans').insert({ token: newToken(), amount, fee, total, currency: s.currency, home: siteOrigin(origin), ...details }).select('id').single();
     if (error) throw error;
     planId = plan.id as number;
   }
@@ -302,6 +304,15 @@ export async function planByToken(db: Db, token: string): Promise<DonationPlan |
 }
 
 /**
+ * Whether this copy looks after a monthly gift: the copy it started on (or any copy, for one from before
+ * that was kept). A copy that has the plan through a sync, and a webhook of its own on the same Stripe
+ * account, leaves it alone: no gifts recorded, no emails, no changes at Stripe.
+ */
+export const atHome = (plan: Pick<DonationPlan, 'home'>, origin?: string) => !plan.home || plan.home === siteOrigin(origin);
+
+const NOT_HOME = (plan: Pick<DonationPlan, 'home'>) => `This monthly gift started on ${plan.home}; change it there.`;
+
+/**
  * A provider's webhook (signature checked by the route): a checkout's payment asked of the provider, its
  * refunds recorded, and a monthly gift's invoices (a later month paid makes a gift; a failed one marks the
  * plan behind and tells the donor once) and the subscription's end. Gifts not found are another feature's.
@@ -316,7 +327,7 @@ export async function donationsWebhook(provider: PaymentProvider, event: Payment
   if (event.kind === 'invoice') return invoiceEvent(db, event, origin);
   if (event.kind === 'subscription') {
     const plan = await planBy(db, 'subscription', event.subscription);
-    if (!plan) return;
+    if (!plan || !atHome(plan, origin)) return;
     if (event.status === 'canceled' || event.status === 'incomplete_expired') await planEnded(db, plan, origin);
     else if (event.status === 'past_due' || event.status === 'unpaid') await db.from('donation_plans').update({ status: 'past_due' }).eq('id', plan.id).eq('status', 'active');
     else if (event.status === 'active') await db.from('donation_plans').update({ status: 'active' }).eq('id', plan.id).eq('status', 'past_due');
@@ -339,7 +350,7 @@ export async function donationsWebhook(provider: PaymentProvider, event: Payment
  */
 async function invoiceEvent(db: Db, event: Extract<PaymentEvent, { kind: 'invoice' }>, origin?: string) {
   const plan = await planBy(db, 'subscription', event.subscription);
-  if (!plan || plan.status === 'cancelled') return;
+  if (!plan || plan.status === 'cancelled' || !atHome(plan, origin)) return;
   if (event.failed) {
     const { data } = await db.from('donation_plans').update({ status: 'past_due', failed_at: new Date().toISOString() }).eq('id', plan.id).eq('status', 'active').select('id');
     if (data?.length) await sendPlanEmail('failed', plan, siteOrigin(origin)).catch((e) => console.error(`donations: failed-payment email for plan ${plan.id}: ${(e as Error).message}`));
@@ -373,6 +384,7 @@ async function planEnded(db: Db, plan: DonationPlan, origin?: string) {
 /** Stop a monthly gift (the donor's page, or the Donations screen): its subscription cancelled at Stripe, then marked so. */
 export async function cancelPlan(db: Db, plan: DonationPlan, origin?: string) {
   if (plan.status === 'cancelled') return;
+  if (!atHome(plan, origin)) throw new Error(NOT_HOME(plan));
   if (plan.subscription) {
     const status = await cancelSubscription(plan.subscription);
     if (status && status !== 'canceled') throw new Error(`Stripe answered ${status}; the monthly gift was not cancelled.`);
@@ -381,7 +393,8 @@ export async function cancelPlan(db: Db, plan: DonationPlan, origin?: string) {
 }
 
 /** A Stripe page where the donor updates their card (needs Stripe's customer portal set up). */
-export async function planCardUrl(plan: DonationPlan, returnUrl: string): Promise<string> {
+export async function planCardUrl(plan: DonationPlan, returnUrl: string, origin?: string): Promise<string> {
+  if (!atHome(plan, origin)) throw new Error(NOT_HOME(plan));
   if (!plan.customer) throw new Error('This monthly gift has no card on file yet.');
   return portalUrl(plan.customer, returnUrl);
 }
@@ -389,6 +402,7 @@ export async function planCardUrl(plan: DonationPlan, returnUrl: string): Promis
 /** A plan's status read again from Stripe (the Donations screen's Check at Stripe). */
 export async function refreshPlan(db: Db, plan: DonationPlan, origin?: string) {
   if (!plan.subscription) return plan.status;
+  if (!atHome(plan, origin)) throw new Error(NOT_HOME(plan));
   const status = await subscriptionStatus(plan.subscription);
   await donationsWebhook('stripe', { kind: 'subscription', subscription: plan.subscription, status }, origin);
   return status;

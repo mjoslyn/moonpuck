@@ -588,22 +588,7 @@ const applyRedirects: Applier = async (ctx, _group, keys) => {
 // target's with the same code. Stock counts match by product and variant and overwrite the target's.
 
 const DISCOUNT_DERIVED = ['created_at', 'updated_at'];
-// An order's columns a sync neither compares nor writes: the target's own id, member and discount id.
-const ORDER_OWN = ['id', 'updated_at', 'member_id', 'discount_id'];
-const ORDER_RANK: Record<string, number> = { pending: 0, expired: 1, cancelled: 1, paid: 2, refunded: 3 };
-
-/** Why the target's order is ahead of the source's (so a sync or restore leaves it), or null. */
-export function orderAhead(there: any, from: any): string | null {
-  if ((ORDER_RANK[there.status] ?? 0) > (ORDER_RANK[from.status] ?? 0)) return `it is ${there.status} there`;
-  if ((there.refunded_amount ?? 0) > (from.refunded_amount ?? 0)) return 'more of it is refunded there';
-  if (there.fulfilled && !from.fulfilled) return `it is marked ${there.fulfilled === 'picked_up' ? 'picked up' : 'shipped'} there`;
-  if (there.stock_taken && !from.stock_taken) return 'its stock was taken off there';
-  if (there.updated_at && from.updated_at && there.updated_at > from.updated_at) return 'it changed there since';
-  return null;
-}
-
 const stockKey = (r: { product_id: number; variant: string }) => `${r.product_id}/${r.variant}`;
-const orderLabel = (o: any) => `${o.code}: ${o.name} (${o.status})`;
 
 const planDiscounts: Planner = async (ctx) => {
   const [src, tgt] = await Promise.all([must(ctx.source.from('shop_discounts').select('*').order('id'), 'discounts'), must(ctx.target.from('shop_discounts').select('*').order('id'), 'discounts')]);
@@ -629,58 +614,6 @@ const applyDiscounts: Applier = async (ctx, _group, keys) => {
   for (const d of rows) {
     const { error } = await ctx.target.from('shop_discounts').upsert(omit(d, DISCOUNT_DERIVED), { onConflict: 'id' });
     if (error) skipped.push({ key: String(d.id), label: d.code || d.name, reason: error.message });
-    else written++;
-  }
-  return { written, skipped };
-};
-
-/** An order as a sync compares and writes it. */
-const orderValue = (o: any) => omit(o, ORDER_OWN);
-
-async function orderState(ctx: Context, tokens?: string[]) {
-  const cols = '*';
-  const src = tokens ? await byIds(ctx.source, 'shop_orders', cols, 'token', tokens, ['id']) : await must(ctx.source.from('shop_orders').select(cols).order('id'), 'orders');
-  const tgtRows = tokens ? await byIds(ctx.target, 'shop_orders', cols, 'token', tokens, ['id']) : await must(ctx.target.from('shop_orders').select(cols).order('id'), 'orders');
-  // Codes taken there by other orders (the code is unique on each copy).
-  const codes = tokens ? await byIds<{ code: string; token: string }>(ctx.target, 'shop_orders', 'code, token', 'code', src.map((o) => o.code), ['id']) : tgtRows;
-  return { src, tgt: new Map(tgtRows.map((o) => [o.token, o])), codeOwner: new Map(codes.map((o) => [o.code, o.token])) };
-}
-
-function orderConflict(o: any, s: Awaited<ReturnType<typeof orderState>>): string | null {
-  const owner = s.codeOwner.get(o.code);
-  if (owner && owner !== o.token) return `order number ${o.code} is another order there`;
-  const there = s.tgt.get(o.token);
-  return there ? orderAhead(there, o) : null;
-}
-
-const planOrders: Planner = async (ctx) => {
-  const s = await orderState(ctx);
-  const out = { added: [] as SyncItem[], changed: [] as SyncItem[], same: 0, conflicts: [] as SyncConflict[], warnings: [] as string[] };
-  for (const o of s.src) {
-    const item = { key: o.token, label: orderLabel(o) };
-    const there = s.tgt.get(o.token);
-    if (there && stable(orderValue(o)) === stable(orderValue(there))) out.same++;
-    else {
-      const conflict = orderConflict(o, s);
-      if (conflict) out.conflicts.push({ ...item, reason: conflict });
-      else if (!there) out.added.push(item);
-      else out.changed.push(item);
-    }
-  }
-  if (out.added.length + out.changed.length) out.warnings.push('Orders are copied as they are: no emails are sent and no stock changes. Buyers’ names, emails and addresses go with them.');
-  return out;
-};
-
-const applyOrders: Applier = async (ctx, _group, keys) => {
-  const s = await orderState(ctx, keys);
-  const discounts = new Map((await must<{ id: number; code: string | null }>(ctx.target.from('shop_discounts').select('id, code').not('code', 'is', null), 'discounts')).map((d) => [String(d.code).toLowerCase(), d.id]));
-  const skipped: SyncConflict[] = [];
-  let written = 0;
-  for (const o of s.src) {
-    const conflict = orderConflict(o, s);
-    const row = { ...orderValue(o), discount_id: o.discount_code ? (discounts.get(String(o.discount_code).toLowerCase()) ?? null) : null };
-    const { error } = conflict ? { error: { message: conflict } } : await ctx.target.from('shop_orders').upsert(row, { onConflict: 'token' });
-    if (error) skipped.push({ key: o.token, label: orderLabel(o), reason: error.message });
     else written++;
   }
   return { written, skipped };
@@ -744,125 +677,220 @@ async function stockLessSold(db: Db, rows: any[], at: string): Promise<any[]> {
   return rows.map((r) => ({ product_id: r.product_id, variant: r.variant, on_hand: r.on_hand - (taken.get(stockKey(r)) ?? 0) }));
 }
 
-/** Orders to put back: only those not further along now (a restore never takes an order backwards). */
-async function ordersNotAhead(db: Db, rows: any[]): Promise<{ rows: any[]; kept: string[] }> {
-  const now = new Map((await byIds(db, 'shop_orders', '*', 'token', rows.map((o) => o.token), ['id'])).map((o) => [o.token, o]));
-  const kept: string[] = [];
-  const out = rows.filter((o) => {
-    const there = now.get(o.token);
-    if (!there || stable(orderValue(there)) === stable(orderValue(o))) return !there;
-    const why = orderAhead(there, o);
-    if (why) kept.push(o.code);
-    return !why;
-  });
-  return { rows: out, kept };
-}
-
-// ---- donations: monthly donors and gifts ---------------------------------------------------------
+// ---- records matched by token: shop orders, monthly donors, gifts --------------------------------
 //
-// Both match by their token (each copy's rows have their own ids), are written without sending anything
-// or touching Stripe, and never go backwards: a gift or monthly gift further along on the target (its
-// status, refunds) or changed there since is a conflict, left alone. A gift names its monthly gift by the
-// target's id for the same token (`plan`, the token, is what is compared).
+// Each copy gives these rows its own ids, so they match by their token. They are written as they are
+// (nothing is sent, no stock or payment changes), with the source's `updated_at`, so a row a sync wrote
+// carries the source's time and later edits on either copy are told apart by one clock each: the source
+// row edited since is newer than the copy's, and only an edit made on the target is stamped by its
+// clock. They never go backwards: a row further along on the target (status, refunds, fulfilment: the
+// ledger's `progress`) or edited there since is a conflict, left alone. Unique columns other than the
+// token (an order's or gift's number, a gift's invoice) taken there by another row are conflicts too, and
+// columns naming other ledger rows by id (a gift's monthly donor) are compared and written by token.
 
-const GIFT_OWN = ['id', 'updated_at', 'plan_id'];
-const PLAN_OWN = ['id', 'updated_at'];
-const GIFT_RANK: Record<string, number> = { pending: 0, expired: 1, cancelled: 1, paid: 2, refunded: 3 };
-const PLAN_RANK: Record<string, number> = { incomplete: 0, active: 1, past_due: 1, cancelled: 2 };
-
-/** Why the target's gift or monthly gift is ahead of the source's (so a sync or restore leaves it), or null. */
-export function donationAhead(there: any, from: any, plan = false): string | null {
-  const rank = plan ? PLAN_RANK : GIFT_RANK;
-  if ((rank[there.status] ?? 0) > (rank[from.status] ?? 0)) return `it is ${there.status.replace('_', ' ')} there`;
-  if (!plan && (there.refunded_amount ?? 0) > (from.refunded_amount ?? 0)) return 'more of it is refunded there';
-  if (there.updated_at && from.updated_at && there.updated_at > from.updated_at) return 'it changed there since';
-  return null;
+interface LedgerRef {
+  /** The column holding the other row's id on each copy. */
+  column: string;
+  /** The other row's table, and the name its token is compared under. */
+  table: string;
+  as: string;
+  /** The sync group that brings those rows, and why a row is skipped when its one isn't there. */
+  group: string;
+  missing: string;
 }
 
-const giftLabel = (d: any) => `${d.code}: ${d.name} (${d.status})`;
-const planLabel = (p: any) => `${p.name} <${p.email}> (${p.status})`;
-
-/** Each plan id's token, on one copy. */
-async function planTokens(db: Db, ids: number[]): Promise<Map<number, string>> {
-  return new Map((await byIds<{ id: number; token: string }>(db, 'donation_plans', 'id, token', 'id', [...new Set(ids)])).map((p) => [p.id, p.token]));
+interface Ledger {
+  table: string;
+  /** How a row is named in the plan and in reports. */
+  label: (r: any) => string;
+  /** Who it is, in a restore's report of rows kept as they are. */
+  name: (r: any) => string;
+  /** Columns that are each copy's own: neither compared nor written (ids, accounts). */
+  own: string[];
+  /** Unique columns other than the token, and how a clash reads. */
+  unique: [column: string, says: (v: string) => string][];
+  /** Why the row there is further along than the one coming (status, money, fulfilment), or null. */
+  progress: (there: any, from: any) => string | null;
+  refs?: LedgerRef[];
+  /** Columns the target sets for itself when a row is written (an order's discount, by its code). */
+  local?: (ctx: Context) => Promise<(r: any) => Record<string, unknown>>;
+  warning: string;
 }
 
-/** A gift as a sync compares it: without its own id, and its monthly gift as the token. */
-const giftValue = (d: any, tokens: Map<number, string>) => ({ ...omit(d, GIFT_OWN), plan: d.plan_id ? (tokens.get(d.plan_id) ?? null) : null });
+/** An edit made where the row already is, since the time `since` (one copy's clock either way). */
+const changedSince = (there: any, since: string | null | undefined) => (there.updated_at && since && there.updated_at > since ? 'it changed there since' : null);
 
-async function donationState(ctx: Context, plans: boolean, tokens?: string[]) {
-  const table = plans ? 'donation_plans' : 'donations';
-  const read = (db: Db) => (tokens ? byIds(db, table, '*', 'token', tokens, ['id']) : must(db.from(table).select('*').order('id'), table));
+/** Each id's token in a table, on one copy. */
+async function idTokens(db: Db, table: string, ids: number[]): Promise<Map<number, string>> {
+  const want = [...new Set(ids.filter((n) => Number(n) > 0))];
+  return new Map(want.length ? (await byIds<{ id: number; token: string }>(db, table, 'id, token', 'id', want)).map((p) => [p.id, p.token]) : []);
+}
+
+/** A row as a sync compares it: without the copy's own columns and `updated_at`, its references as tokens. */
+function ledgerValue(L: Ledger, r: any, tokens: Map<string, Map<number, string>>) {
+  const refs = L.refs ?? [];
+  return { ...omit(r, [...L.own, 'updated_at', ...refs.map((f) => f.column)]), ...Object.fromEntries(refs.map((f) => [f.as, r[f.column] ? (tokens.get(f.column)?.get(r[f.column]) ?? null) : null])) };
+}
+
+async function ledgerState(ctx: Context, L: Ledger, keys?: string[]) {
+  const read = (db: Db) => (keys ? byIds(db, L.table, '*', 'token', keys, ['id']) : must(db.from(L.table).select('*').order('id'), L.table));
   const [src, tgtRows] = await Promise.all([read(ctx.source), read(ctx.target)]);
-  const srcPlans = plans ? new Map<number, string>() : await planTokens(ctx.source, src.filter((d) => d.plan_id).map((d) => d.plan_id));
-  const tgtPlans = plans ? new Map<number, string>() : await planTokens(ctx.target, tgtRows.filter((d) => d.plan_id).map((d) => d.plan_id));
-  // Receipt numbers and invoices taken there by other gifts (each unique on a copy).
-  const owners = plans ? [] : [...tgtRows, ...(tokens ? await byIds(ctx.target, 'donations', 'code, token, invoice', 'code', src.map((d) => d.code), ['id']) : [])];
-  return { src, srcPlans, tgtPlans, tgt: new Map(tgtRows.map((r) => [r.token, r])), codeOwner: new Map(owners.map((d) => [d.code, d.token])) };
+  const refs = L.refs ?? [];
+  const tokensOf = (db: Db, rows: any[]) => Promise.all(refs.map(async (f) => [f.column, await idTokens(db, f.table, rows.map((r) => r[f.column]))] as const)).then((e) => new Map(e));
+  const [srcTokens, tgtTokens] = await Promise.all([tokensOf(ctx.source, src), tokensOf(ctx.target, tgtRows)]);
+  // The target's ids for the rows the source's references name, by token.
+  const targetIds = new Map(
+    await Promise.all(
+      refs.map(async (f) => {
+        const wanted = [...new Set(srcTokens.get(f.column)!.values())];
+        const found = wanted.length ? await byIds<{ id: number; token: string }>(ctx.target, f.table, 'id, token', 'token', wanted) : [];
+        return [f.column, new Map(found.map((p) => [p.token, p.id]))] as const;
+      }),
+    ),
+  );
+  // Who holds each unique value there (all the target's rows when comparing everything).
+  const owners = new Map(
+    await Promise.all(
+      L.unique.map(async ([column]) => {
+        const values = src.map((r) => r[column]).filter((v) => v != null && v !== '');
+        const there = keys ? (values.length ? await byIds<any>(ctx.target, L.table, `${column}, token`, column, values, ['id']) : []) : tgtRows;
+        return [column, new Map(there.filter((r) => r[column] != null).map((r) => [String(r[column]), r.token]))] as const;
+      }),
+    ),
+  );
+  return { src, tgt: new Map(tgtRows.map((r) => [r.token, r])), srcTokens, tgtTokens, targetIds, owners };
 }
+type LedgerState = Awaited<ReturnType<typeof ledgerState>>;
 
-function donationConflict(r: any, s: Awaited<ReturnType<typeof donationState>>, plans: boolean): string | null {
-  const owner = s.codeOwner.get(r.code);
-  if (!plans && owner && owner !== r.token) return `receipt ${r.code} is another gift there`;
+function ledgerConflict(ctx: Context, L: Ledger, r: any, s: LedgerState): string | null {
+  for (const [column, says] of L.unique) {
+    const owner = r[column] != null && r[column] !== '' ? s.owners.get(column)?.get(String(r[column])) : undefined;
+    if (owner && owner !== r.token) return says(String(r[column]));
+  }
+  for (const f of L.refs ?? []) {
+    const token = r[f.column] ? s.srcTokens.get(f.column)?.get(r[f.column]) : undefined;
+    // Comparing: rows the chosen groups bring count as there.
+    if (token && !s.targetIds.get(f.column)?.has(token) && !(ctx.planning && ctx.chosen.has(f.group))) return f.missing;
+  }
   const there = s.tgt.get(r.token);
-  return there ? donationAhead(there, r, plans) : null;
+  return there ? (L.progress(there, r) ?? (there.updated_at && r.updated_at && there.updated_at > r.updated_at ? 'it changed there since' : null)) : null;
 }
 
-const value = (r: any, s: Awaited<ReturnType<typeof donationState>>, plans: boolean, here: boolean) => (plans ? omit(r, PLAN_OWN) : giftValue(r, here ? s.srcPlans : s.tgtPlans));
-
-const planDonations: Planner = async (ctx, group) => {
-  const plans = group === 'donations:plans';
-  const s = await donationState(ctx, plans);
+const planLedger = (L: Ledger): Planner => async (ctx) => {
+  const s = await ledgerState(ctx, L);
   const out = { added: [] as SyncItem[], changed: [] as SyncItem[], same: 0, conflicts: [] as SyncConflict[], warnings: [] as string[] };
   for (const r of s.src) {
-    const item = { key: r.token, label: plans ? planLabel(r) : giftLabel(r) };
+    const item = { key: r.token, label: L.label(r) };
     const there = s.tgt.get(r.token);
-    if (there && stable(value(r, s, plans, true)) === stable(value(there, s, plans, false))) out.same++;
-    else {
-      const conflict = donationConflict(r, s, plans);
-      if (conflict) out.conflicts.push({ ...item, reason: conflict });
-      else if (!there) out.added.push(item);
-      else out.changed.push(item);
+    if (there && stable(ledgerValue(L, r, s.srcTokens)) === stable(ledgerValue(L, there, s.tgtTokens))) {
+      out.same++;
+      continue;
     }
+    const conflict = ledgerConflict(ctx, L, r, s);
+    if (conflict) out.conflicts.push({ ...item, reason: conflict });
+    else if (!there) out.added.push(item);
+    else out.changed.push(item);
   }
-  if (out.added.length + out.changed.length)
-    out.warnings.push(plans ? 'Monthly donors are copied as they are: nothing is sent and nothing changes at Stripe. Donors’ names and emails go with them.' : 'Gifts are copied as they are: no receipts are sent. Donors’ names and emails go with them. A monthly gift’s gifts need Monthly donors synced too.');
+  if (out.added.length + out.changed.length) out.warnings.push(L.warning);
   return out;
 };
 
-const applyDonations: Applier = async (ctx, group, keys) => {
-  const plans = group === 'donations:plans';
-  const s = await donationState(ctx, plans, keys);
-  // The target's monthly gift for each source plan, by token.
-  const tgtIds = plans ? new Map<string, number>() : new Map((await byIds<{ id: number; token: string }>(ctx.target, 'donation_plans', 'id, token', 'token', [...new Set(s.srcPlans.values())])).map((p) => [p.token, p.id]));
+const applyLedger = (L: Ledger): Applier => async (ctx, _group, keys) => {
+  const s = await ledgerState(ctx, L, keys);
+  const local = L.local ? await L.local(ctx) : () => ({});
   const skipped: SyncConflict[] = [];
   let written = 0;
   for (const r of s.src) {
-    let conflict = donationConflict(r, s, plans);
-    const token = !plans && r.plan_id ? s.srcPlans.get(r.plan_id) : undefined;
-    if (!conflict && token && !tgtIds.has(token)) conflict = 'its monthly donor isn’t there: sync Monthly donors too';
-    const row = plans ? omit(r, PLAN_OWN) : { ...omit(r, GIFT_OWN), plan_id: token ? tgtIds.get(token)! : null };
-    const { error } = conflict ? { error: { message: conflict } } : await ctx.target.from(plans ? 'donation_plans' : 'donations').upsert(row, { onConflict: 'token' });
-    if (error) skipped.push({ key: r.token, label: plans ? planLabel(r) : giftLabel(r), reason: error.message });
+    const conflict = ledgerConflict(ctx, L, r, s);
+    const refs = Object.fromEntries((L.refs ?? []).map((f) => [f.column, r[f.column] ? (s.targetIds.get(f.column)?.get(s.srcTokens.get(f.column)!.get(r[f.column])!) ?? null) : null]));
+    // The source's updated_at goes with it (see above).
+    const row = { ...omit(r, [...L.own, ...(L.refs ?? []).map((f) => f.column)]), ...refs, ...local(r) };
+    const { error } = conflict ? { error: { message: conflict } } : await ctx.target.from(L.table).upsert(row, { onConflict: 'token' });
+    if (error) skipped.push({ key: r.token, label: L.label(r), reason: error.message });
     else written++;
   }
   return { written, skipped };
 };
 
-/** Gifts or monthly gifts to put back: only those not further along now (a restore never takes one backwards). */
-async function donationsNotAhead(db: Db, table: 'donations' | 'donation_plans', rows: any[]): Promise<{ rows: any[]; kept: string[] }> {
-  const plans = table === 'donation_plans';
-  const now = new Map((await byIds(db, table, '*', 'token', rows.map((r) => r.token), ['id'])).map((r) => [r.token, r]));
+/**
+ * A ledger's rows to put back from a backup or snapshot taken at `since` on this copy (its own rows, ids
+ * and all): those not there now, and those there that are neither further along nor changed since it was
+ * taken. Rows a sync wrote carry the source's time, so a restore undoes them. `kept` names the others.
+ */
+async function ledgerNotAhead(db: Db, L: Ledger, rows: any[], since?: string): Promise<{ rows: any[]; kept: string[] }> {
+  const now = new Map((await byIds(db, L.table, '*', 'token', rows.map((r) => r.token), ['id'])).map((r) => [r.token, r]));
   const kept: string[] = [];
   const out = rows.filter((r) => {
     const there = now.get(r.token);
-    if (!there || stable(omit(there, ['updated_at'])) === stable(omit(r, ['updated_at']))) return !there;
-    const why = donationAhead(there, r, plans);
-    if (why) kept.push(plans ? r.email : r.code);
+    if (!there) return true;
+    if (stable(omit(there, ['updated_at'])) === stable(omit(r, ['updated_at']))) return false;
+    const why = L.progress(there, r) ?? changedSince(there, since ?? r.updated_at);
+    if (why) kept.push(L.name(r));
     return !why;
   });
   return { rows: out, kept };
 }
+
+const ORDER_RANK: Record<string, number> = { pending: 0, expired: 1, cancelled: 1, paid: 2, refunded: 3 };
+const GIFT_RANK: Record<string, number> = { pending: 0, expired: 1, cancelled: 1, paid: 2, refunded: 3 };
+const PLAN_RANK: Record<string, number> = { incomplete: 0, active: 1, past_due: 1, cancelled: 2 };
+
+function orderProgress(there: any, from: any): string | null {
+  if ((ORDER_RANK[there.status] ?? 0) > (ORDER_RANK[from.status] ?? 0)) return `it is ${there.status} there`;
+  if ((there.refunded_amount ?? 0) > (from.refunded_amount ?? 0)) return 'more of it is refunded there';
+  if (there.fulfilled && !from.fulfilled) return `it is marked ${there.fulfilled === 'picked_up' ? 'picked up' : 'shipped'} there`;
+  if (there.stock_taken && !from.stock_taken) return 'its stock was taken off there';
+  return null;
+}
+const giftProgress = (there: any, from: any) =>
+  (GIFT_RANK[there.status] ?? 0) > (GIFT_RANK[from.status] ?? 0) ? `it is ${there.status} there` : (there.refunded_amount ?? 0) > (from.refunded_amount ?? 0) ? 'more of it is refunded there' : null;
+const planProgress = (there: any, from: any) => ((PLAN_RANK[there.status] ?? 0) > (PLAN_RANK[from.status] ?? 0) ? `it is ${String(there.status).replace('_', ' ')} there` : null);
+
+/** Why the target's order is ahead of the source's (so a sync or restore leaves it), or null. */
+export const orderAhead = (there: any, from: any): string | null => orderProgress(there, from) ?? (there.updated_at && from.updated_at && there.updated_at > from.updated_at ? 'it changed there since' : null);
+/** The same for a gift, or (`plan`) a monthly donor. */
+export const donationAhead = (there: any, from: any, plan = false): string | null => (plan ? planProgress : giftProgress)(there, from) ?? (there.updated_at && from.updated_at && there.updated_at > from.updated_at ? 'it changed there since' : null);
+
+const ORDERS: Ledger = {
+  table: 'shop_orders',
+  label: (o) => `${o.code}: ${o.name} (${o.status})`,
+  name: (o) => o.code,
+  // The target's own id, member (accounts are each copy's) and discount (set from the code).
+  own: ['id', 'member_id', 'discount_id'],
+  unique: [['code', (v) => `order number ${v} is another order there`]],
+  progress: orderProgress,
+  local: async (ctx) => {
+    const discounts = new Map((await must<{ id: number; code: string | null }>(ctx.target.from('shop_discounts').select('id, code').not('code', 'is', null), 'discounts')).map((d) => [String(d.code).toLowerCase(), d.id]));
+    return (o) => ({ discount_id: o.discount_code ? (discounts.get(String(o.discount_code).toLowerCase()) ?? null) : null });
+  },
+  warning: 'Orders are copied as they are: no emails are sent and no stock changes. Buyers’ names, emails and addresses go with them.',
+};
+
+const PLANS: Ledger = {
+  table: 'donation_plans',
+  label: (p) => `${p.name} <${p.email}> (${p.status})`,
+  name: (p) => p.email,
+  own: ['id'],
+  unique: [],
+  progress: planProgress,
+  warning: 'Monthly donors are copied as they are: nothing is sent and nothing changes at Stripe. Only the copy where a monthly gift started records its payments and emails its donor. Donors’ names and emails go with them.',
+};
+
+const GIFTS: Ledger = {
+  table: 'donations',
+  label: (d) => `${d.code}: ${d.name} (${d.status})`,
+  name: (d) => d.code,
+  own: ['id'],
+  unique: [
+    ['code', (v) => `receipt ${v} is another gift there`],
+    ['invoice', () => 'its monthly payment is another gift there'],
+  ],
+  progress: giftProgress,
+  refs: [{ column: 'plan_id', table: 'donation_plans', as: 'plan', group: 'donations:plans', missing: 'its monthly donor isn’t there: sync Monthly donors too' }],
+  warning: 'Gifts are copied as they are: no receipts are sent. Donors’ names and emails go with them.',
+};
+
+const LEDGERS: Record<string, Ledger> = { orders: ORDERS, plans: PLANS, donations: GIFTS };
 
 // ---- one row, for the diff ------------------------------------------------------------------------
 
@@ -909,21 +937,18 @@ async function record(db: Db, kind: string, group: string, key: string): Promise
       const d = await one(db.from('shop_discounts').select('*').eq('id', Number(key)));
       return d && omit(d, DISCOUNT_DERIVED);
     }
-    case 'orders': {
-      const o = await one(db.from('shop_orders').select('*').eq('token', key));
-      return o && orderValue(o);
+    case 'orders':
+    case 'plans':
+    case 'donations': {
+      const L = LEDGERS[kind];
+      const r = await one(db.from(L.table).select('*').eq('token', key));
+      if (!r) return null;
+      const tokens = new Map(await Promise.all((L.refs ?? []).map(async (f) => [f.column, await idTokens(db, f.table, [r[f.column]])] as const)));
+      return ledgerValue(L, r, tokens);
     }
     case 'stock': {
       const [product, ...variant] = key.split('/');
       return one(db.from('shop_stock').select('product_id, variant, on_hand').eq('product_id', Number(product)).eq('variant', variant.join('/')));
-    }
-    case 'plans': {
-      const p = await one(db.from('donation_plans').select('*').eq('token', key));
-      return p && omit(p, PLAN_OWN);
-    }
-    case 'donations': {
-      const d = await one(db.from('donations').select('*').eq('token', key));
-      return d && giftValue(d, await planTokens(db, d.plan_id ? [d.plan_id] : []));
     }
   }
   return null;
@@ -1320,13 +1345,15 @@ async function restoreSnapshot(db: Db, name: string, file: any, path: string, de
   problems.push(...(await putBack(db, 'settings', { settings: rows.settings })));
   problems.push(...(await putBack(db, 'redirects', { redirects: rows.redirects })));
   problems.push(...(await putBack(db, 'discounts', { shop_discounts: rows.shop_discounts })));
-  problems.push(...(await putBack(db, 'orders', { shop_orders: rows.shop_orders })));
+  // Rows a ledger keeps as they are now (further along, or changed since) aren't restored.
+  const tally = { kept: 0 };
+  problems.push(...(await putBack(db, 'orders', { shop_orders: rows.shop_orders }, file.created_at, tally)));
   problems.push(...(await putBack(db, 'stock', { shop_stock: rows.shop_stock }, file.created_at)));
-  problems.push(...(await putBack(db, 'plans', { donation_plans: rows.donation_plans })));
-  problems.push(...(await putBack(db, 'donations', { donations: rows.donations })));
+  problems.push(...(await putBack(db, 'plans', { donation_plans: rows.donation_plans }, file.created_at, tally)));
+  problems.push(...(await putBack(db, 'donations', { donations: rows.donations }, file.created_at, tally)));
   const { error } = await db.rpc('sync_reset_ids');
   if (error) problems.push(`The id counters could not be moved on: ${error.message}`);
-  return { restored: Object.values(rows).reduce((n, r) => n + r.length, 0), removed, problems, backup: saved.path };
+  return { restored: Object.values(rows).reduce((n, r) => n + r.length, 0) - tally.kept, removed, problems, backup: saved.path };
 }
 
 // ---- restoring a backup ----------------------------------------------------------------------------
@@ -1439,7 +1466,7 @@ async function putBackLinks(db: Db, ids: number[], links: any[], drafts: any[]):
 }
 
 /** Put a group's saved rows back as they were. Returns problems, if any. */
-async function putBack(db: Db, kind: string, rows: Record<string, any[]>, at?: string): Promise<string[]> {
+async function putBack(db: Db, kind: string, rows: Record<string, any[]>, at?: string, tally?: { kept: number }): Promise<string[]> {
   const byId = (r: any) => String(r.id);
   switch (kind) {
     case 'type': {
@@ -1465,24 +1492,20 @@ async function putBack(db: Db, kind: string, rows: Record<string, any[]>, at?: s
       return (await writeRows(db, 'redirects', (rows.redirects ?? []).map((r) => ({ from_path: r.from_path, ...Object.fromEntries(REDIRECT_FIELDS.map((k) => [k, r[k]])) })), 'from_path', (r) => r.from_path)).problems;
     case 'discounts':
       return (await writeRows(db, 'shop_discounts', (rows.shop_discounts ?? []).map((d) => omit(d, ['updated_at'])), 'id', byId)).problems;
-    case 'orders': {
-      // Never backwards: an order further along now (paid, refunded, sent since) stays as it is.
-      const { rows: back, kept } = await ordersNotAhead(db, rows.shop_orders ?? []);
-      const problems = (await writeRows(db, 'shop_orders', back.map((o) => omit(o, ['updated_at'])), 'token', (o) => o.token)).problems;
-      if (kept.length) problems.push(`Kept ${kept.length === 1 ? 'order' : 'orders'} ${kept.slice(0, 20).join(', ')}${kept.length > 20 ? '…' : ''} as ${kept.length === 1 ? 'it is' : 'they are'}: further along now than in the backup.`);
-      return problems;
-    }
     case 'stock':
       // Less what orders paid since took off, so sold stock isn't put back.
       return (await writeRows(db, 'shop_stock', at ? await stockLessSold(db, rows.shop_stock ?? [], at) : (rows.shop_stock ?? []).map((r) => ({ product_id: r.product_id, variant: r.variant, on_hand: r.on_hand })), 'product_id,variant', stockKey)).problems;
+    case 'orders':
     case 'plans':
     case 'donations': {
-      // Never backwards: a gift refunded since, or a monthly gift cancelled since, stays as it is. The rows
-      // are this copy's own (backups and snapshots are taken where they are restored), ids and all.
-      const table = kind === 'plans' ? 'donation_plans' : 'donations';
-      const { rows: back, kept } = await donationsNotAhead(db, table, rows[table] ?? []);
-      const problems = (await writeRows(db, table, back.map((r) => omit(r, ['updated_at'])), 'token', (r) => r.token)).problems;
-      if (kept.length) problems.push(`Kept ${kept.length === 1 ? (kind === 'plans' ? 'a monthly donor' : 'a gift') : `${kept.length} ${kind === 'plans' ? 'monthly donors' : 'gifts'}`} (${kept.slice(0, 20).join(', ')}${kept.length > 20 ? '…' : ''}) as now: further along than in the backup.`);
+      // Never backwards: an order or gift further along now (paid, refunded, sent since), a monthly donor
+      // cancelled since, or any of them changed since the backup was taken, stays as it is.
+      const L = LEDGERS[kind];
+      const { rows: back, kept } = await ledgerNotAhead(db, L, rows[L.table] ?? [], at);
+      const problems = (await writeRows(db, L.table, back.map((r) => omit(r, ['updated_at'])), 'token', (r) => r.token)).problems;
+      if (tally) tally.kept += kept.length;
+      const noun = { orders: ['order', 'orders'], plans: ['monthly donor', 'monthly donors'], donations: ['gift', 'gifts'] }[kind]!;
+      if (kept.length) problems.push(`Kept ${kept.length === 1 ? noun[0] : `${kept.length} ${noun[1]}`} ${kept.slice(0, 20).join(', ')}${kept.length > 20 ? '…' : ''} as ${kept.length === 1 ? 'it is' : 'they are'}: further along, or changed, since the backup.`);
       return problems;
     }
   }
@@ -1623,8 +1646,9 @@ export async function restore(site: Site, path: string, opts: { deleteSince?: bo
   }
   for (const { g, rows } of plans) {
     // Settings go back with this copy's own sync settings as they are now.
-    problems.push(...(await putBack(db, g.kind, g.kind === 'settings' ? { settings: keepOwnSettings(rows.settings ?? [], own) } : rows, file.created_at)));
-    restored += backupKeys(g.kind, rows).length;
+    const tally = { kept: 0 };
+    problems.push(...(await putBack(db, g.kind, g.kind === 'settings' ? { settings: keepOwnSettings(rows.settings ?? [], own) } : rows, file.created_at, tally)));
+    restored += backupKeys(g.kind, rows).length - tally.kept;
   }
   const { error } = await db.rpc('sync_reset_ids');
   if (error) problems.push(`The id counters could not be moved on: ${error.message}`);
@@ -1728,8 +1752,8 @@ export async function restoreJob(id: string): Promise<RestoreJob | null> {
 
 // ---- entry points ---------------------------------------------------------------------------------
 
-const PLANNERS: Record<string, Planner> = { files: planMedia, taxonomy: planTerms, forms: planForms, templates: planTemplates, type: planEntries, settings: planSettings, redirects: planRedirects, discounts: planDiscounts, orders: planOrders, stock: planStock, plans: planDonations, donations: planDonations };
-const APPLIERS: Record<string, Applier> = { files: applyMedia, taxonomy: applyTerms, forms: applyForms, templates: applyTemplates, type: applyEntries, settings: applySettings, redirects: applyRedirects, discounts: applyDiscounts, orders: applyOrders, stock: applyStock, plans: applyDonations, donations: applyDonations };
+const PLANNERS: Record<string, Planner> = { files: planMedia, taxonomy: planTerms, forms: planForms, templates: planTemplates, type: planEntries, settings: planSettings, redirects: planRedirects, discounts: planDiscounts, orders: planLedger(ORDERS), stock: planStock, plans: planLedger(PLANS), donations: planLedger(GIFTS) };
+const APPLIERS: Record<string, Applier> = { files: applyMedia, taxonomy: applyTerms, forms: applyForms, templates: applyTemplates, type: applyEntries, settings: applySettings, redirects: applyRedirects, discounts: applyDiscounts, orders: applyLedger(ORDERS), stock: applyStock, plans: applyLedger(PLANS), donations: applyLedger(GIFTS) };
 // Groups whose rows are written with their ids: the id counters then move past them.
 const KEEPS_IDS = new Set(['files', 'taxonomy', 'forms', 'type', 'discounts']);
 
@@ -1742,12 +1766,19 @@ const groupDef = (id: string) => {
 /** Compare the chosen groups between the two copies. */
 export async function plan(direction: Direction, groups: string[]): Promise<SyncPlan> {
   const { source, target, sourceName, targetName } = endpoints(direction);
-  const ctx: Context = { source, target, chosen: new Set(groups), planning: true };
-  const order = syncGroups().filter((g) => groups.includes(g.id));
-  const results: GroupPlan[] = [];
-  for (const g of order) results.push({ id: g.id, label: g.label, ...(await PLANNERS[g.kind](ctx, g.id)) });
-  return { source: sourceName, target: targetName, protected: await isProtected(target), groups: results };
+  return { source: sourceName, target: targetName, protected: await isProtected(target), groups: await compareGroups(source, target, groups) };
 }
+
+/** Each chosen group compared from `source` to `target` (any two databases: `plan`'s copies, or a test's). */
+export async function compareGroups(source: Db, target: Db, groups: string[]): Promise<GroupPlan[]> {
+  const ctx: Context = { source, target, chosen: new Set(groups), planning: true };
+  const results: GroupPlan[] = [];
+  for (const g of syncGroups().filter((g) => groups.includes(g.id))) results.push({ id: g.id, label: g.label, ...(await PLANNERS[g.kind](ctx, g.id)) });
+  return results;
+}
+
+/** One group's rows written from `source` to `target` (as `apply` does, without its backup's records). */
+export const writeGroup = (source: Db, target: Db, groups: string[], group: string, keys: string[]) => APPLIERS[groupDef(group).kind]({ source, target, chosen: new Set(groups) }, group, keys);
 
 /** Write one batch of a group's rows (keys from a plan), checking each again. */
 export async function apply(direction: Direction, groups: string[], group: string, keys: string[], backupPath?: string): Promise<{ written: number; skipped: SyncConflict[] }> {

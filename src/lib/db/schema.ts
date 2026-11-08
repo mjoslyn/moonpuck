@@ -96,10 +96,10 @@ export const SCHEMA: Record<string, TableSchema> = {
   },
   donation_plans: {
     pk: ["id"],
-    columns: {"id":"int8","token":"text","status":"text","provider":"text","customer":"text","subscription":"text","amount":"int8","fee":"int8","total":"int8","currency":"text","name":"text","email":"text","anonymous":"bool","dedication":"text","goal":"text","page":"text","campaign":"text","started_at":"timestamptz","cancelled_at":"timestamptz","failed_at":"timestamptz","created_at":"timestamptz","updated_at":"timestamptz"},
+    columns: {"id":"int8","token":"text","status":"text","provider":"text","customer":"text","subscription":"text","amount":"int8","fee":"int8","total":"int8","currency":"text","name":"text","email":"text","anonymous":"bool","dedication":"text","goal":"text","page":"text","campaign":"text","started_at":"timestamptz","cancelled_at":"timestamptz","failed_at":"timestamptz","created_at":"timestamptz","updated_at":"timestamptz","home":"text"},
     generated: [],
     fks: [],
-    defaults: {"status":"incomplete","provider":"stripe","fee":0,"currency":"USD","anonymous":false,"dedication":"","goal":"","page":"","campaign":""},
+    defaults: {"status":"incomplete","provider":"stripe","fee":0,"currency":"USD","anonymous":false,"dedication":"","goal":"","page":"","campaign":"","home":""},
     touch: true,
   },
   donations: {
