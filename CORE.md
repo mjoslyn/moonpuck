@@ -1360,7 +1360,7 @@ answer 404.
   under the carrier `shippo` (`SHIPPO_TEST_CARRIER`, offered on an order's page while the token is a test one,
   `carrierTesting`): `tracks` says which carriers it can read, and other numbers (a test label's) are neither
   followed nor read by the hourly run, and Check the tracking now says why. Tracking updates come to
-  `POST /api/shop/carrier/shippo?token=<SHIPPO_WEBHOOK_TOKEN>` (made when Shippo is connected), which takes
+  `POST /api/shop/carrier/shippo?token=<SHIPPO_WEBHOOK_TOKEN>` (made when Shippo is connected; the token compared in constant time, `sameString`), which takes
   only the number and reads each order's tracking again from Shippo (`refreshTracking`:
   `tracking_status`); the hourly run reads those not delivered of the last 30 days, at most 50, those
   unchecked longest first among all of them (`refreshDueTracking`); **Check the tracking now** on the order. Delivered, the buyer gets the Delivered
@@ -1369,8 +1369,8 @@ answer 404.
 - **Digital downloads** (`src/lib/shop/downloads.ts`): a product's `download` (`downloadOf`: a path under a
   random folder of the store's private `shop-downloads/` folder, its name, size and type), uploaded from its
   Shop settings (POST `/api/admin/shop/downloads`, the file as the body and its name in X-File-Name,
-  streamed to the store, up to `DOWNLOAD_MAX_MB`, 200; `storeDownload`). The quote carries it and the
-  order keeps it on the line as bought (`lines[].download`, `downloads` its count). Once paid, the order's
+  streamed to the store, up to `DOWNLOAD_MAX_MB`, 200; `storeDownload`). The quote carries its name (the
+  quote endpoint leaves its stored path out) and the order keeps it on the line as bought (`lines[].download`, `downloads` its count). Once paid, the order's
   page (the Cart block's order view) and its confirmation (`{downloads}`, the Order details block's
   `downloads`, in the built-in confirmation) link to `GET /api/shop/download?order=<token>&line=<n>`
   (`serveDownload`, working while the shop is off too): closed for an order not paid (refunded ones

@@ -74,3 +74,18 @@ describe('downloads', () => {
     expect(downloadOf({ path: '0123456789abcdef/a.pdf', name: 'A "b"/c.pdf' })).toMatchObject({ name: 'A bc.pdf' });
   });
 });
+
+describe('the public quote', () => {
+  it('names a product’s download without its stored path', async () => {
+    const { POST } = await import('../src/pages/api/shop/quote');
+    const db = siteDb();
+    const { data: site } = await db.from('settings').select('value').eq('key', 'site').maybeSingle();
+    await db.from('settings').upsert({ key: 'site', value: { ...((site?.value as object) ?? {}), shop: { enabled: true } } });
+    const path = '0123456789abcdef/pattern.pdf';
+    const { data: e } = await db.from('entries').insert({ type: 'product', slug: 'quote-pattern', title: 'Pattern', status: 'publish', fields: { shop: { price: 500, ships: false, download: { path, name: 'pattern.pdf', size: 10, type: 'application/pdf' } } } }).select('id').single();
+    const res = await POST({ request: new Request('http://localhost/api/shop/quote', { method: 'POST', body: JSON.stringify({ lines: [{ product: e!.id, variant: 'default', quantity: 1 }] }) }) } as any);
+    const text = await res.text();
+    expect(JSON.parse(text).lines[0].download).toEqual({ name: 'pattern.pdf' });
+    expect(text).not.toContain('0123456789abcdef');
+  });
+});

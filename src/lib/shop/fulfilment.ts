@@ -3,6 +3,7 @@
 // (which records the label, marks the order shipped with its tracking and emails the buyer), and the
 // parcel's tracking, read from the carrier service when its update comes, by the hourly run, or on the
 // order's page; a parcel delivered emails the buyer once (`delivered_at`). Server only.
+import { sameString } from '../payments/common';
 import { logOrder } from './history';
 import { formatMoney } from '../payments/money';
 import type { Db } from '../db/query';
@@ -105,7 +106,7 @@ export async function refreshTracking(db: Db, o: ShopOrder, origin?: string): Pr
  */
 export async function trackingWebhook(token: string, body: any, origin?: string): Promise<number> {
   const want = env('SHIPPO_WEBHOOK_TOKEN');
-  if (!want || token !== want) return -1;
+  if (!want || !sameString(token, want)) return -1;
   const number = String(body?.data?.tracking_number ?? '').trim();
   if (!number || number.length > 100) return 0;
   const db = serviceClient();

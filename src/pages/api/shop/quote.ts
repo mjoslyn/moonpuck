@@ -35,5 +35,7 @@ export const POST: APIRoute = async ({ request }) => {
   // The code typed, else the automatic discounts this visitor may take.
   const found = await discountCandidates(db, { code: typeof body?.code === 'string' ? body.code : null, member: viewer?.member });
   const totals = await cartTotals(quote, { ...settings, tax: taxInForce(settings.tax, pickProvider(settings.provider)) }, { destination, option, discounts: found.discounts, code: found.code, codeProblem: found.problem, sources: shippingSources(settings, shopSettings(siteRow?.value).weightUnit, quote.currency, buyerAddress(clientIp(request))) });
-  return Response.json({ ...quote, ...totals }, { headers: { 'Cache-Control': 'private, no-store' } });
+  // A download's stored path stays on the server (checkout copies it from the product): the buyer sees its name.
+  const lines = quote.lines.map(({ download, ...l }) => (download ? { ...l, download: { name: download.name } } : l));
+  return Response.json({ ...quote, lines, ...totals }, { headers: { 'Cache-Control': 'private, no-store' } });
 };
