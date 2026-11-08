@@ -351,7 +351,8 @@ Backups) copies content
 between this site and another copy of it (production and a local copy), either way: entries of chosen
 types (with their terms and unpublished changes), terms of chosen taxonomies, files (media rows and
 every storage object: sizes, the kept original, AVIF/WebP copies), templates, parts and patterns,
-forms, settings (`site`, `options`; the site icon's files too) and redirects. A sync runs from the copy
+forms, settings (`site`, `options`; the site icon's files too), redirects, and the shop's discounts, orders
+and stock counts (see the Shop's Sync and backups). A sync runs from the copy
 that has the other's address (`SYNC_REMOTE_URL`, `SYNC_REMOTE_NAME`; production can't reach a local
 copy). Both copies share a secret (`SYNC_SECRET`, at least 32 characters): the copy running the sync
 sends its queries to the other's `/api/sync/remote` and its file calls to `/api/sync/files`
@@ -1229,7 +1230,7 @@ never subscribes anyone again); the settings are, with the others. Migration `*_
 An optional feature, on under Settings > Shop (`settings.site.shop`: `enabled`, `currency`, `weightUnit`;
 `shopSettings`, `shopOn`, `src/lib/shop/config.ts`), built in phases on a preview branch: phase 1 has
 products, options, variants, stock and the cart; phase 2, checkout (payments, manual shipping rates and
-pickup, tax, orders, the Orders screen, discounts and order emails), is built, with sync and backups next. Off, nothing is deleted: the admin hides the core's product type and
+pickup, tax, orders, the Orders screen, discounts, order emails, stats, and orders and stock in sync and backups), is built. Off, nothing is deleted: the admin hides the core's product type and
 product categories (`showsType`, `showsTaxonomy`, `src/lib/features.ts`), the site serves none of them
 (`resolve`, the loader's `off` types), the shop's blocks render nothing (`SHOP_BLOCKS`) and its endpoints
 answer 404.
@@ -1317,6 +1318,16 @@ answer 404.
   are left out and counted; at most `SHOP_STATS_MAX_ORDERS` (20,000) are read. Each table downloads as
   CSV (`GET /api/admin/shop/stats.csv?table=daily|products|discounts|campaigns` with the range, formulas
   guarded). An order's page and the orders CSV show its campaign.
+- **Sync and backups** (`src/lib/sync.ts`; Settings > Sync): groups `shop:discounts` (by id, as forms),
+  `shop:orders` (by token: each copy's orders have their own ids; written without id, member or discount
+  id, the target's discount of the same code set, so nothing is sent and no stock changes) and
+  `shop:stock` (by product and variant; `optIn`, left out of All, with a warning). An order never goes
+  backwards (`orderAhead`: further along in status, refunds, fulfilment or stock taken off, or changed
+  later, on the target is a conflict). Snapshots and sync backups hold `shop_discounts`, `shop_orders` and
+  `shop_stock`; a restore never deletes an order (not even with Also delete), puts back only orders not
+  further along now (`ordersNotAhead`), and stock as the backup has it less what orders paid since took
+  off (`stockLessSold`). Backups so hold buyers' details: they stay in the private `sync-backups/` folder,
+  downloaded by admins only.
 - **Order emails** (`src/lib/shop/email.ts`, safe in the browser; Settings > Shop, Emails,
   `settings.site.shop.emails`, `shopEmailsFrom`): the buyer's confirmation (when paid, and Resend
   confirmation), shipped (marking an order shipped, with its tracking), refunded (a refund made on its

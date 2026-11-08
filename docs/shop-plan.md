@@ -40,8 +40,8 @@ and restock by line), and discounts (`src/lib/shop/discounts.ts`, `discount-look
 the email builder (`src/lib/shop/email.ts`; confirmation, shipped, refunded and the shop's copy), and Shop > Stats
 (`src/lib/shop/stats.ts`: sales by day, products, discounts).
 An order keeps its lines on the order (`shop_orders.lines`, JSON) rather than in a
-table of their own, so the order and its lines are written in one statement with the stock check. Next:
-sync and backups.
+table of their own, so the order and its lines are written in one statement with the stock check. Then orders, stock and discounts in Sync, sync backups and snapshots (`src/lib/sync.ts`). Phase 2 is
+done but for the "Email me news" tick at checkout.
 
 ### Settings > Shop
 

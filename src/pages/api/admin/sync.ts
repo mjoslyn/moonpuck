@@ -42,7 +42,7 @@ export const GET: APIRoute = async ({ url }) => {
     // A problem with the other copy (unreachable, or set to this site's own database) is shown in its
     // place; the rest of the tab still works.
     const there = remote ? await Promise.resolve().then(() => isProtected(endpoints('push').target)).catch((e: Error) => e.message) : null;
-    return Response.json({ remote: remote?.name ?? null, groups: syncGroups().map(({ id, label, kind }) => ({ id, label, kind })), protected: { here, there } });
+    return Response.json({ remote: remote?.name ?? null, groups: syncGroups().map(({ id, label, kind, optIn }) => ({ id, label, kind, optIn })), protected: { here, there } });
   } catch (e) {
     return fail(e);
   }

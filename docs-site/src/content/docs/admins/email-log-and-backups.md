@@ -20,4 +20,6 @@ log off deletes what it kept within the hour.
 
 The site can back itself up every day (**Settings > Backups**). Each backup can be restored if something
 goes badly wrong. Restoring brings back pages and settings, not images, which are never deleted
-anyway. If you're unsure, ask whoever set up your site before restoring.
+anyway. With the shop on, backups include its orders, with buyers' names, emails and addresses: keep
+downloaded backups private. A restore never deletes orders, never takes one back to an earlier state, and
+puts stock back less what has sold since. If you're unsure, ask whoever set up your site before restoring.

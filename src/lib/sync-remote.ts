@@ -13,7 +13,7 @@ import type { FolderCalls, Files, ListedFile, Res } from './storage';
 import { env } from './env';
 
 /** The tables a sync reads and writes, and the one function it calls. */
-export const SYNC_TABLES = ['entries', 'entry_drafts', 'entry_terms', 'form_submissions', 'forms', 'media', 'redirects', 'settings', 'templates', 'terms'];
+export const SYNC_TABLES = ['entries', 'entry_drafts', 'entry_terms', 'form_submissions', 'forms', 'media', 'redirects', 'settings', 'shop_discounts', 'shop_orders', 'shop_stock', 'templates', 'terms'];
 export const SYNC_FUNCTIONS = ['sync_reset_ids'];
 /** The folders a sync copies files to and keeps backups in. */
 export const SYNC_FOLDERS = ['media', 'sync-backups'];

@@ -10,6 +10,8 @@ interface Group {
   id: string;
   label: string;
   kind: string;
+  /** Left out of All: ticked only on purpose (the shop's stock counts). */
+  optIn?: boolean;
 }
 interface Info {
   remote: string | null;
@@ -184,7 +186,7 @@ export default function Sync() {
                 What to sync
               </h2>
               <span className="text-xs">
-                <button type="button" className="mr-3 text-admin-accent hover:underline" onClick={() => setChosen(new Set(info.groups.map((g) => g.id)))}>
+                <button type="button" className="mr-3 text-admin-accent hover:underline" onClick={() => setChosen(new Set(info.groups.filter((g) => !g.optIn).map((g) => g.id)))}>
                   All
                 </button>
                 <button type="button" className="text-admin-accent hover:underline" onClick={() => setChosen(new Set())}>
@@ -205,7 +207,10 @@ export default function Sync() {
                 </fieldset>
               ))}
             </div>
-            <p className="mt-2 text-xs text-admin-muted">Entries, terms, files and forms keep their ids on both sites; templates match by name, redirects by old address. A sync never deletes anything.</p>
+            {info.groups.some((g) => g.optIn && chosen.has(g.id)) && (
+              <p className="mt-2 rounded-sm bg-[#fffbeb] p-2 text-xs text-[#92400e]">Stock counts replace the other site’s, which its own orders have been taking off. Sync them only to set the counts there. Show differences shows both.</p>
+            )}
+            <p className="mt-2 text-xs text-admin-muted">Entries, terms, files and forms keep their ids on both sites; shop orders match by order, stock by product and option; templates match by name, redirects by old address. A sync never deletes anything.</p>
           </section>
 
           <div className="flex flex-wrap items-center gap-3">
