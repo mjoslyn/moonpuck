@@ -15,7 +15,8 @@ export const PRODUCT_TYPE: ContentType = {
   category: 'product_category',
   describe: 'a product for sale in the shop (/shop/): its own page with the price and Add to cart beside your content',
   card: 'product',
-  fields: [],
+  // Featured, as Settings > Types can give any type: collections can list featured products alone.
+  fields: [{ key: 'featured', label: 'Featured', type: 'bool' }],
 };
 
 export const PRODUCT_CATEGORY: Taxonomy = { name: 'product_category', label: 'Product categories', singular: 'Product category', base: 'shop/category' };

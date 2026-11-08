@@ -57,3 +57,28 @@ describe('the gallery’s pictures', () => {
     expect(html).toContain('/assets/js/shop-gallery.js');
   });
 });
+
+describe('the Product block and Featured products', () => {
+  it('shows one product anywhere, with its price and Add to cart, linking to its page', async () => {
+    const db = siteDb();
+    const { data: s } = await db.from('settings').select('value').eq('key', 'site').maybeSingle();
+    await db.from('settings').upsert({ key: 'site', value: { ...((s?.value as object) ?? {}), shop: { enabled: true } } });
+    const { data: lamp } = await db.from('entries').insert({ type: 'product', slug: 'block-lamp', title: 'Block lamp', excerpt: 'A lamp for reading.', status: 'publish', fields: { shop: { price: 3200 } } }).select('id').single();
+    const content = { root: { props: {} }, content: [{ type: 'shop-product', props: { id: 'one', attrs: { product: lamp!.id, layout: 'side', label: 'Buy it' } } }] };
+    await db.from('entries').insert({ type: 'page', slug: 'one-product', title: 'One product', status: 'publish', content });
+    await db.from('templates').insert({ kind: 'template', slug: 'page', title: 'Page', content: { content: [{ type: 'entry-content', props: { id: 'pc', attrs: {} } }], root: { props: {} } } });
+    const { html } = await renderRequest(new URL('http://localhost/one-product/'), db);
+    expect(html).toContain('c-shop-product is-side');
+    expect(html).toContain('href="/product/block-lamp/"');
+    expect(html).toContain('A lamp for reading.');
+    expect(html).toContain(`data-add-to-cart data-product="${lamp!.id}"`);
+    expect(html).toContain('Buy it');
+    expect(html).toContain('$32.00');
+    expect(html).toContain('/assets/js/cart.js');
+  });
+  it('gives products a Featured switch', async () => {
+    const { fieldsFor, featuredOn } = await import('../src/lib/site');
+    expect(fieldsFor('product').some((f) => f.key === 'featured')).toBe(true);
+    expect(featuredOn('product')).toBe(true);
+  });
+});

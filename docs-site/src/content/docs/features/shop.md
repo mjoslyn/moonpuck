@@ -28,6 +28,7 @@ What a product sells is in its fields under the reserved key `shop` (`src/lib/sh
 | `price`, `compareAt` | In cents. No price: not for sale. |
 | `sku`, `weight` | Weight in the unit chosen under Settings > Shop. |
 | `ships`, `pickupOnly`, `taxable` | For checkout. |
+| `featured` (in `fields`, not `shop`) | The type's own Featured switch: collections can list featured products alone. |
 | `maxPerOrder` | Empty: 99. |
 | `trackStock` | Off: no limit. |
 | `options` | Up to 3, each with a name and values. |
@@ -63,7 +64,7 @@ answer 404 while the shop is off.
 
 ## Blocks
 
-`product-price`, `add-to-cart`, `shop-gallery`, `cart` and `cart-link` (`src/render/c/shop.ts`),
+`shop-product` (one product anywhere), `product-price`, `add-to-cart`, `shop-gallery`, `cart` and `cart-link` (`src/render/c/shop.ts`),
 offered in the editor's **Shop** category while the shop is on and rendering nothing while it is off. The
 Product gallery shows the featured image, the `gallery` and the variants' own pictures
 (`productImages`), with `public/assets/js/shop-gallery.js` switching them and following the variant
