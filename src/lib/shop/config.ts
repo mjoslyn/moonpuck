@@ -9,7 +9,7 @@ import { orderStatusesFrom, type ShopStatus } from './statuses';
 import { byLevel, isActive, type MemberRow } from '../members/config';
 
 /** The shop's blocks: offered in the editor, and shown on the site, only while the shop is on. */
-export const SHOP_BLOCKS = ['product-price', 'add-to-cart', 'product-gallery', 'cart', 'cart-link'];
+export const SHOP_BLOCKS = ['product-price', 'add-to-cart', 'shop-gallery', 'cart', 'cart-link'];
 
 /** The reserved field key a product's shop settings live under. */
 export const SHOP_KEY = 'shop';

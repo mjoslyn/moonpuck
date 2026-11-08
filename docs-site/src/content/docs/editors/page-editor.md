@@ -943,7 +943,7 @@ The product's pictures: its featured image large, with thumbnails of the rest be
 then its variants' own pictures). Clicking a thumbnail, or using the arrow keys on one, shows it large.
 When a visitor chooses a variant in **Add to cart**, its picture shows.
 
-![The Product gallery block](../../../assets/guide/blocks/product-gallery.png)
+![The Product gallery block](../../../assets/guide/blocks/shop-gallery.png)
 
 Its settings:
 

@@ -48,12 +48,12 @@ describe('the gallery’s pictures', () => {
     for (const n of [1, 2]) media.push((await db.from('media').insert({ path: `2026/11/card-${n}.png`, mime_type: 'image/png', width: 800, height: 600, title: `card ${n}` }).select('id').single()).data!.id as number);
     const made = await db.from('entries').insert({ type: 'product', slug: 'card-lamp', title: 'Card lamp', status: 'publish', featured_media_id: media[0], fields: { shop: { price: 1000, gallery: [media[1]] } } });
     expect(made.error).toBeNull();
-    const content = { root: { props: {} }, content: [{ type: 'collection', props: { id: 'shop-list', attrs: { query: { postType: 'product', perPage: 10 } }, children: [{ type: 'collection-items', props: { id: 'shop-items', attrs: {}, children: [{ type: 'product-gallery', props: { id: 'card-gallery', attrs: {} } }] } }] } }] };
+    const content = { root: { props: {} }, content: [{ type: 'collection', props: { id: 'shop-list', attrs: { query: { postType: 'product', perPage: 10 } }, children: [{ type: 'collection-items', props: { id: 'shop-items', attrs: {}, children: [{ type: 'shop-gallery', props: { id: 'card-gallery', attrs: {} } }] } }] } }] };
     await db.from('entries').insert({ type: 'page', slug: 'gallery-cards', title: 'Cards', status: 'publish', content });
     await db.from('templates').insert({ kind: 'template', slug: 'page', title: 'Page', content: { content: [{ type: 'entry-content', props: { id: 'pc', attrs: {} } }], root: { props: {} } } });
     const { html } = await renderRequest(new URL('http://localhost/gallery-cards/'), db);
-    expect(html).toContain('data-product-gallery');
+    expect(html).toContain('data-shop-gallery');
     expect(html).toContain(`data-media="${media[1]}"`);
-    expect(html).toContain('/assets/js/product-gallery.js');
+    expect(html).toContain('/assets/js/shop-gallery.js');
   });
 });
