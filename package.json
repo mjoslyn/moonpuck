@@ -16,7 +16,8 @@
     "test": "vitest run",
     "seed": "tsx --env-file=.env scripts/seed.ts",
     "deploy": "npm run build && wrangler deploy",
-    "deploy:remote": "wrangler d1 migrations apply DB --remote && wrangler deploy"
+    "deploy:remote": "wrangler d1 migrations apply DB --remote && wrangler deploy",
+    "core:update": "node scripts/update-core.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.129.0",

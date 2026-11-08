@@ -254,11 +254,20 @@ git remote add origin git@github.com:<you>/my-site.git
 To take core updates:
 
 ```
-git fetch upstream
-git merge upstream/main
-npx wrangler d1 migrations apply DB --remote       # if there are new migrations (git deploys with deploy:remote do it)
+npm run core:update                                # fetch upstream/main, check for conflicts, merge
+npm run core:update -- --check                     # only check: what would come in, and any conflicts
+npm run db:migrate                                 # if there are new migrations (the deployed database: deploy:remote)
 npx tsx --env-file=.env scripts/migrate-content.ts # if stored content needs migrating
 ```
+
+`core:update` (`scripts/update-core.mjs`) stops before changing anything if there is no `upstream` remote,
+uncommitted changes or a merge under way. It tries the merge first (`git merge-tree`, git 2.38 or later)
+and lists every file that would conflict: conflicts in `AGENTS.md`, `README.md`, `.env.example` and
+`wrangler.jsonc` keep the site's version; any other conflict stops it with the branch as it was, naming
+the files (core files the site has changed; move the change into `src/site/` or send it to the core). It
+then merges, lists the new migrations, runs `npm install` when the dependencies changed (`--no-install`
+skips it) and says what to run next. `--remote` and `--branch` name another remote or branch. By hand:
+`git fetch upstream && git merge upstream/main`.
 
 The merges stay clean as long as the site only changes `src/site/`, its own migrations
 (`db/migrations/*_site_*.sql`), `AGENTS.md`, `README.md` and its local settings. If you fix a core bug while working on a site,

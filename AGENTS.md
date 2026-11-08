@@ -66,7 +66,7 @@ renamed things come out of the docs too.
 2. Test on the example site, and for anything that real content exercises, in a site: in
    `../<site>`, `git fetch <path to this repository> main && git merge --no-commit FETCH_HEAD`,
    restart its dev server if config or dependencies changed, and test there.
-3. Push moonpuck (it deploys nothing), then in the site `git fetch upstream && git merge upstream/main`
+3. Push moonpuck (it deploys nothing), then in the site `npm run core:update` (or `git fetch upstream && git merge upstream/main`)
    and commit; a site keeps its own `AGENTS.md`, `README.md`, `.env.example` and `wrangler.jsonc`
    when they conflict. The site's owner pushes the site, which deploys it.
 4. Stored content changes and how to check changes: `CORE.md` (Changing stored content, Checking

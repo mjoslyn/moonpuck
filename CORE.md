@@ -11,6 +11,8 @@ This repository is the upstream. Each site is its own repository with this one a
 remote. Its history starts from this one, with a commit that swaps the example `src/site/` for its own.
 
 - Core changes are made here, committed and pushed, then merged into each site:
+  `npm run core:update` (`scripts/update-core.mjs`: checks for conflicts before merging, keeps the
+  site's `AGENTS.md`, `README.md`, `.env.example` and `wrangler.jsonc`; see README.md), or
   `git fetch upstream && git merge upstream/main`. They merge cleanly as long as the site only changes
   `src/site/`, its own migrations (`db/migrations/*_site_*.sql`: wrangler reads only that folder),
   `AGENTS.md`, `README.md`, its env and its `wrangler.jsonc` (names and ids of its Worker, database,
