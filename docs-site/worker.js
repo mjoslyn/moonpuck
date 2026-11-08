@@ -77,7 +77,10 @@ async function contact(request, env) {
 
 /** Cloudflare's answer for a Turnstile token (https://developers.cloudflare.com/turnstile/get-started/server-side-validation/). */
 async function verifyTurnstile(secret, token, ip) {
-  if (!token || token.length > 2048) return false;
+  if (!token || token.length > 2048) {
+    console.warn('contact: Turnstile check failed: no token was sent');
+    return false;
+  }
   const body = new FormData();
   body.append('secret', secret);
   body.append('response', token);
@@ -85,7 +88,11 @@ async function verifyTurnstile(secret, token, ip) {
   try {
     const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body });
     const data = await res.json();
-    return data?.success === true;
+    if (data?.success === true) return true;
+    // Cloudflare's reason, such as invalid-input-secret (the secret isn't this widget's) or
+    // timeout-or-duplicate (the pass was over 5 minutes old, or already used).
+    console.warn(`contact: Turnstile check failed: ${(data?.['error-codes'] ?? []).join(', ') || 'no reason given'}${data?.hostname ? ` (hostname ${data.hostname})` : ''}`);
+    return false;
   } catch (e) {
     console.error(`contact: Turnstile check failed: ${e?.message ?? e}`);
     return false;

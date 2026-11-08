@@ -20,6 +20,8 @@
     "run_worker_first": ["/api/*"]
   },
   "send_email": [{ "name": "CONTACT" }],
+  // Logs (Observability > Logs): the contact form logs why a send failed.
+  "observability": { "enabled": true },
   "vars": {
     "CONTACT_TO": "info@moonpuck.com",
     "CONTACT_FROM": "form@moonpuck.com"
