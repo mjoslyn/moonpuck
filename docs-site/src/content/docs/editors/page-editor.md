@@ -948,8 +948,10 @@ Its settings:
 
 #### Cart
 
-What the visitor has added, with quantities to change and the subtotal, and below it the checkout:
-their details, shipping or pickup, a discount code, the total and **Pay**. After paying, it shows their order. The cart at
+The checkout, in two columns: on the left the visitor's email (Contact), name and address (Delivery),
+shipping or pickup and **Pay**; on the right the order summary, with each item's picture, quantity to
+change and price, a discount code and the totals. On a phone the summary comes first, folded behind
+**Show order summary** with the total. After paying, it shows their order. The cart at
 `/cart/` shows it on its own; a page you make with that address needs this block.
 
 ![The Cart block](../../../assets/guide/shop-cart.png)

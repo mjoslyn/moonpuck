@@ -1266,12 +1266,15 @@ answer 404.
   prices (`POST /api/shop/quote`, `quoteCart` in `src/lib/shop/cart.ts`: lines cleaned by `cleanCart`, at
   most 50 of up to 99 each; each priced as sold now, cut to what's left (`fewer`), `sold-out` or `gone`;
   the subtotal in the shop's currency). Both read as the visitor sees the site (`visibleTo`). `/cart/`
-  (`CART_PATH`) is a built-in page with a Cart block unless a page has that address. Under the cart the
-  script builds the checkout (the Cart block's `data-checkout`: the countries the zones cover, US states,
-  the country to begin on): name, email and phone, the country and state (re-quoting the cart for them and
-  the option chosen: `destination`, `option`), the shipping and pickup options, the address for a shipped
-  order, a discount code (`code`, re-quoted on Apply), the totals and Pay; what the buyer typed is kept
-  for the visit (`sessionStorage`).
+  (`CART_PATH`) is a built-in page with a Cart block unless a page has that address. The script
+  builds the cart as a two-column checkout (`.c-checkout-layout`; the Cart block's `data-checkout`: the
+  countries the zones cover, US states, the country to begin on): the form (`.c-checkout`: Contact, the
+  email and the news tick; Delivery, the country and state (re-quoting the cart for them and the option
+  chosen: `destination`, `option`), name, the address for a shipped order (shown before an option is
+  chosen when nothing can be picked up) and phone; the shipping and pickup options; Payment, with Pay)
+  and the order summary (`.c-summary`: each line's image with its quantity, options, quantity to change,
+  total and Remove; a discount code, `code`, re-quoted on Apply; the totals), first and folded behind
+  **Show order summary** below 900px; what the buyer typed is kept for the visit (`sessionStorage`).
 - **Orders** (`src/lib/shop/orders.ts`, table `shop_orders`, migration `*_shop_orders.sql`; editors read,
   the server writes): `POST /api/shop/checkout` (`startShopCheckout`) prices the cart again as the visitor
   sees the site (a line with any problem answers `changed`), checks the option and address (`cleanAddress`:

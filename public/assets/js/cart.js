@@ -240,30 +240,11 @@
         body.append(el('p', { className: 'c-cart__empty', textContent: c.dataset.empty || 'Your cart is empty.' }), el('p', {}, el('a', { className: 'c-shop-button', href: c.dataset.shop || '/', textContent: 'Keep shopping' })));
         continue;
       }
-      const rows = shown.map((l) => {
-        const input = el('input', { type: 'number', min: '0', max: String(l.max || 0), value: String(l.quantity), inputMode: 'numeric', className: 'c-cart__qty' });
-        input.dataset.co = `qty:${l.product}:${l.variant}`;
-        input.setAttribute('aria-label', `Quantity of ${l.title}${l.label ? `, ${l.label}` : ''}`);
-        input.addEventListener('change', () => setQuantity(l, Math.floor(Number(input.value) || 0)));
-        const remove = el('button', { type: 'button', className: 'c-cart__remove', textContent: 'Remove' });
-        remove.addEventListener('click', () => setQuantity(l, 0));
-        const note = l.problem === 'sold-out' ? 'Sold out' : l.problem === 'fewer' ? `Only ${l.max} left` : l.problem === 'members-only' ? 'For members only: sign in to buy it' : l.listUnit ? 'Member price' : '';
-        return el('tr', {}, [
-          el('td', { className: 'c-cart__image' }, l.image ? el('img', { src: l.image, alt: '', width: 64, height: 64, loading: 'lazy' }) : null),
-          el('td', { className: 'c-cart__item' }, [el('a', { href: l.url, textContent: l.title }), l.label ? el('small', { textContent: l.label }) : null, note ? el('small', { className: 'c-cart__problem', textContent: note }) : null]),
-          el('td', { className: 'c-cart__unit', textContent: money(l.unit, currency) }),
-          el('td', {}, l.problem === 'sold-out' || l.problem === 'members-only' ? null : input),
-          el('td', { className: 'c-cart__total', textContent: l.total ? money(l.total, currency) : '' }),
-          el('td', {}, remove),
-        ]);
-      });
-      const head = el('thead', {}, el('tr', {}, ['', 'Item', 'Price', 'Quantity', 'Total', ''].map((t) => el('th', { scope: 'col', textContent: t }))));
       if (c.hasAttribute('data-cancelled')) body.append(el('p', { className: 'c-cart__notice', textContent: 'Checkout was cancelled: nothing was charged, and your cart is as you left it.' }));
-      body.append(
-        el('table', { className: 'c-cart__table' }, [head, el('tbody', {}, rows)]),
-        el('p', { className: 'c-cart__subtotal' }, [el('span', { textContent: 'Subtotal' }), ' ', el('strong', { textContent: money(quote.subtotal, currency) })]),
-        checkoutForm(c, quote, currency, shown.some((l) => l.problem && l.problem !== 'fewer')),
-      );
+      // Two columns, as checkouts commonly are: the form, and the order summary beside it (above it on
+      // phones, folded behind a bar with the total).
+      const blocked = shown.some((l) => l.problem && l.problem !== 'fewer');
+      body.append(el('div', { className: 'c-checkout-layout' }, [checkoutForm(c, quote, currency, blocked), orderSummary(quote, shown, currency)]));
     }
     if (keep) {
       const again = [...document.querySelectorAll('.c-cart [data-co]')].find((x) => x.dataset.co === keep.key);
@@ -316,17 +297,14 @@
     const shipping = quote.shipping || { needs: 'none', options: [] };
     const live = (input) => (offer.carrier ? requote(input) : input);
     const chosen = quote.chosen;
-    const totals = quote.totals || { total: quote.subtotal, tax: 0, shipping: 0, discount: 0 };
+    const totals = totalsOf(quote);
     const form = el('form', { className: 'c-checkout', noValidate: true });
-    form.append(el('h2', { className: 'c-checkout__heading', textContent: 'Checkout' }));
+    const section = (title, extra) => el('fieldset', { className: 'c-checkout__group' }, [el('legend', { className: 'c-checkout__legend' }, [el('span', { textContent: title }), extra || null])]);
 
-    const details = el('fieldset', { className: 'c-checkout__group' }, [el('legend', { textContent: 'Your details' })]);
-    details.append(
-      field('Name', textInput('name', { required: true, autocomplete: 'name' })),
-      field('Email', textInput('email', { type: 'email', required: true, autocomplete: 'email' })),
-      field('Phone (optional)', textInput('phone', { type: 'tel', autocomplete: 'tel' })),
-    );
-    // Email me news (Settings > Shop): unticked until the buyer ticks it; confirmed by email.
+    // Contact: the email the receipt goes to, and the Email me news tick (Settings > Shop; unticked until
+    // the buyer ticks it, confirmed by email).
+    const contact = section('Contact');
+    contact.append(field('Email', textInput('email', { type: 'email', required: true, autocomplete: 'email' })));
     if (offer.news) {
       const tick = el('input', { type: 'checkbox', checked: !!co.news });
       tick.dataset.co = 'news';
@@ -334,25 +312,47 @@
         co.news = tick.checked;
         keepCo();
       });
-      details.append(el('label', { className: 'c-checkout__news' }, [tick, ' ', el('span', { textContent: offer.news })]));
+      contact.append(el('label', { className: 'c-checkout__news' }, [tick, ' ', el('span', { textContent: offer.news })]));
     }
-    form.append(details);
+    form.append(contact);
 
+    // Delivery: where it goes (the country first, since the options and rates follow it), the name, and
+    // the address once the order is to be posted (from the start when nothing can be picked up).
+    const delivery = section(shipping.needs === 'none' ? 'Your details' : 'Delivery');
+    const shipsOnly = !shipping.options.some((o) => o.kind === 'pickup');
+    const posted = shipping.needs !== 'none' && (chosen ? chosen.kind === 'ship' : shipsOnly);
+    if (shipping.needs === 'any' && (offer.countries || []).length) {
+      const row = el('div', { className: 'c-checkout__row' }, [field('Country', select('country', offer.countries, () => ((co.state = ''), renderCart())))]);
+      if (co.country === 'US') row.append(field('State', select('state', [['', 'Choose…'], ...(offer.states || [])], renderCart)));
+      // Live carrier rates (Settings > Shop) come once the ZIP is in: asked for here, before the options.
+      // Needed only for an order that is posted: picking it up needs no address.
+      if (offer.carrier) row.append(field(co.country === 'US' ? 'ZIP code' : 'Postal code', requote(textInput('zip', { required: chosen?.kind !== 'pickup', autocomplete: 'postal-code' }))));
+      delivery.append(row);
+    }
+    delivery.append(field('Name', textInput('name', { required: true, autocomplete: 'name' })));
+    if (posted) {
+      delivery.append(
+        field('Address', live(textInput('line1', { required: true, autocomplete: 'address-line1' }))),
+        field('Apartment, suite… (optional)', textInput('line2', { autocomplete: 'address-line2' })),
+        el('div', { className: 'c-checkout__row' }, [
+          field('City', live(textInput('city', { required: true, autocomplete: 'address-level2' }))),
+          co.country !== 'US' ? field('State or region (optional)', textInput('region', { autocomplete: 'address-level1' })) : null,
+          offer.carrier ? null : field(co.country === 'US' ? 'ZIP code' : 'Postal code', textInput('zip', { required: true, autocomplete: 'postal-code' })),
+        ]),
+      );
+    }
+    delivery.append(field('Phone (optional)', textInput('phone', { type: 'tel', autocomplete: 'tel' })));
+    form.append(delivery);
+
+    // Shipping method: one box, a row per option, the chosen one marked.
     if (shipping.needs !== 'none') {
-      const how = el('fieldset', { className: 'c-checkout__group' }, [el('legend', { textContent: 'Shipping method' })]);
-      if (shipping.needs === 'any' && (offer.countries || []).length) {
-        const row = el('div', { className: 'c-checkout__row' }, [field('Country', select('country', offer.countries, () => ((co.state = ''), renderCart())))]);
-        if (co.country === 'US') row.append(field('State', select('state', [['', 'Choose…'], ...(offer.states || [])], renderCart)));
-        // Live carrier rates (Settings > Shop) come once the ZIP is in: asked for here, before the options.
-        // Needed only for an order that is posted: picking it up needs no address.
-        if (offer.carrier) row.append(field(co.country === 'US' ? 'ZIP code' : 'Postal code', requote(textInput('zip', { required: chosen?.kind !== 'pickup', autocomplete: 'postal-code' }))));
-        how.append(row);
-        if (offer.carrier && !co.zip) how.append(el('p', { className: 'c-checkout__hint', textContent: `Enter your ${co.country === 'US' ? 'ZIP' : 'postal'} code to see the carriers' rates.` }));
-      }
+      const how = section(shipping.options.some((o) => o.kind === 'pickup') ? 'Shipping or pickup' : 'Shipping method');
+      if (offer.carrier && !co.zip && shipping.needs === 'any') how.append(el('p', { className: 'c-checkout__hint', textContent: `Enter your ${co.country === 'US' ? 'ZIP' : 'postal'} code to see the carriers' rates.` }));
       if (shipping.problem === 'no-pickup') how.append(el('p', { className: 'c-cart__problem', textContent: "Something in your cart can only be collected, and there's nowhere to collect it from yet." }));
       else if (shipping.problem === 'no-rates') how.append(el('p', { className: 'c-cart__problem', textContent: "We don't ship there." + (offer.pickup ? ' You can pick up your order instead.' : '') }));
       else if (chosen?.kind === 'ship' && co.country === 'US' && !co.state) how.append(el('p', { className: 'c-checkout__hint', textContent: 'Choose your state.' }));
       const name = `ship-${Math.random().toString(36).slice(2, 8)}`;
+      const box = el('div', { className: 'c-checkout__options' });
       for (const o of shipping.options) {
         const radio = el('input', { type: 'radio', name, value: o.id, checked: chosen?.id === o.id });
         radio.dataset.co = `option:${o.id}`;
@@ -362,66 +362,23 @@
           renderCart();
         });
         const where = o.kind === 'pickup' ? [o.address, o.hours].filter(Boolean).join(' · ') : '';
-        how.append(el('label', { className: 'c-checkout__option' }, [radio, el('span', {}, [el('strong', { textContent: o.name }), where ? el('small', { textContent: where }) : null]), el('span', { className: 'c-checkout__price', textContent: o.price ? money(o.price, currency) : 'Free' })]));
+        box.append(el('label', { className: 'c-checkout__option' }, [radio, el('span', {}, [el('span', { className: 'c-checkout__option-name', textContent: o.name }), where ? el('small', { textContent: where }) : null]), el('span', { className: 'c-checkout__price', textContent: o.price ? money(o.price, currency) : 'Free' })]));
       }
-      if (chosen?.kind === 'ship') {
-        how.append(
-          field('Address', live(textInput('line1', { required: true, autocomplete: 'address-line1' }))),
-          field('Apartment, suite… (optional)', textInput('line2', { autocomplete: 'address-line2' })),
-          el('div', { className: 'c-checkout__row' }, [
-            field('City', live(textInput('city', { required: true, autocomplete: 'address-level2' }))),
-            co.country !== 'US' ? field('State or region (optional)', textInput('region', { autocomplete: 'address-level1' })) : null,
-            offer.carrier ? null : field(co.country === 'US' ? 'ZIP code' : 'Postal code', textInput('zip', { required: true, autocomplete: 'postal-code' })),
-          ]),
-        );
-      }
+      if (shipping.options.length) how.append(box);
       form.append(how);
     }
 
-    // A discount code: applied by pricing the cart again with it; the server says what it takes off, or why not.
-    const codeBox = el('div', { className: 'c-checkout__code' });
-    const codeInput = el('input', { type: 'text', value: co.code || '', autocomplete: 'off', placeholder: 'Code' });
-    codeInput.dataset.co = 'code';
-    codeInput.setAttribute('aria-label', 'Discount code');
-    const apply = el('button', { type: 'button', className: 'c-checkout__apply', textContent: co.code ? 'Change' : 'Apply' });
-    apply.addEventListener('click', () => {
-      co.code = codeInput.value.trim();
-      keepCo();
-      renderCart();
-    });
-    codeInput.addEventListener('keydown', (e) => e.key === 'Enter' && (e.preventDefault(), apply.click()));
-    codeBox.append(field('Discount code', codeInput), apply);
-    if (co.code) {
-      const remove = el('button', { type: 'button', className: 'c-cart__remove', textContent: 'Remove code' });
-      remove.addEventListener('click', () => {
-        co.code = '';
-        keepCo();
-        renderCart();
-      });
-      codeBox.append(remove);
-    }
-    form.append(codeBox);
-    if (quote.discountProblem) form.append(el('p', { className: 'c-cart__problem', role: 'alert', textContent: quote.discountProblem }));
-
-    const sum = el('div', { className: 'c-checkout__totals' });
-    const line = (label, value, strong) => sum.append(el('p', { className: 'c-cart__subtotal' }, [el('span', { textContent: label }), ' ', strong ? el('strong', { textContent: value }) : el('span', { textContent: value })]));
-    const d = quote.discount;
-    // Its name, with the code when the name isn't the code.
-    const named = d ? `${d.label}${d.code && d.label !== d.code ? ` (${d.code})` : ''}` : '';
-    if (d && totals.discount) line(named, `−${money(totals.discount, currency)}`);
-    else if (d?.freeShipping && chosen) line(named, '✓');
-    if (chosen) line(chosen.kind === 'pickup' ? 'Pickup' : 'Shipping', totals.shipping ? money(totals.shipping, currency) : 'Free');
-    if (totals.tax === null) line('Tax', 'Worked out at payment');
-    else if (totals.tax) line('Tax', money(totals.tax, currency));
-    line('Total', money(totals.total, currency), true);
-    form.append(sum);
-
+    // Payment: on the provider's own page, after Pay.
+    const payment = section('Payment');
+    payment.append(el('p', { className: 'c-checkout__hint', textContent: totals.total > 0 ? 'You’ll pay on a secure payment page next, then come back here.' : 'Nothing to pay: your order is placed at once.' }));
     const status = el('p', { className: 'c-checkout__error', role: 'alert', textContent: checkoutError });
     const pay = el('button', { type: 'submit', className: 'c-shop-button c-checkout__pay', textContent: paying ? 'One moment…' : totals.total > 0 ? `Pay ${money(totals.total, currency)}` : 'Place order' });
     const ready = !blocked && (shipping.needs === 'none' || (chosen && !shipping.problem));
     pay.disabled = paying || !ready;
-    form.append(status, pay);
-    if (blocked) form.append(el('p', { className: 'c-checkout__hint', textContent: 'Take out what can’t be bought to check out.' }));
+    payment.append(status, pay);
+    if (blocked) payment.append(el('p', { className: 'c-checkout__hint', textContent: 'Take out what can’t be bought to check out.' }));
+    else if (shipping.needs !== 'none' && !chosen && !shipping.problem) payment.append(el('p', { className: 'c-checkout__hint', textContent: 'Choose how your order reaches you.' }));
+    form.append(payment);
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -460,6 +417,98 @@
       renderCart();
     });
     return form;
+  };
+
+  const totalsOf = (quote) => quote.totals || { total: quote.subtotal, tax: 0, shipping: 0, discount: 0 };
+
+  // The order summary: each line with its picture (the quantity on it), options, quantity to change and
+  // total; the discount code; and the totals as the server priced them. Folded on phones (`summaryOpen`).
+  let summaryOpen = false;
+  const orderSummary = (quote, shown, currency) => {
+    const totals = totalsOf(quote);
+    const chosen = quote.chosen;
+    const aside = el('aside', { className: `c-summary${summaryOpen ? ' is-open' : ''}` });
+    aside.setAttribute('aria-label', 'Order summary');
+    const panelId = `c-summary-${Math.random().toString(36).slice(2, 8)}`;
+    const toggle = el('button', { type: 'button', className: 'c-summary__toggle' }, [el('span', { className: 'c-summary__toggle-label', textContent: summaryOpen ? 'Hide order summary' : 'Show order summary' }), el('strong', { textContent: money(totals.total, currency) })]);
+    toggle.setAttribute('aria-expanded', String(summaryOpen));
+    toggle.setAttribute('aria-controls', panelId);
+    toggle.addEventListener('click', () => {
+      summaryOpen = !summaryOpen;
+      aside.classList.toggle('is-open', summaryOpen);
+      toggle.setAttribute('aria-expanded', String(summaryOpen));
+      toggle.firstChild.textContent = summaryOpen ? 'Hide order summary' : 'Show order summary';
+    });
+    const panel = el('div', { className: 'c-summary__panel', id: panelId });
+
+    const list = el('ul', { className: 'c-summary__lines' });
+    for (const l of shown) {
+      const input = el('input', { type: 'number', min: '0', max: String(l.max || 0), value: String(l.quantity), inputMode: 'numeric', className: 'c-cart__qty' });
+      input.dataset.co = `qty:${l.product}:${l.variant}`;
+      input.setAttribute('aria-label', `Quantity of ${l.title}${l.label ? `, ${l.label}` : ''}`);
+      input.addEventListener('change', () => setQuantity(l, Math.floor(Number(input.value) || 0)));
+      const remove = el('button', { type: 'button', className: 'c-cart__remove', textContent: 'Remove' });
+      remove.setAttribute('aria-label', `Remove ${l.title}`);
+      remove.addEventListener('click', () => setQuantity(l, 0));
+      const note = l.problem === 'sold-out' ? 'Sold out' : l.problem === 'fewer' ? `Only ${l.max} left` : l.problem === 'members-only' ? 'For members only: sign in to buy it' : l.listUnit ? 'Member price' : '';
+      const canBuy = l.problem !== 'sold-out' && l.problem !== 'members-only';
+      const badge = canBuy ? el('span', { className: 'c-summary__badge', textContent: String(l.quantity) }) : null;
+      badge?.setAttribute('aria-hidden', 'true');
+      list.append(
+        el('li', { className: 'c-summary__line' }, [
+          el('span', { className: 'c-summary__thumb' }, [l.image ? el('img', { src: l.image, alt: '', width: 64, height: 64, loading: 'lazy' }) : null, badge]),
+          el('span', { className: 'c-summary__item c-cart__item' }, [
+            el('a', { href: l.url, textContent: l.title }),
+            l.label ? el('small', { textContent: l.label }) : null,
+            note ? el('small', { className: 'c-cart__problem', textContent: note }) : null,
+            el('span', { className: 'c-summary__edit' }, [canBuy ? input : null, el('small', { className: 'c-summary__each', textContent: `${money(l.unit, currency)} each` }), remove]),
+          ]),
+          el('span', { className: 'c-summary__total c-cart__total', textContent: l.total ? money(l.total, currency) : '' }),
+        ]),
+      );
+    }
+    panel.append(list);
+
+    // A discount code: applied by pricing the cart again with it; the server says what it takes off, or why not.
+    const codeBox = el('div', { className: 'c-checkout__code' });
+    const codeInput = el('input', { type: 'text', value: co.code || '', autocomplete: 'off', placeholder: 'Discount code' });
+    codeInput.dataset.co = 'code';
+    codeInput.setAttribute('aria-label', 'Discount code');
+    const apply = el('button', { type: 'button', className: 'c-checkout__apply', textContent: co.code ? 'Change' : 'Apply' });
+    apply.addEventListener('click', () => {
+      co.code = codeInput.value.trim();
+      keepCo();
+      renderCart();
+    });
+    codeInput.addEventListener('keydown', (e) => e.key === 'Enter' && (e.preventDefault(), apply.click()));
+    codeBox.append(codeInput, apply);
+    panel.append(codeBox);
+    if (co.code) {
+      const removeCode = el('button', { type: 'button', className: 'c-cart__remove', textContent: 'Remove code' });
+      removeCode.addEventListener('click', () => {
+        co.code = '';
+        keepCo();
+        renderCart();
+      });
+      panel.append(removeCode);
+    }
+    if (quote.discountProblem) panel.append(el('p', { className: 'c-cart__problem', role: 'alert', textContent: quote.discountProblem }));
+
+    const sum = el('dl', { className: 'c-summary__totals c-checkout__totals' });
+    const line = (label, value, cls) => sum.append(el('div', { className: `c-summary__row${cls ? ` ${cls}` : ''}` }, [el('dt', { textContent: label }), el('dd', {}, value)]));
+    const d = quote.discount;
+    // Its name, with the code when the name isn't the code.
+    const named = d ? `${d.label}${d.code && d.label !== d.code ? ` (${d.code})` : ''}` : '';
+    line('Subtotal', money(quote.subtotal, currency));
+    if (d && totals.discount) line(named, `−${money(totals.discount, currency)}`, 'is-discount');
+    else if (d?.freeShipping && chosen) line(named, 'Free shipping', 'is-discount');
+    if (quote.shipping && quote.shipping.needs !== 'none') line(chosen?.kind === 'pickup' ? 'Pickup' : 'Shipping', chosen ? (totals.shipping ? money(totals.shipping, currency) : 'Free') : 'Chosen at checkout');
+    if (totals.tax === null) line('Tax', 'Worked out at payment');
+    else if (totals.tax) line('Tax', money(totals.tax, currency));
+    line('Total', [el('small', { className: 'c-summary__currency', textContent: currency }), ' ', el('strong', { textContent: money(totals.total, currency) })], 'is-total');
+    panel.append(sum);
+    aside.append(toggle, panel);
+    return aside;
   };
 
   const setQuantity = (line, n) => {

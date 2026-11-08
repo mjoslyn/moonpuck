@@ -152,15 +152,18 @@ member pricing comes first; a product in several categories takes the largest di
 
 ## Checkout
 
-Under the cart, visitors check out:
+The cart page is the checkout: the form on the left, and on the right the order summary (each item with
+its picture, quantity and price, a discount code and the totals). On a phone the summary is folded behind
+**Show order summary**, with the total.
 
-1. They give their name, email and, if they like, a phone number, and can tick **Email me news and
-   offers** when you offer it.
-2. They choose how to get the order: one of your shipping rates for their country (and state, in the US),
-   or a pickup location. Only rates that fit their order are offered.
-3. For shipping, they give their address.
-4. If they have a discount code, they type it under **Discount code** and click **Apply**.
-5. They see the discount, shipping, tax and total, and click **Pay**. Payment is on Stripe's or Square's own page.
+1. Under **Contact**, they give their email, and can tick **Email me news and offers** when you offer it.
+2. Under **Delivery**, they choose their country (and state, in the US), then give their name, their
+   address when the order is posted, and, if they like, a phone number.
+3. Under **Shipping method**, they choose one of your shipping rates for their country, or a pickup
+   location. Only rates that fit their order are offered.
+4. If they have a discount code, they type it in the summary and click **Apply**.
+5. They check the discount, shipping, tax and total in the summary, and click **Pay**. Payment is on
+   Stripe's or Square's own page.
 6. They come back to a page with their order, and get a receipt by email.
 
 Each order is emailed to the site's admin address too (or the address set as `SHOP_NOTIFY_EMAIL`), and
