@@ -1,7 +1,7 @@
 // Settings > Shop's checkout settings (settings.site.shop; src/lib/shop/checkout-settings.ts): who takes
 // payments, how long an unpaid order holds its stock, shipping zones with their rates, pickup locations
 // and tax, and the order emails. Saved with the other settings.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Num, Row, Segmented, Select, Text, Toggle, inputClass } from '../puck/fields';
 import { PriceInput } from '../puck/TicketsForm';
 import type { PaymentProvider, ProviderStatus } from '../lib/payments';
@@ -29,6 +29,25 @@ const card = 'mb-2 rounded border border-admin-ink/10 bg-admin-bg';
 const remove = 'text-xs text-[#c4592a]';
 
 type Raw = Record<string, any>;
+
+const MISSING: Record<string, string> = { head_office: 'your business address (head office)' };
+
+/** Stripe refuses every checkout that asks for tax until Stripe Tax is active: say so, and what it lacks. */
+function StripeTaxCheck() {
+  const [state, setState] = useState<{ ready?: boolean; missing?: string[]; error?: string } | null>(null);
+  useEffect(() => {
+    fetch('/api/admin/shop/stripe-tax').then((r) => r.json()).then(setState, () => setState({ error: 'Stripe couldn’t be asked.' }));
+  }, []);
+  if (!state || state.ready) return null;
+  const what = state.missing?.length ? ` It still needs ${state.missing.map((m) => MISSING[m] ?? m.replace(/_/g, ' ')).join(', ')}.` : '';
+  return (
+    <p className="mb-2 rounded border border-[#c4592a]/40 bg-[#c4592a]/5 p-2 text-xs text-[#c4592a]">
+      {state.error
+        ? `Whether Stripe Tax is on couldn’t be checked (${state.error}).`
+        : `Stripe Tax isn’t active on this Stripe account, so Stripe refuses checkouts and buyers can’t pay.${what} Finish it in Stripe’s dashboard (Settings > Tax), or work tax out from the rates here.`}
+    </p>
+  );
+}
 
 export default function ShopCheckoutSettings({ value, currency, weightUnit, providers, shippo, mailLists, onChange }: { value: Raw; currency: string; weightUnit: string; providers: Record<PaymentProvider, ProviderStatus>; shippo: 'live' | 'test' | null; mailLists: MailList[] | null; onChange: (v: Raw) => void }) {
   const set = (patch: Raw) => onChange({ ...value, ...patch });
@@ -146,6 +165,7 @@ export default function ShopCheckoutSettings({ value, currency, weightUnit, prov
       {c.tax.mode === 'stripe' && stripeTax ? (
         <>
           <p className="mb-2 text-xs text-admin-muted">Stripe works out tax from the buyer's address at checkout. Turn on Stripe Tax and add your registrations in Stripe's dashboard first. The cart says tax is added at checkout.</p>
+          <StripeTaxCheck />
           <Text title={`Tax code for products (default ${DEFAULT_TAX_CODE}, general goods)`} value={c.tax.taxCode === DEFAULT_TAX_CODE ? '' : c.tax.taxCode} placeholder={DEFAULT_TAX_CODE} onChange={(taxCode) => setTax({ taxCode: taxCode || DEFAULT_TAX_CODE })} />
         </>
       ) : (

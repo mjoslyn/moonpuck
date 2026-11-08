@@ -90,6 +90,18 @@ export async function verifyStripeSignature(body: string, header: string, secret
   return sigs.some((s) => sameString(s, expected));
 }
 
+/** Whether Stripe Tax can work out tax (`GET /v1/tax/settings`: status `active`, or `pending` with the
+ * fields still missing, such as `head_office`). Until it is active, every checkout asking for automatic
+ * tax is refused, so a shop set to Stripe Tax takes no payments. */
+export function taxReadiness(s: any): { ready: boolean; missing: string[] } {
+  const missing = s?.status_details?.pending?.missing_fields;
+  return { ready: s?.status === 'active', missing: Array.isArray(missing) ? missing.map(String) : [] };
+}
+
+export async function stripeTaxReadiness() {
+  return taxReadiness(await call('GET', '/tax/settings'));
+}
+
 export const provider: Provider = {
   label: 'Stripe',
   keys: ['STRIPE_SECRET_KEY'],

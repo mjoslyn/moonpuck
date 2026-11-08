@@ -318,7 +318,9 @@ addresses can't be shipped to. Each zone's rates:
 **Tax**:
 
 - **Tax is**: Worked out from the rates here, or Worked out by Stripe Tax (only when payments go through
-  Stripe; turn Stripe Tax on in Stripe first).
+  Stripe; turn Stripe Tax on in Stripe first). Until Stripe Tax is active, Stripe refuses every checkout
+  and buyers can't pay: the setting shows a warning saying so, and what Stripe still needs (such as your
+  business address, in Stripe's dashboard under Settings > Tax).
 - **Store's tax rate (%)**: used where no other rate applies.
 - **Rates for places**: a rate for a country or US state, replacing the store's. A state's rate wins
   over its country's.

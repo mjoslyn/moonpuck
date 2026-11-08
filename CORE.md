@@ -1437,7 +1437,7 @@ answer 404.
   it signs up to and its words, `DEFAULT_NEWS_LABEL`; shown at checkout while Mailing is on and lists are
   chosen; ticked, checkout calls the mailing sign-up, `signUp` with source `shop:checkout`, so the buyer is
   confirmed by email as with a Subscribe block) and tax (`tax`: `mode` rates or Stripe Tax, the
-  store's `rate` and per-place `regions` in percent, `onShipping`, Stripe's `taxCode`; Stripe Tax only while payments go through Stripe, `taxInForce`, else the rates). Places
+  store's `rate` and per-place `regions` in percent, `onShipping`, Stripe's `taxCode`; Stripe Tax only while payments go through Stripe, `taxInForce`, else the rates; while Stripe Tax isn't active on the account, `GET /v1/tax/settings`, Stripe refuses checkouts asking for it, so the setting warns with what it lacks: `GET /api/admin/shop/stripe-tax`, `taxReadiness` in `src/lib/payments/stripe.ts`). Places
   (`src/lib/shop/places.ts`) are ISO countries, US states as `US-NY`, and `*` for everywhere else.
 - **Totals** (`src/lib/shop/totals.ts`, safe in the browser): a zone is the first, in order, with a place
   covering the address, a `*` zone only when none names it (`zoneFor`); a rate is flat or by subtotal or
