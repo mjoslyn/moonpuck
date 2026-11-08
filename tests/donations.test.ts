@@ -6,7 +6,7 @@ import { siteDb } from '../src/lib/db/site';
 import { PROVIDERS } from '../src/lib/payments';
 import { coverFee, donationSettings, donationSettingsFrom } from '../src/lib/donations/config';
 import { askedAmount, cancelPlan, donationsWebhook, expireDonations, goalTotals, markDonationPaid, refundDonation, returnFromDonation, startDonation, type Donation, type DonationPlan } from '../src/lib/donations/donations';
-import { renderRequest } from '../src/render/page';
+import { keepOutOfSearch, renderRequest } from '../src/render/page';
 import '../src/lib/donations/page-data';
 
 const sent: { to: string[]; subject: string; html: string }[] = [];
@@ -92,7 +92,7 @@ describe('one-time gifts', () => {
   });
 
   it('refuses gifts below the smallest, and monthly gifts while they are off', async () => {
-    expect(await startDonation(donor({ amount: '100' }), 'http://localhost')).toMatchObject({ error: 'amount' });
+    expect(await startDonation(donor({ amount: '100' }), 'http://localhost')).toEqual({ error: 'too-small' });
     await setSite({ donations: { ...DONATIONS, monthly: false } });
     expect(await startDonation(donor({ frequency: 'monthly' }), 'http://localhost')).toMatchObject({ error: 'monthly-off' });
   });
@@ -175,6 +175,54 @@ describe('monthly gifts', () => {
     expect(subs.cancelled).toEqual([p.subscription]);
     expect((await plan(p.id)).status).toBe('cancelled');
     expect(sent).toHaveLength(1);
+  });
+});
+
+describe('security review fixes', () => {
+  it('closes a monthly gift’s checkout on Cancel, and a gift paid all the same starts its plan', async () => {
+    const closed: string[] = [];
+    const close = PROVIDERS.stripe.close;
+    PROVIDERS.stripe.close = async (ref: string) => void closed.push(ref);
+    try {
+      await startDonation(donor({ frequency: 'monthly', amount: '2500' }), 'http://localhost');
+      const d = await latest();
+      expect(await returnFromDonation(d.token, true, 'http://localhost')).toContain('donate=cancelled');
+      expect(closed).toEqual([d.provider_ref]);
+      expect((await plan(d.plan_id!)).status).toBe('cancelled');
+      // Paid anyway (the page was still open somewhere): the plan starts with its subscription.
+      subs.paid.add(d.provider_ref!);
+      await donationsWebhook('stripe', { kind: 'checkout', ref: d.provider_ref! }, 'http://localhost');
+      expect(await plan(d.plan_id!)).toMatchObject({ status: 'active', subscription: `sub_${d.provider_ref}`, cancelled_at: null });
+      expect((await latest()).status).toBe('paid');
+    } finally {
+      PROVIDERS.stripe.close = close;
+    }
+  });
+
+  it('shows only its own words for an error code, never text from the address', async () => {
+    const { data } = await db.from('templates').select('id').eq('slug', 'page').maybeSingle();
+    if (!data) await db.from('templates').insert({ kind: 'template', slug: 'page', title: 'Page', content: { root: { props: {} }, content: [{ type: 'entry-content', props: { id: 'pc', attrs: {} } }] } });
+    const spoof = await renderRequest(new URL('http://localhost/donate/?donate_error=Our+payment+page+moved+to+evil.example'), db);
+    expect(spoof.html).not.toContain('evil.example');
+    expect(spoof.html).not.toContain('role="alert"');
+    const real = await renderRequest(new URL('http://localhost/donate/?donate_error=too-small'), db);
+    expect(real.html).toContain('The smallest gift is $5.00.');
+  });
+
+  it('keeps a donor’s own pages out of search engines', () => {
+    expect(keepOutOfSearch(new URL('http://localhost/donate/?donation=abc'))).toBe(true);
+    expect(keepOutOfSearch(new URL('http://localhost/donate/?plan=abc'))).toBe(true);
+    expect(keepOutOfSearch(new URL('http://localhost/donate/'))).toBe(false);
+  });
+
+  it('records a month at what Stripe charged, and nothing for a month that cost nothing', async () => {
+    const id = (await db.from('donation_plans').insert({ token: 'plan-charged-xxxxxxxxxxxxxxxxx', status: 'active', subscription: 'sub_charged', amount: 2500, fee: 100, total: 2600, name: 'C', email: 'c@example.org' }).select('id').single()).data!.id as number;
+    subs.invoices.in_free = { paymentId: 'pi_free', amount: 0, paid: true };
+    subs.invoices.in_part = { paymentId: 'pi_part', amount: 1300, paid: true };
+    await donationsWebhook('stripe', { kind: 'invoice', invoice: 'in_free', subscription: 'sub_charged', reason: 'subscription_cycle', failed: false }, 'http://localhost');
+    await donationsWebhook('stripe', { kind: 'invoice', invoice: 'in_part', subscription: 'sub_charged', reason: 'subscription_cycle', failed: false }, 'http://localhost');
+    const gifts = (await db.from('donations').select('invoice, amount, fee, total').eq('plan_id', id)).data;
+    expect(gifts).toEqual([{ invoice: 'in_part', amount: 1300, fee: 0, total: 1300 }]);
   });
 });
 

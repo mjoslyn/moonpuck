@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import type { AstroCookies } from 'astro';
-import { renderRequest, type PageResult } from '../render/page';
+import { keepOutOfSearch, renderRequest, type PageResult } from '../render/page';
 import { confirmAddress, redirectWith, sessionUser } from '../lib/auth';
 import { accountUrl, safeNext } from '../lib/members/account';
 import { viewerOf } from '../lib/members/viewer';
@@ -92,9 +92,9 @@ export const GET: APIRoute = async ({ url, request, cache, cookies }) => {
     headers: {
       'Content-Type': 'text/html; charset=UTF-8',
       'Cache-Control': personal ? 'private, no-store' : BROWSER_CACHE_CONTROL,
-      // Members-only pages and one visitor's order or checkout outcome stay out of search engines; pages
+      // Members-only pages and one visitor's order, checkout outcome, gift or monthly gift stay out of search engines; pages
       // personal for other reasons (member prices, a Members only block) are public pages.
-      ...(result.locked || url.searchParams.has('order') || url.searchParams.has('tickets') ? { 'X-Robots-Tag': 'noindex' } : {}),
+      ...(keepOutOfSearch(url, result.locked) ? { 'X-Robots-Tag': 'noindex' } : {}),
     },
   });
 };

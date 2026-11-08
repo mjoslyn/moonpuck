@@ -9,7 +9,7 @@ import type { Renderer, RenderCtx } from '../env';
 import { esc } from '../html';
 import { attrs, escAttr, styleDecls } from './style';
 import { formatMoney } from '../../lib/payments/money';
-import { coverFee, coversFees, DEFAULT_NEWS_LABEL, donationSettings, goalOf, type DonationSettings } from '../../lib/donations/config';
+import { coverFee, coversFees, DEFAULT_NEWS_LABEL, donateMessage, donationSettings, goalOf, type DonationSettings } from '../../lib/donations/config';
 import type { GoalTotal } from '../../lib/donations/totals';
 import { mailingOn } from '../../lib/mailing/config';
 import { formStyleClass, formStyleDecls } from '../forms/style';
@@ -111,7 +111,8 @@ const donate: Renderer = (b, env) => {
   const startMonthly = monthly && a.frequency === 'monthly';
   const goal = goalOf(s, a.goal)?.id ?? '';
   const first = amounts[Math.min(amounts.length - 1, Math.max(0, Number(a.selected ?? 1)))] ?? 0;
-  const error = q.get('donate_error')?.slice(0, 300) ?? '';
+  // A code, which the block turns into its own words: never text from the address.
+  const error = donateMessage(q.get('donate_error') ?? '', s) ?? '';
   const cancelled = q.get('donate') === 'cancelled';
   const heading = a.heading ? `<h2 class="c-donate__heading">${esc(a.heading)}</h2>` : '';
   const intro = a.text ? `<p class="c-donate__text">${esc(a.text)}</p>` : '';

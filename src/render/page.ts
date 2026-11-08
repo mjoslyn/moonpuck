@@ -166,6 +166,11 @@ export async function resolve(url: URL, loader: Loader): Promise<Queried> {
   return base;
 }
 
+/** Address values that make a page one visitor's own (an order, a checkout's outcome, a gift, a monthly
+ *  gift): such pages stay out of search engines (the catch-all route's X-Robots-Tag). */
+export const PERSONAL_PARAMS = ['order', 'tickets', 'donation', 'plan'];
+export const keepOutOfSearch = (url: URL, locked?: boolean) => !!locked || PERSONAL_PARAMS.some((k) => url.searchParams.has(k));
+
 /** Mailing's built-in pages: a page holding one block. */
 const MAILING_PAGES: Record<string, { slug: string; title: string; block: { type: string; attrs: Record<string, unknown> } }> = {
   [SUBSCRIBE_PATH]: { slug: SUBSCRIBE_PATH.split('/').filter(Boolean).pop()!, title: 'Subscribe', block: { type: 'subscribe', attrs: { heading: 'Get our email', showName: true } } },

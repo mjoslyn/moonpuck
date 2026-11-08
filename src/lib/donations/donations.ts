@@ -17,7 +17,7 @@ import { signUp } from '../mailing/contacts';
 import { campaignKey, statsDay } from '../stats';
 import { defaultTemplate } from '../email-templates';
 import { emailEvents } from '../events/email';
-import { DEFAULT_NEWS_LABEL, DONATE_PATH, MAX_GIFT, coverFee, coversFees, donationSettings, donationsOn, goalOf, type DonationEmailKind, type DonationGoal, type DonationSettings } from './config';
+import { DEFAULT_NEWS_LABEL, DONATE_PATH, MAX_GIFT, coverFee, coversFees, donationSettings, donationsOn, goalOf, type DonateError, type DonationEmailKind, type DonationGoal, type DonationSettings } from './config';
 import { donationEmail, donationEmailToSend } from './email';
 import { raised } from './totals';
 
@@ -89,21 +89,10 @@ export interface DonationPlan {
   created_at: string;
 }
 
-export type DonateError = 'closed' | 'invalid' | 'amount' | 'monthly-off' | 'payments-off' | 'limit' | 'busy' | 'payment-error';
+export type { DonateError } from './config';
 
-const MESSAGES: Record<DonateError, string> = {
-  closed: 'Donations are closed.',
-  invalid: 'Check your name and email.',
-  amount: 'Choose an amount to give.',
-  'monthly-off': 'Monthly gifts can’t be taken right now. Give once instead.',
-  'payments-off': 'Gifts can’t be taken online right now.',
-  limit: 'Too many gifts were started from here. Try again in an hour.',
-  busy: 'We’re busy. Try again in a minute.',
-  'payment-error': 'The payment page couldn’t be opened. Try again.',
-};
-
-export type DonateResult = { redirect: string } | { error: DonateError; message: string };
-const fail = (error: DonateError, message?: string): DonateResult => ({ error, message: message ?? MESSAGES[error] });
+export type DonateResult = { redirect: string } | { error: DonateError };
+const fail = (error: DonateError): DonateResult => ({ error });
 
 const text = (v: unknown, max = 300) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
 const yes = (v: unknown) => v === true || v === 'on' || v === '1' || v === 'true';
@@ -151,8 +140,8 @@ export async function startDonation(body: Record<string, unknown>, origin: strin
   if (!name || !EMAIL.test(email)) return fail('invalid');
   const amount = askedAmount(body);
   if (!Number.isFinite(amount) || amount <= 0) return fail('amount');
-  if (amount < s.minimum) return fail('amount', `The smallest gift is ${formatMoney(s.minimum, s.currency)}.`);
-  if (amount > MAX_GIFT) return fail('amount', `Gifts over ${formatMoney(MAX_GIFT, s.currency)} can’t be made online. Get in touch with us instead.`);
+  if (amount < s.minimum) return fail('too-small');
+  if (amount > MAX_GIFT) return fail('too-large');
   const monthly = String(body.frequency ?? '') === 'monthly';
   if (monthly && (!s.monthly || !PROVIDERS.stripe.configured())) return fail('monthly-off');
   const providerName: PaymentProvider | undefined = monthly ? 'stripe' : pickProvider(s.provider);
@@ -241,7 +230,9 @@ export async function markDonationPaid(db: Db, d: Pick<Donation, 'id' | 'plan_id
       .select('id')
       .maybeSingle();
     if (data) {
-      if (d.plan_id) await db.from('donation_plans').update({ status: 'active', started_at: at, ...(state.subscription ? { subscription: state.subscription } : {}), ...(state.customer ? { customer: state.customer } : {}) }).eq('id', d.plan_id).eq('status', 'incomplete');
+      // The plan starts with its subscription, also when its checkout was given up (cancelled or expired
+      // here) and then paid all the same: its monthly payments, receipts and Cancel need it.
+      if (d.plan_id) await db.from('donation_plans').update({ status: 'active', started_at: at, cancelled_at: null, ...(state.subscription ? { subscription: state.subscription } : {}), ...(state.customer ? { customer: state.customer } : {}) }).eq('id', d.plan_id).in('status', ['incomplete', 'cancelled']).is('subscription', null);
       // A monthly gift's receipt carries the link to change or cancel it.
       await afterPaid(db, d.id, d.plan_id ? 'monthly' : 'receipt', origin);
       return;
@@ -267,7 +258,8 @@ export async function returnFromDonation(token: string, cancelled: boolean, orig
     const state = await paymentState(d).catch((e): null => (console.warn(`donations: checking ${d.code}: ${(e as Error).message}`), null));
     if (state?.status === 'paid') await markDonationPaid(db, d, state, origin);
     else if (state && state.status !== 'processing') {
-      if (d.kind === 'once') await closeCheckout(d.provider, d.provider_ref);
+      // A monthly gift's checkout too: left open, it could still start the subscription.
+      await closeCheckout(d.provider, d.provider_ref);
       await db.from('donations').update({ status: 'cancelled' }).eq('id', d.id).eq('status', 'pending');
       if (d.plan_id) await db.from('donation_plans').update({ status: 'cancelled', cancelled_at: new Date().toISOString() }).eq('id', d.plan_id).eq('status', 'incomplete');
       return withParam(d.page || DONATE_PATH, 'donate', 'cancelled');
@@ -359,18 +351,23 @@ async function invoiceEvent(db: Db, event: Extract<PaymentEvent, { kind: 'invoic
   if (event.reason === 'subscription_create') return;
   if (await donationBy(db, 'invoice', event.invoice)) return;
   const pay = await invoicePayment(event.invoice);
-  if (!pay.paid) return;
+  // Nothing charged (paid from the customer's balance or a full coupon): no gift, no receipt.
+  if (!pay.paid || pay.amount <= 0) return;
   const at = new Date().toISOString();
   const { data: made, error } = await db
     .from('donations')
     .insert({
       token: newToken(), code: newCode(), status: 'paid', kind: 'monthly', plan_id: plan.id, provider: 'stripe', provider_ref: event.invoice, invoice: event.invoice, provider_payment: pay.paymentId ?? null,
-      amount: plan.amount, fee: plan.fee, total: pay.amount || plan.total, currency: plan.currency, name: plan.name, email: plan.email, anonymous: plan.anonymous, dedication: plan.dedication, goal: plan.goal, page: plan.page, campaign: plan.campaign, paid_at: at,
+      // What Stripe charged this month (less than the plan with a coupon or the customer's balance).
+      amount: Math.min(plan.amount, pay.amount), fee: Math.max(0, pay.amount - plan.amount), total: pay.amount, currency: plan.currency, name: plan.name, email: plan.email, anonymous: plan.anonymous, dedication: plan.dedication, goal: plan.goal, page: plan.page, campaign: plan.campaign, paid_at: at,
     })
     .select('id')
     .maybeSingle();
-  // Another delivery of the same event made it meanwhile (invoice is unique).
-  if (error || !made) return;
+  // Another delivery of the same event made it meanwhile (invoice is unique): done. Any other failure
+  // answers the webhook with an error, so Stripe sends it again.
+  if (error?.code === '23505' || /UNIQUE/i.test(error?.message ?? '')) return;
+  if (error) throw new Error(`recording invoice ${event.invoice}: ${error.message}`);
+  if (!made) return;
   await db.from('donation_plans').update({ status: 'active', failed_at: null }).eq('id', plan.id).in('status', ['active', 'past_due']);
   await afterPaid(db, made.id as number, 'monthly', origin);
 }
@@ -413,7 +410,7 @@ export async function expireDonations(db: Db = serviceClient()) {
   const before = new Date(Date.now() - PENDING_HOURS * 3600_000).toISOString();
   const { data } = await db.from('donations').update({ status: 'expired' }).eq('status', 'pending').lt('created_at', before).select('id, kind, provider, provider_ref, plan_id');
   for (const d of data ?? []) {
-    if (d.kind === 'once') await closeCheckout(d.provider, d.provider_ref);
+    await closeCheckout(d.provider, d.provider_ref);
     if (d.plan_id) await db.from('donation_plans').update({ status: 'cancelled', cancelled_at: new Date().toISOString() }).eq('id', d.plan_id).eq('status', 'incomplete');
   }
   return data?.length ?? 0;

@@ -3,7 +3,7 @@
 // Square) and, through Stripe, monthly gifts; the Donation progress block shows a fundraising goal's
 // total. Amounts are in minor units (cents). Safe in the browser.
 import type { PaymentProvider } from '../payments';
-import { MIN_CHARGE } from '../payments/money';
+import { MIN_CHARGE, formatMoney } from '../payments/money';
 import { ticketEmailFrom, type TicketEmail } from '../tickets/config';
 
 /** The donation blocks: offered in the editor, and shown on the site, only while donations are on. */
@@ -165,6 +165,27 @@ export function donationSettingsFrom(raw: unknown): Record<string, unknown> | un
 
 /** Whether donations are on. */
 export const donationsOn = (site: Record<string, any> | null | undefined): boolean => site?.donations?.enabled === true;
+
+/** Why a gift couldn't start: the code the checkout sends back (?donate_error=<code>), never words of its own. */
+export type DonateError = 'closed' | 'invalid' | 'amount' | 'too-small' | 'too-large' | 'monthly-off' | 'payments-off' | 'limit' | 'busy' | 'payment-error';
+
+/** What a Donate block says for each code (the smallest and largest gift from the settings). */
+export function donateMessage(code: string, s: Pick<DonationSettings, 'minimum' | 'currency'>): string | null {
+  const m = (n: number) => formatMoney(n, s.currency);
+  const words: Record<DonateError, string> = {
+    closed: 'Donations are closed.',
+    invalid: 'Check your name and email.',
+    amount: 'Choose an amount to give.',
+    'too-small': `The smallest gift is ${m(s.minimum)}.`,
+    'too-large': `Gifts over ${m(MAX_GIFT)} can’t be made online. Get in touch with us instead.`,
+    'monthly-off': 'Monthly gifts can’t be taken right now. Give once instead.',
+    'payments-off': 'Gifts can’t be taken online right now.',
+    limit: 'Too many gifts were started from here. Try again in an hour.',
+    busy: 'We’re busy. Try again in a minute.',
+    'payment-error': 'The payment page couldn’t be opened. Try again.',
+  };
+  return Object.hasOwn(words, code) ? words[code as DonateError] : null;
+}
 
 /** Whether the fees can be covered (a percent or a fixed amount is set). */
 export const coversFees = (s: Pick<DonationSettings, 'feePercent' | 'feeFixed'>) => s.feePercent > 0 || s.feeFixed > 0;

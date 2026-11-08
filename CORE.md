@@ -1029,7 +1029,8 @@ member (`renderRequest` drops the viewer's membership), and the editor offers no
 - **Personal pages**: what depends on the viewer (a locked entry, a Members only or Member account
   block, tickets with member prices) sets `RenderCtx.personal`. The catch-all route then doesn't cache
   the page (`private, no-store`); only pages whose own entry is members-only (`PageResult.locked`) and
-  one buyer's `?order=` or `?tickets=` answers get `X-Robots-Tag: noindex` and, for a visitor with a
+  one visitor's `?order=`, `?tickets=`, `?donation=` or `?plan=` answers (`keepOutOfSearch`) get
+  `X-Robots-Tag: noindex` and, for a visitor with a
   sign-in cookie, renders it again as them
   (`asViewer`: `viewerOf` in `src/lib/members/viewer.ts` looks the session up (`sessionUser`,
   `src/lib/auth`) and reads the profile and membership as the server; the second render's loader scope carries them,
@@ -1536,11 +1537,15 @@ at Stripe) are still recorded. A gift gives no membership.
   **Donate** (`donate`: Give once / Monthly, preset amounts (the block's `amounts` else the settings') and
   Other, cover the fees, name, email, dedication, anonymous, news, a honeypot; the `goal` it counts
   towards; `formStyle`) posts a plain form to `POST /api/donations/checkout` (`startDonation`), which
-  answers 303 to the provider's checkout or back with `?donate_error=`; `public/assets/js/donate.js`
+  answers 303 to the provider's checkout or back with `?donate_error=<code>` (`DonateError`; the block
+  shows its own words for a known code, `donateMessage`, and nothing for anything else, so a link can't put
+  text on the page); `public/assets/js/donate.js`
   shows the fee and the button's amount and adds the visit's campaign. With `?donation=<token>` the block
   shows that gift's thank-you, with `?plan=<token>` that monthly gift with Update your card (Stripe's
   customer portal) and Cancel (`POST /api/donations/manage`), loaded by a server hook
-  (`src/lib/donations/page-data.ts`); those pages and a checkout's outcome are personal (never cached).
+  (`src/lib/donations/page-data.ts`); those pages and a checkout's outcome are personal (never cached), and
+  `?donation=` and `?plan=` pages carry `X-Robots-Tag: noindex` (`keepOutOfSearch`, `PERSONAL_PARAMS` in
+  `src/render/page.ts`).
   **Donation progress** (`donation-progress`): a goal's total against its target as a bar, with donors
   and percent and an optional button, from `goalTotals` (`src/lib/donations/totals.ts`: paid gifts in the
   goal's dates, each counting `raised`, the gift less refunds, not the fee), read when the page renders
@@ -1551,9 +1556,11 @@ at Stripe) are still recorded. A gift gives no membership.
   through `Provider.create` (the gift and the fee as items), a monthly one through
   `createSubscriptionCheckout` (`src/lib/payments/stripe.ts`: Checkout in subscription mode, a monthly
   price made inline) with an incomplete plan. `/api/donations/return?d=<token>` asks the provider and
-  sends the donor back to the page they gave on (`?donation=`, or `?donate=cancelled` after Cancel).
+  sends the donor back to the page they gave on (`?donation=`, or `?donate=cancelled` after Cancel, which
+  closes the provider's checkout, a monthly gift's too, as an unpaid one expiring does).
   `markDonationPaid` marks it paid once (an expired or cancelled one paid anyway too, with a note),
-  starts the plan (`checkSubscriptionCheckout`: its subscription, customer, first invoice and payment)
+  starts the plan (`checkSubscriptionCheckout`: its subscription, customer, first invoice and payment;
+  also a plan cancelled here with no subscription yet, when its checkout was paid all the same)
   and claims `emailed_at` to send the receipt (the monthly receipt for a monthly gift) and the
   organization's copy once. Unpaid checkouts older than a day expire hourly (`expireDonations`).
 - **Webhooks** (`donationsWebhook`, beside the others in `/api/payments/<provider>`): checkouts and
@@ -1561,7 +1568,9 @@ at Stripe) are still recorded. A gift gives no membership.
   kind `invoice`) and `customer.subscription.updated` and `.deleted` (kind `subscription`), read in both
   of Stripe's invoice shapes (`invoiceSubscription`, `invoicePayment`, which falls back to
   `/v1/invoice_payments`). A later month's paid invoice makes a donation row of its own (the first,
-  `subscription_create`, is the checkout's) and sends the monthly receipt; a failed one marks the plan
+  `subscription_create`, is the checkout's) at what Stripe charged (`amount_paid`; none for an invoice that
+  charged nothing) and sends the monthly receipt; a write that fails for any reason but the invoice already
+  being recorded answers the webhook with an error, so Stripe sends it again; a failed one marks the plan
   past_due and emails the donor once until it is paid again; the subscription's end marks it cancelled
   and emails the donor once (`planEnded`). `STRIPE_EVENTS` includes these, so connecting Stripe again
   adds them to an existing endpoint.
