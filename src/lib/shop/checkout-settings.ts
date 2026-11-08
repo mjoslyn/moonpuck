@@ -92,7 +92,14 @@ export interface CheckoutSettings {
   lowStock: number;
   /** Email the shop when a sale takes a variant to its low-stock mark. */
   lowStockAlerts: boolean;
+  /** How many times a bought download can be fetched (0: no limit), and for how many days after paying (0: always). */
+  downloadLimit: number;
+  downloadDays: number;
 }
+
+export const DEFAULT_DOWNLOAD_LIMIT = 5;
+export const DEFAULT_DOWNLOAD_DAYS = 30;
+const count = (v: unknown, fallback: number, max: number) => (v === undefined || v === null || v === '' || !Number.isFinite(Number(v)) ? fallback : Math.max(0, Math.min(max, Math.trunc(Number(v)))));
 
 export const DEFAULT_LOW_STOCK = 3;
 
@@ -198,6 +205,8 @@ export function checkoutSettings(shop: Record<string, any> | null | undefined): 
     tax: cleanTax(s.tax),
     lowStock: s.lowStock === undefined || s.lowStock === null || s.lowStock === '' || !Number.isFinite(Number(s.lowStock)) ? DEFAULT_LOW_STOCK : Math.max(0, Math.min(100_000, Math.trunc(Number(s.lowStock)))),
     lowStockAlerts: s.lowStockAlerts !== false,
+    downloadLimit: count(s.downloadLimit, DEFAULT_DOWNLOAD_LIMIT, 1000),
+    downloadDays: count(s.downloadDays, DEFAULT_DOWNLOAD_DAYS, 3650),
     news: {
       lists: [...new Set((Array.isArray(s.news?.lists) ? s.news.lists : []).map((x: unknown) => Math.trunc(Number(x))).filter((n: number) => n > 0))].slice(0, 20) as number[],
       ...(text(s.news?.label, 200) ? { label: text(s.news?.label, 200) } : {}),
@@ -224,6 +233,8 @@ export function checkoutSettingsFrom(raw: Record<string, any> | null | undefined
   if (c.news.lists.length) out.news = c.news;
   if (c.lowStock !== DEFAULT_LOW_STOCK) out.lowStock = c.lowStock;
   if (!c.lowStockAlerts) out.lowStockAlerts = false;
+  if (c.downloadLimit !== DEFAULT_DOWNLOAD_LIMIT) out.downloadLimit = c.downloadLimit;
+  if (c.downloadDays !== DEFAULT_DOWNLOAD_DAYS) out.downloadDays = c.downloadDays;
   return out;
 }
 

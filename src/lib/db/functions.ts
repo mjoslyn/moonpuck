@@ -368,6 +368,27 @@ export const FUNCTIONS: Record<string, Fn> = {
    * buyer's return can't both take it). Lines not counted are left alone; a counted line with no stock
    * row gets one below 0 (paid after its hold expired and the stock went), which shows as none left.
    */
+  /**
+   * Count one download of an order's line (src/lib/shop/downloads.ts): only for a paid order whose line
+   * has a download, under `p_limit` downloads (0: no limit), checked in the statement that counts it.
+   * Answers the line's download ({ path, name }) and its count, or null when refused.
+   */
+  shop_download: {
+    async run(exec, a) {
+      const i = Math.trunc(Number(a.p_line));
+      const limit = Math.max(0, Math.trunc(Number(a.p_limit)) || 0);
+      if (!(i >= 0 && i < 50)) return null;
+      const at = `$[${i}]`;
+      const [row] = await exec.rows<{ download: string | null; n: number }>(
+        `UPDATE shop_orders SET lines = json_set(lines, ?3, coalesce(json_extract(lines, ?4), 0) + 1)
+         WHERE token = ?1 AND status = 'paid' AND json_extract(lines, ?2) IS NOT NULL AND (?5 = 0 OR coalesce(json_extract(lines, ?4), 0) < ?5)
+         RETURNING json_extract(lines, ?2) AS download, json_extract(lines, ?4) AS n`,
+        [String(a.p_token ?? ''), `${at}.download`, `${at}.downloads`, `${at}.downloads`, limit],
+      );
+      return row ? { download: JSON.parse(row.download ?? 'null'), count: Number(row.n) } : null;
+    },
+  },
+
   shop_take_stock: {
     async run(exec, a) {
       const id = Math.trunc(Number(a.p_id));

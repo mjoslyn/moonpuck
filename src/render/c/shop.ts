@@ -191,10 +191,15 @@ function orderView(o: ShopOrder, a: Record<string, any>): string {
       : o.address
         ? `<div class="c-order__where"><h3>Shipping to</h3><p>${[o.name, o.address.line1, o.address.line2, [o.address.city, [o.address.state, o.address.zip].filter(Boolean).join(' ')].filter(Boolean).join(', '), placeName(o.address.country)].filter(Boolean).map((x) => esc(String(x))).join('<br>')}</p></div>`
         : '';
+  // A paid order's downloads (src/lib/shop/downloads.ts), each counted and limited where it is served.
+  const files = o.status === 'paid' ? o.lines.flatMap((l, i) => (l.download ? [[i, l.download.name] as const] : [])) : [];
+  const downloads = files.length
+    ? `<div class="c-order__downloads"><h3>Your downloads</h3><ul>${files.map(([i, name]) => `<li><a class="c-order__download" href="/api/shop/download?order=${escAttr(encodeURIComponent(o.token))}&amp;line=${i}" rel="nofollow">${esc(name)}</a></li>`).join('')}</ul></div>`
+    : '';
   return (
     `<div ${root(a, ['c-cart', 'c-order', `is-${o.status}`])} data-cart data-order="${escAttr(o.status)}">` +
     heading +
-    `<table class="c-cart__table"><thead><tr><th scope="col">Item</th><th scope="col">Quantity</th><th scope="col">Total</th></tr></thead><tbody>${rows}</tbody></table>${totals}${where}` +
+    `<table class="c-cart__table"><thead><tr><th scope="col">Item</th><th scope="col">Quantity</th><th scope="col">Total</th></tr></thead><tbody>${rows}</tbody></table>${totals}${downloads}${where}` +
     `</div>`
   );
 }

@@ -22,6 +22,7 @@ import { cleanPlace, placeName, US_STATES } from './places';
 import { cartTotals, type ShipOption } from './totals';
 import { discountCandidates } from './discount-lookup';
 import { alertLowStock } from './low-stock';
+import { orderDownloads } from './downloads';
 import { addressLines, shopEmail, shopEmailsFrom, shopEmailToSend, type ShopEmailKind } from './email';
 import { defaultTemplate } from '../email-templates';
 import { emailEvents } from '../events/email';
@@ -56,6 +57,9 @@ export interface OrderLine {
   track: boolean;
   /** How many went back to stock (refunds, cancels). */
   restocked: number;
+  /** The product's download as it was bought (src/lib/shop/downloads.ts), and how often it was downloaded. */
+  download?: { path: string; name: string } | null;
+  downloads?: number;
 }
 
 export interface ShopAddress {
@@ -216,6 +220,7 @@ export async function startShopCheckout(body: any, origin: string, viewer: Viewe
   const lines: OrderLine[] = quote.lines.map((l: QuoteLine, i) => ({
     product: l.product, variant: l.variant, title: l.title, label: l.label, sku: l.sku, unit: l.unit, quantity: l.quantity, total: l.total,
     discount: totals.lineDiscounts[i] ?? 0, tax: totals.lineTax[i] ?? 0, track: l.track, restocked: 0,
+    ...(l.download ? { download: l.download, downloads: 0 } : {}),
   }));
   const { data: made, error } = await db.rpc('shop_order_create', {
     p_order: {
@@ -406,7 +411,7 @@ export async function sendShopEmail(kind: ShopEmailKind, o: ShopOrder, origin: s
   const siteValue = await siteSettings(db);
   const own = shopEmailsFrom(siteValue.shop?.emails)[kind];
   const email = shopEmailToSend(kind, own, own?.design ? null : await defaultTemplate(db, `shop:${kind}`));
-  const extras = { order: `${origin}${CART_PATH}?order=${o.token}`, admin: `${origin}/admin/shop/${o.id}/`, siteName: site.name, refund, timeZone: SITE_TZ };
+  const extras = { order: `${origin}${CART_PATH}?order=${o.token}`, admin: `${origin}/admin/shop/${o.id}/`, siteName: site.name, refund, timeZone: SITE_TZ, downloads: orderDownloads(o, origin) };
   const mail = shopEmail(email, o, extras, origin, await emailEvents(db, email.design, origin));
   if (kind !== 'admin') return sendMail({ to: [o.email], ...mail, kind: 'shop' });
   const to = notifyAddress();

@@ -12,7 +12,7 @@ import { DEFAULT_SHOP_EMAILS, SHOP_EMAIL_KINDS, type ShopEmail, type ShopEmailKi
 import { site } from '../lib/site';
 import { EmailCard } from './EmailCard';
 import type { MailList } from '../lib/mailing/config';
-import { DEFAULT_LOW_STOCK, DEFAULT_NEWS_LABEL } from '../lib/shop/checkout-settings';
+import { DEFAULT_DOWNLOAD_DAYS, DEFAULT_DOWNLOAD_LIMIT, DEFAULT_LOW_STOCK, DEFAULT_NEWS_LABEL } from '../lib/shop/checkout-settings';
 import { shopEmailKit } from './shop-email';
 
 const EMAIL_HELP: Record<ShopEmailKind, string> = {
@@ -178,6 +178,11 @@ export default function ShopCheckoutSettings({ value, currency, weightUnit, prov
       <Num title={`Low stock at (or fewer left; 0: never; default ${DEFAULT_LOW_STOCK})`} min={0} value={value.lowStock} onChange={(lowStock) => set({ lowStock })} />
       <Toggle title="Email the shop when a sale takes something to low stock" value={value.lowStockAlerts !== false} onChange={(lowStockAlerts) => set({ lowStockAlerts })} />
       <p className="-mt-2 mb-3 text-xs text-admin-muted">A product can set its own mark in its Shop settings. Each variant is emailed about once, until its count is raised again. <a className="underline" href="/admin/shop/stock/">Shop &gt; Stock</a> lists them.</p>
+
+      <span className={heading}>Downloads</span>
+      <Num title={`Times a buyer can download each file (0: no limit; default ${DEFAULT_DOWNLOAD_LIMIT})`} min={0} value={value.downloadLimit} onChange={(downloadLimit) => set({ downloadLimit })} />
+      <Num title={`Days after paying a download works (0: always; default ${DEFAULT_DOWNLOAD_DAYS})`} min={0} value={value.downloadDays} onChange={(downloadDays) => set({ downloadDays })} />
+      <p className="-mt-2 mb-3 text-xs text-admin-muted">For products with a Download in their Shop settings: buyers get the link on their order and in its confirmation.</p>
 
       <span className={heading}>Email me news</span>
       {mailLists === null ? (

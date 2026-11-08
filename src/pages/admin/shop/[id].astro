@@ -43,7 +43,7 @@ const canRefund = isAdmin && o.status === 'paid' && o.provider !== 'free' && lef
         <tbody>
           {o.lines.map((l) => (
             <tr class="border-b border-admin-ink/5">
-              <td class="py-2"><a class="hover:text-admin-accent" href={`/admin/edit/${l.product}/`}>{l.title}</a>{l.label && <div class="text-xs text-admin-muted">{l.label}</div>}{l.restocked > 0 && <div class="text-xs text-admin-muted">{l.restocked} back in stock</div>}</td>
+              <td class="py-2"><a class="hover:text-admin-accent" href={`/admin/edit/${l.product}/`}>{l.title}</a>{l.label && <div class="text-xs text-admin-muted">{l.label}</div>}{l.restocked > 0 && <div class="text-xs text-admin-muted">{l.restocked} back in stock</div>}{l.download && <div class="text-xs text-admin-muted">Download: {l.download.name}, downloaded {l.downloads ?? 0} {(l.downloads ?? 0) === 1 ? 'time' : 'times'}</div>}</td>
               <td class="py-2 text-admin-muted">{l.sku}</td>
               <td class="py-2">{money(l.unit)}</td>
               <td class="py-2">{l.quantity}</td>

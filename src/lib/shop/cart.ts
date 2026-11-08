@@ -40,6 +40,8 @@ export interface QuoteLine extends CartLine {
   track: boolean;
   /** The product's terms (its categories among them), for discounts on categories. */
   terms: number[];
+  /** The product's download, if it has one (src/lib/shop/downloads.ts). */
+  download?: { path: string; name: string } | null;
   /** gone: no longer sold; sold-out; fewer: cut to what is left; members-only: not for this buyer. */
   problem?: 'gone' | 'sold-out' | 'fewer' | 'members-only';
 }
@@ -111,6 +113,7 @@ export async function quoteCart(db: Db, raw: unknown, scope: LoaderScope, site: 
       weight: v?.weight ?? null,
       track: !!p?.trackStock,
       terms: e?.term_ids ?? [],
+      ...(p?.download ? { download: { path: p.download.path, name: p.download.name } } : {}),
     };
     if (!e || !p || !v) return { ...base, quantity: 0, problem: 'gone' };
     if (!mayBuyProduct(p, member)) return { ...base, quantity: 0, problem: 'members-only' };

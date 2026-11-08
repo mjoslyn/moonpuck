@@ -52,6 +52,24 @@ Open a variant to give it its own **Price**, **SKU**, **Weight** or **Image** (s
 picks it). Left empty, it uses the product's. Tick **Not sold** for a combination that doesn't exist.
 **Every variant's price** and **Every variant's stock** set them all at once.
 
+## Downloads
+
+A product can be a file buyers download: an e-book, a pattern, a print-at-home ticket.
+
+1. In the product's Shop settings, under **Download**, choose the file. It uploads at once (up to 200 MB;
+   on Cloudflare's Free and Pro plans, up to 100 MB).
+2. Turn off **Shipped** if there's nothing to post.
+3. Save the product.
+
+Once an order is paid, its page and its confirmation email have a link for each file. The file is kept
+privately: only those links reach it. Under **Settings**, **Shop**, **Downloads**:
+
+- **Times a buyer can download each file**: 5 to begin with; 0 for no limit.
+- **Days after paying a download works**: 30 to begin with; 0 for always.
+
+An order's page shows how many times each file was downloaded. Changing a product's file later doesn't
+change what earlier orders get. Download files aren't copied by Sync or kept in backups.
+
 ## Stock
 
 Tick **Count stock** to keep count of what you have. Type how many are **In stock** (on each variant,

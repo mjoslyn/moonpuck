@@ -40,6 +40,7 @@ export const SHOP_MERGE_TAGS: [string, string][] = [
   ['{refunded}', 'Refunded in all'],
   ['{order_summary}', 'Order summary'],
   ['{payment_summary}', 'Payment: items, total and details'],
+  ['{downloads}', 'Download links (paid orders with downloads)'],
   ['{order_link}', 'Link to the order'],
   ['{admin_link}', "Link to the order's admin page (for the shop)"],
   ['{site_name}', "The site's name"],
@@ -54,6 +55,7 @@ export const SHOP_ORDER_DETAILS: [string, string][] = [
   ['code', 'Order number'],
   ['tracking', 'Tracking number'],
   ['refund', 'Refund'],
+  ['downloads', 'Download links'],
   ['contact', "The buyer's name, email and phone"],
 ];
 
@@ -68,6 +70,7 @@ export const DEFAULT_SHOP_EMAILS: Record<ShopEmailKind, Required<Omit<ShopEmail,
       block('Heading', 'h', { text: 'Thank you for your order', level: 2 }),
       block('Text', 't', { html: '<p>Hi {first_name},</p><p>We have your order <strong>{code}</strong>.</p>' }),
       block('FormField', 'f', { field: 'all', showLabel: true }),
+      block('FormField', 'w', { field: 'downloads', showLabel: true }),
       block('FormField', 'd', { field: 'delivery', showLabel: true }),
       block('Button', 'b', { label: 'View your order', url: '{order_link}' }),
     ),
@@ -142,6 +145,8 @@ export interface ShopEmailExtras {
   refund?: number;
   /** The site's time zone, for the payment's date. */
   timeZone?: string;
+  /** A paid order's downloads: each file's name and link (src/lib/shop/downloads.ts). */
+  downloads?: { name: string; url: string }[];
 }
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -208,6 +213,7 @@ export function shopTagValues(o: OrderForEmail, x: ShopEmailExtras): Record<stri
     '{refunded}': o.refunded_amount ? m(o.refunded_amount) : '',
     '{order_summary}': [...o.lines.map((l) => `${l.quantity} × ${lineName(l)}: ${m(l.total)}`), ...totalRows(o).map(([k, v]) => `${k}: ${v}`)].join('\n'),
     '{payment_summary}': pay ? textVersion(paymentTable(pay)) : '',
+    '{downloads}': (x.downloads ?? []).map((d) => `${d.name}: ${d.url}`).join('\n'),
     '{order_link}': x.order,
     '{admin_link}': x.admin,
     '{site_name}': x.siteName,
@@ -248,6 +254,8 @@ function orderDetail(id: string, showLabel: boolean, o: OrderForEmail, x: ShopEm
       return x.refund || o.refunded_amount
         ? table(`${x.refund ? amountRow('This refund', m(x.refund)) : ''}${amountRow('Refunded in all', m(o.refunded_amount))}${amountRow('Order total', m(o.total))}`)
         : '';
+    case 'downloads':
+      return x.downloads?.length ? p(x.downloads.length === 1 ? 'Your download' : 'Your downloads', x.downloads.map((d) => `<a href="${esc(d.url)}">${esc(d.name)}</a>`).join('<br>')) : '';
     case 'contact':
       return [p('Name', esc(o.name)), p('Email', `<a href="mailto:${esc(o.email)}">${esc(o.email)}</a>`), o.phone ? p('Phone', esc(o.phone)) : ''].filter(Boolean).join('<div style="height:8px"></div>');
   }

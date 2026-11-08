@@ -1308,6 +1308,18 @@ answer 404.
   `refund_attempt`, as ticket refunds) and put lines back in stock (`restockOrder`, `shop_restock`: each
   line at most what was bought, checked in the statement that records it, `lines[].restocked`; only once
   the order's stock was taken off). Cancel and refund take the lines to put back with them.
+- **Digital downloads** (`src/lib/shop/downloads.ts`): a product's `download` (`downloadOf`: a path under a
+  random folder of the store's private `shop-downloads/` folder, its name, size and type), uploaded from its
+  Shop settings (POST `/api/admin/shop/downloads`, the file as the body and its name in X-File-Name,
+  streamed to the store, up to `DOWNLOAD_MAX_MB`, 200; `storeDownload`). The quote carries it and the
+  order keeps it on the line as bought (`lines[].download`, `downloads` its count). Once paid, the order's
+  page (the Cart block's order view) and its confirmation (`{downloads}`, the Order details block's
+  `downloads`, in the built-in confirmation) link to `GET /api/shop/download?order=<token>&line=<n>`
+  (`serveDownload`, working while the shop is off too): closed for an order not paid (refunded ones
+  included) or past Settings > Shop's `downloadDays` (default 30, 0 always), else `shop_download` counts
+  it in the statement that allows it (under `downloadLimit`, default 5, 0 none) and the file is streamed
+  as an attachment, no-store and noindex. The admin's order page shows each line's count. Files in
+  `shop-downloads/` aren't synced or backed up.
 - **Stock screen and low-stock alerts** (Shop > Stock, `/admin/shop/stock/`, editors; `src/admin/StockTable.tsx`,
   `src/lib/shop/low-stock.ts`; `stateOf` and `StockRow` in `stock.ts`, safe in the browser): every variant
   of the products that count stock (not in the trash), with on hand (changed in place, saved to

@@ -14,6 +14,7 @@ const DETAIL_TAGS: Record<string, [string, string]> = {
   code: ['Order number', '{code}'],
   tracking: ['Tracking number', '{tracking}'],
   refund: ['Refund', '{refund}'],
+  downloads: ['Downloads', '{downloads}'],
   contact: ['Buyer', '{name}<br>{email}<br>{phone}'],
 };
 
@@ -23,7 +24,7 @@ export function shopEmailKit(kind: ShopEmailKind, subject: () => string, siteNam
   // Each kind's sample as it would be when sent.
   const order: OrderForEmail =
     kind === 'shipped' ? { ...SAMPLE_SHOP_ORDER, tracking: '1Z999AA10123456784' } : kind === 'refunded' ? { ...SAMPLE_SHOP_ORDER, refunded_amount: 1200 } : SAMPLE_SHOP_ORDER;
-  const extras = { order: `${origin}/cart/?order=sample`, admin: `${origin}/admin/shop/`, siteName, refund: kind === 'refunded' ? 1200 : undefined };
+  const extras = { order: `${origin}/cart/?order=sample`, admin: `${origin}/admin/shop/`, siteName, refund: kind === 'refunded' ? 1200 : undefined, downloads: kind === 'admin' ? undefined : [{ name: 'Harbour pattern.pdf', url: `${origin}/api/shop/download?order=sample&line=0` }] };
   const sample = shopEmailContext(order, extras, origin);
   return {
     dataBlock: { label: 'Order details', options: SHOP_ORDER_DETAILS },

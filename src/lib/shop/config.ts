@@ -108,6 +108,8 @@ export interface Product {
   maxPerOrder?: number | null;
   /** Count stock (shop_stock); off, there's no limit. */
   trackStock: boolean;
+  /** A file buyers download once they have paid (src/lib/shop/downloads.ts), kept privately in the store. */
+  download?: ProductDownload | null;
   /** Its low-stock mark: at or under this many left, it is low (the Stock screen, alerts); empty: the shop's. */
   lowStock?: number | null;
   options: ProductOption[];
@@ -120,6 +122,22 @@ export interface Product {
   /** Only active members (of `levels`, or any level when none) may buy it. */
   membersOnly?: boolean;
   levels?: string[];
+}
+
+/** A product's download: where it is kept (under the store's shop-downloads/ folder), its name and size. */
+export interface ProductDownload {
+  path: string;
+  name: string;
+  size: number;
+  type: string;
+}
+
+/** A download as stored, or null: a path in the folder (no leaving it), a name to save it as. */
+export function downloadOf(v: unknown): ProductDownload | null {
+  const d = v as Record<string, unknown> | null;
+  const path = typeof d?.path === 'string' ? d.path : '';
+  if (!/^[a-f0-9]{16}\/[\w.-]{1,120}$/.test(path)) return null;
+  return { path, name: String(d!.name ?? '').replace(/[\u0000-\u001f"\\/]/g, '').trim().slice(0, 150) || path.split('/')[1], size: Math.max(0, Math.trunc(Number(d!.size)) || 0), type: String(d!.type ?? '').slice(0, 100) || 'application/octet-stream' };
 }
 
 /** A variant as sold: the product's settings where it has none of its own. */
@@ -224,6 +242,7 @@ export function productOf(fields: Record<string, any> | null | undefined): Produ
     taxable: raw.taxable !== false,
     maxPerOrder: max > 0 ? Math.min(max, MAX_QUANTITY) : null,
     trackStock: raw.trackStock === true,
+    download: downloadOf(raw.download),
     lowStock: Number.isFinite(Number(raw.lowStock)) && raw.lowStock !== null && raw.lowStock !== '' ? Math.max(0, Math.min(100_000, Math.trunc(Number(raw.lowStock)))) : null,
     options,
     // The variants that match the options now (a variant for values no longer offered is dropped).

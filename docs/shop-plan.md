@@ -170,7 +170,8 @@ the guide's "Selling things" with new screenshots.
 
 ## Phase 3
 
-Done so far: the Stock screen (Shop > Stock) and low-stock alerts (`src/lib/shop/low-stock.ts`).
+Done so far: the Stock screen (Shop > Stock), low-stock alerts (`src/lib/shop/low-stock.ts`) and digital
+downloads (`src/lib/shop/downloads.ts`).
 
 - Stock screen: every product and variant with on-hand counts to edit, and a low-stock mark.
 - Low-stock alerts by email.

@@ -376,3 +376,13 @@
   align-items: baseline;
   font-size: 0.95em;
 }
+
+/* A paid order's downloads. */
+.c-order__downloads ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.5em 0 1em;
+}
+.c-order__download {
+  font-weight: 600;
+}

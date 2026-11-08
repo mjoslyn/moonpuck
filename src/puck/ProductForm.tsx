@@ -10,7 +10,7 @@ import { browserClient } from '../lib/db/browser';
 import { mediaUrl } from '../lib/media/image';
 import { useMemberSettings, useSite } from './member-settings';
 import type { MemberLevel } from '../lib/members/config';
-import { DEFAULT_VARIANT, MAX_OPTIONS, SHOP_KEY, cleanOptions, newVariantId, shopSettings, variantsFor, type ProductOption, type Variant } from '../lib/shop/config';
+import { DEFAULT_VARIANT, MAX_OPTIONS, SHOP_KEY, cleanOptions, newVariantId, shopSettings, variantsFor, type ProductDownload, type ProductOption, type Variant } from '../lib/shop/config';
 import { formatMoney } from '../lib/payments/money';
 
 const small = 'rounded-sm border border-admin-ink/20 px-2 py-1 text-xs font-semibold hover:border-admin-ink/50';
@@ -47,6 +47,7 @@ export function ProductForm({ entryId, fields, onChange }: { entryId: number | n
       <Toggle title="Shipped" value={raw.ships !== false} onChange={(v) => set({ ships: v ? undefined : false })} />
       {raw.ships !== false && <Toggle title="Pickup only (never shipped)" value={raw.pickupOnly} onChange={(v) => set({ pickupOnly: v || undefined })} />}
       <Toggle title="Taxed" value={raw.taxable !== false} onChange={(v) => set({ taxable: v ? undefined : false })} />
+      <DownloadField value={raw.download} onChange={(download) => set({ download: download ?? undefined })} />
       <Num title="Most per order (empty: no limit)" min={1} value={raw.maxPerOrder ?? undefined} onChange={(maxPerOrder) => set({ maxPerOrder: maxPerOrder || null })} />
       {members?.enabled && members.levels.length > 0 && <MemberPricing raw={raw} levels={members.levels} onChange={set} />}
       <Toggle title="Count stock" value={raw.trackStock} onChange={(v) => set({ trackStock: v || undefined })} />
@@ -273,6 +274,36 @@ function VariantImage({ id, onChange }: { id: number | null; onChange: (id: numb
       </div>
       {open && <MediaModal onClose={() => setOpen(false)} onSelect={(m) => { onChange(m.mediaId ?? m.id ?? null); setUrl(m.url); setOpen(false); }} />}
     </div>
+  );
+}
+
+/** The product's download (src/lib/shop/downloads.ts): a file sent to the store's private folder at once. */
+function DownloadField({ value, onChange }: { value?: ProductDownload | null; onChange: (d: ProductDownload | null) => void }) {
+  const [status, setStatus] = useState('');
+  const pick = async (file: File | undefined) => {
+    if (!file) return;
+    setStatus(`Uploading ${file.name}…`);
+    const res = await fetch('/api/admin/shop/downloads', { method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream', 'X-File-Name': encodeURIComponent(file.name) }, body: file });
+    if (!res.ok) return setStatus(`Not uploaded: ${await res.text()}`);
+    onChange(await res.json());
+    setStatus('Uploaded. Save the product to keep it.');
+  };
+  const mb = (n: number) => (n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+  return (
+    <Row title="Download (a file buyers get once they have paid)">
+      {value?.path ? (
+        <p className="mb-1 text-sm">
+          {value.name} <span className="text-xs text-admin-muted">{mb(value.size)}</span>{' '}
+          <button type="button" className="ml-2 text-xs text-[#b91c1c]" onClick={() => onChange(null)}>
+            Remove
+          </button>
+        </p>
+      ) : null}
+      <input type="file" className="text-sm" aria-label={value?.path ? 'Replace the download' : 'Choose a download'} onChange={(e) => pick(e.target.files?.[0])} />
+      <p className="mt-1 text-xs text-admin-muted" role="status">
+        {status || 'Kept privately: buyers get a link on their order and in its confirmation, limited under Settings > Shop. Turn off Shipped for a download only.'}
+      </p>
+    </Row>
   );
 }
 
