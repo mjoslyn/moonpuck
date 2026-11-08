@@ -40,6 +40,11 @@ export function cleanPlace(raw: unknown): string | null {
 export interface Destination {
   country: string;
   state?: string;
+  /** The rest of the address, when the buyer has typed it: a carrier's live rates need the ZIP code. */
+  zip?: string;
+  city?: string;
+  line1?: string;
+  line2?: string;
 }
 
 /** Whether a place covers a destination: "*" everything, "US" the whole country, "US-NY" one state. */

@@ -15,7 +15,7 @@ import { env } from '../env';
 import { buyerAddress, newCode, newToken, siteOrigin } from '../tickets/orders';
 import { CART_PATH, shopOn, shopSettings } from './config';
 import { quoteCart, type QuoteLine } from './cart';
-import { checkoutSettings, DEFAULT_NEWS_LABEL, taxInForce } from './checkout-settings';
+import { CARRIERS, checkoutSettings, DEFAULT_NEWS_LABEL, taxInForce } from './checkout-settings';
 import { mailingOn } from '../mailing/config';
 import { signUp } from '../mailing/contacts';
 import { cleanPlace, placeName, US_STATES } from './places';
@@ -23,6 +23,7 @@ import { cartTotals, type ShipOption } from './totals';
 import { discountCandidates } from './discount-lookup';
 import { alertLowStock } from './low-stock';
 import { orderDownloads } from './downloads';
+import { activeCarrier, shippingSources } from './carrier';
 import { addressLines, shopEmail, shopEmailsFrom, shopEmailToSend, type ShopEmailKind } from './email';
 import { defaultTemplate } from '../email-templates';
 import { emailEvents } from '../events/email';
@@ -60,6 +61,8 @@ export interface OrderLine {
   /** The product's download as it was bought (src/lib/shop/downloads.ts), and how often it was downloaded. */
   download?: { path: string; name: string } | null;
   downloads?: number;
+  /** Each item's weight in the shop's unit, when shipped (for a carrier's label). */
+  weight?: number | null;
 }
 
 export interface ShopAddress {
@@ -103,6 +106,14 @@ export interface ShopOrder {
   discount_code: string;
   /** The campaign the buyer's visit came from: `campaign|source|medium` (src/lib/stats.ts), '' for none. */
   campaign: string;
+  /** The carrier a shipped order went with (`usps`, `ups`, `fedex`, `dhl_express`, or '' when not known). */
+  carrier: string;
+  /** A label bought for it through the carrier service (src/lib/shop/carrier.ts). */
+  label: { id: string; url: string; carrier: string; service: string; amount: number; currency: string; at: string } | null;
+  /** The parcel's latest tracking, from the carrier service, and whether the buyer was told it arrived. */
+  tracking_status: { status: string; details: string; at: string | null; checked_at: string } | null;
+  /** When the carrier said it was delivered (the buyer's Delivered email went then). */
+  delivered_at: string | null;
   stock_taken: boolean;
   fulfilled: '' | 'shipped' | 'picked_up';
   tracking: string;
@@ -198,7 +209,7 @@ export async function startShopCheckout(body: any, origin: string, viewer: Viewe
   const destination = address ?? (country ? { country, state: String(body?.address?.state ?? '').toUpperCase() || undefined } : null);
   // The code typed (checked now with the buyer's email), else the automatic discounts they may take.
   const found = await discountCandidates(db, { code: typeof body?.code === 'string' ? body.code : null, email, member: viewer?.member });
-  const { shipping, chosen, totals, discount, discountProblem } = await cartTotals(quote, { ...settings, tax }, { destination, option: typeof body?.option === 'string' ? body.option : null, discounts: found.discounts, code: found.code, codeProblem: found.problem });
+  const { shipping, chosen, totals, discount, discountProblem } = await cartTotals(quote, { ...settings, tax }, { destination, option: typeof body?.option === 'string' ? body.option : null, discounts: found.discounts, code: found.code, codeProblem: found.problem, sources: shippingSources(settings, shopSettings(siteValue).weightUnit, shopSettings(siteValue).currency) });
   if (found.code && discountProblem) return { error: 'discount', message: discountProblem };
   if (shipping.problem) return fail('shipping');
   if (shipping.needs !== 'none' && !chosen) return fail('shipping');
@@ -221,6 +232,7 @@ export async function startShopCheckout(body: any, origin: string, viewer: Viewe
     product: l.product, variant: l.variant, title: l.title, label: l.label, sku: l.sku, unit: l.unit, quantity: l.quantity, total: l.total,
     discount: totals.lineDiscounts[i] ?? 0, tax: totals.lineTax[i] ?? 0, track: l.track, restocked: 0,
     ...(l.download ? { download: l.download, downloads: 0 } : {}),
+    ...(l.ships && !l.pickupOnly && l.weight ? { weight: l.weight } : {}),
   }));
   const { data: made, error } = await db.rpc('shop_order_create', {
     p_order: {
@@ -446,12 +458,21 @@ export async function restockOrder(db: Db, id: number, lines: Restock): Promise<
  * Mark a paid order shipped (with its tracking, if any) or picked up. Shipping emails the buyer, with
  * the tracking; picking up doesn't. Marking it again changes the tracking and sends the email again.
  */
-export async function fulfilOrder(db: Db, id: number, kind: 'shipped' | 'picked_up' | '', tracking = '', origin?: string) {
+export async function fulfilOrder(db: Db, id: number, kind: 'shipped' | 'picked_up' | '', tracking = '', origin?: string, carrier = '', opts: { follow?: boolean } = {}) {
   const o = await loadOrder(db, id);
   if (o.status !== 'paid') throw new Error('Only paid orders can be marked shipped or picked up.');
   const t = text(tracking, 300);
-  await db.from('shop_orders').update({ fulfilled: kind, fulfilled_at: kind ? new Date().toISOString() : null, tracking: kind === 'shipped' ? t : '' }).eq('id', id);
-  if (kind === 'shipped') await sendShopEmail('shipped', { ...o, tracking: t }, siteOrigin(origin));
+  const k = kind === 'shipped' && CARRIERS.some(([c]) => c === carrier) ? carrier : kind === 'shipped' ? o.carrier && t === o.tracking ? o.carrier : '' : '';
+  const changed = t !== o.tracking || k !== o.carrier;
+  await db
+    .from('shop_orders')
+    .update({ fulfilled: kind, fulfilled_at: kind ? new Date().toISOString() : null, tracking: kind === 'shipped' ? t : '', carrier: k, ...(changed ? { tracking_status: null, delivered_at: null } : {}) })
+    .eq('id', id);
+  // A number typed for a known carrier is followed through the carrier service, so its updates come (a
+  // label bought there is followed on its own).
+  const carrierService = activeCarrier();
+  if (kind === 'shipped' && t && k && carrierService && opts.follow !== false && changed) await carrierService.follow(k, t).catch((e) => console.error(`shop: following ${k} ${t}: ${(e as Error).message}`));
+  if (kind === 'shipped') await sendShopEmail('shipped', { ...o, tracking: t, carrier: k }, siteOrigin(origin));
 }
 
 /** An order's notes for the shop (not shown to the buyer). */

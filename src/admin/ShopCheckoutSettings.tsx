@@ -6,7 +6,7 @@ import { Num, Row, Segmented, Select, Text, Toggle, inputClass } from '../puck/f
 import { PriceInput } from '../puck/TicketsForm';
 import type { PaymentProvider, ProviderStatus } from '../lib/payments';
 import { formatMoney } from '../lib/payments/money';
-import { checkoutSettings, DEFAULT_HOLD, DEFAULT_TAX_CODE, newId, type PickupLocation, type RateBand, type ShippingRate, type ShippingZone, type TaxSettings } from '../lib/shop/checkout-settings';
+import { CARRIERS, carrierProblem, checkoutSettings, cleanCarrier, DEFAULT_HOLD, DEFAULT_TAX_CODE, newId, type PickupLocation, type RateBand, type ShippingRate, type ShippingZone, type TaxSettings } from '../lib/shop/checkout-settings';
 import { countryChoices, ELSEWHERE, placeName, US_STATES } from '../lib/shop/places';
 import { DEFAULT_SHOP_EMAILS, SHOP_EMAIL_KINDS, type ShopEmail, type ShopEmailKind } from '../lib/shop/email';
 import { site } from '../lib/site';
@@ -18,6 +18,7 @@ import { shopEmailKit } from './shop-email';
 const EMAIL_HELP: Record<ShopEmailKind, string> = {
   confirmation: 'To the buyer when an order is paid, or at once when there is nothing to pay. Resend confirmation on an order sends it again.',
   shipped: 'To the buyer when an order is marked shipped, with its tracking number.',
+  delivered: 'To the buyer when the carrier says the parcel was delivered (with Shippo connected, for orders with a carrier and tracking number).',
   refunded: 'To the buyer when you refund an order on its page, all or part.',
   admin: 'The copy of each paid order to the shop: SHOP_NOTIFY_EMAIL, else the site’s admin address.',
 };
@@ -29,7 +30,7 @@ const remove = 'text-xs text-[#c4592a]';
 
 type Raw = Record<string, any>;
 
-export default function ShopCheckoutSettings({ value, currency, weightUnit, providers, mailLists, onChange }: { value: Raw; currency: string; weightUnit: string; providers: Record<PaymentProvider, ProviderStatus>; mailLists: MailList[] | null; onChange: (v: Raw) => void }) {
+export default function ShopCheckoutSettings({ value, currency, weightUnit, providers, shippo, mailLists, onChange }: { value: Raw; currency: string; weightUnit: string; providers: Record<PaymentProvider, ProviderStatus>; shippo: 'live' | 'test' | null; mailLists: MailList[] | null; onChange: (v: Raw) => void }) {
   const set = (patch: Raw) => onChange({ ...value, ...patch });
   // As typed (the server cleans it on save, so text keeps its spaces while typed); the defaults where
   // nothing is set. Every zone, rate and location has an id: made here, or by the cleaning on save.
@@ -100,6 +101,9 @@ export default function ShopCheckoutSettings({ value, currency, weightUnit, prov
       <button type="button" className={`${small} mb-3`} onClick={() => set({ zones: [...c.zones, { id: newId('z'), name: c.zones.length ? 'Zone' : 'Domestic', places: [], rates: [{ id: newId('r'), name: 'Standard', rule: 'flat', price: 0, bands: [], freeOver: null }] }] })}>
         Add a shipping zone
       </button>
+
+      <span className={heading}>Carrier rates and labels</span>
+      <CarrierSettingsForm value={value.carrier ?? {}} weightUnit={weightUnit} shippo={shippo} onChange={(carrier: Raw) => set({ carrier })} />
 
       <span className={heading}>Pickup</span>
       <p className="mb-2 text-xs text-admin-muted">Places buyers can collect their order, offered beside the shipping rates whatever their address. Products marked Pickup only can only be collected.</p>
@@ -368,5 +372,61 @@ function PercentInput({ title, value, onChange }: { title: string; value: number
         }}
       />
     </Row>
+  );
+}
+
+/** A carrier's live rates and labels (Shippo; src/lib/shop/carrier.ts): on or off, beside the zones' rates or
+ *  in their place, the address parcels go from, the box, and the carriers offered. */
+function CarrierSettingsForm({ value, weightUnit, shippo, onChange }: { value: Raw; weightUnit: string; shippo: 'live' | 'test' | null; onChange: (v: Raw) => void }) {
+  const c = cleanCarrier(value);
+  const from = { ...c.from, ...(value.from ?? {}) };
+  const box = { ...c.box, ...(value.box ?? {}) };
+  const set = (patch: Raw) => onChange({ ...value, ...patch });
+  const setFrom = (patch: Raw) => set({ from: { ...from, ...patch } });
+  const dist = weightUnit === 'lb' || weightUnit === 'oz' ? 'in' : 'cm';
+  const problem = carrierProblem({ ...c, from: cleanCarrier({ from }).from, box: cleanCarrier({ box }).box });
+  if (!shippo)
+    return (
+      <p className="mb-3 rounded bg-admin-soft p-2 text-xs text-admin-muted">
+        For live USPS, UPS, FedEx and DHL rates at checkout, and labels and tracking on each order, connect Shippo under <a className="underline" href="/admin/settings/connections/">Settings &gt; Connections</a>.
+      </p>
+    );
+  return (
+    <>
+      <p className="mb-2 text-xs text-admin-muted">Shippo is connected{shippo === 'test' ? ' with a test token: rates are real, labels are test labels' : ''}. Labels are bought from each order's page; the parcel's tracking then comes in by itself.</p>
+      <Toggle title="Offer live carrier rates at checkout" value={c.rates} onChange={(rates) => set({ rates })} />
+      {c.rates && <Toggle title="In place of the shipping zones' rates (else beside them)" value={c.only} onChange={(only) => set({ only })} />}
+      {c.rates && <p className="-mt-2 mb-3 text-xs text-admin-muted">Buyers see them once they have typed their ZIP or postal code. Products need a weight.</p>}
+      <span className="mt-3 mb-1 block text-xs font-medium text-admin-muted">Parcels go from</span>
+      <div className="grid gap-x-3 sm:grid-cols-2">
+        <Text title="Name" value={from.name} onChange={(name) => setFrom({ name })} />
+        <Text title="Business name (optional)" value={from.company} onChange={(company) => setFrom({ company })} />
+        <Text title="Address" value={from.street1} onChange={(street1) => setFrom({ street1 })} />
+        <Text title="Apartment, suite… (optional)" value={from.street2} onChange={(street2) => setFrom({ street2 })} />
+        <Text title="City" value={from.city} onChange={(city) => setFrom({ city })} />
+        <Text title="State or region" value={from.state} onChange={(state) => setFrom({ state })} />
+        <Text title="ZIP or postal code" value={from.zip} onChange={(zip) => setFrom({ zip })} />
+        <Select title="Country" value={from.country || 'US'} options={countryChoices().filter(([k]) => k !== ELSEWHERE)} onChange={(country) => setFrom({ country })} />
+        <Text title="Phone (carriers may need it)" value={from.phone} onChange={(phone) => setFrom({ phone })} />
+        <Text title="Email (optional)" value={from.email} onChange={(email) => setFrom({ email })} />
+      </div>
+      <span className="mt-3 mb-1 block text-xs font-medium text-admin-muted">The box (in {dist === 'in' ? 'inches' : 'centimetres'})</span>
+      <div className="grid gap-x-3 sm:grid-cols-4">
+        <Num title="Length" min={0} value={box.length || undefined} onChange={(length) => set({ box: { ...box, length } })} />
+        <Num title="Width" min={0} value={box.width || undefined} onChange={(width) => set({ box: { ...box, width } })} />
+        <Num title="Height" min={0} value={box.height || undefined} onChange={(height) => set({ box: { ...box, height } })} />
+        <Num title={`Empty box weight (${weightUnit})`} min={0} value={value.boxWeight ?? undefined} onChange={(boxWeight) => set({ boxWeight })} />
+      </div>
+      <fieldset className="mb-3">
+        <legend className="mb-1 text-xs text-admin-muted">Carriers offered (none ticked: all on your Shippo account)</legend>
+        {CARRIERS.map(([k, label]) => (
+          <label key={k} className="mr-4 inline-flex items-center gap-1 text-sm">
+            <input type="checkbox" checked={c.carriers.includes(k)} onChange={(e) => set({ carriers: e.target.checked ? [...c.carriers, k] : c.carriers.filter((x) => x !== k) })} />
+            {label}
+          </label>
+        ))}
+      </fieldset>
+      {problem && <p className="mb-3 text-xs text-[#b3261e]">{problem} Until then, no carrier rates are offered and no labels can be bought.</p>}
+    </>
   );
 }

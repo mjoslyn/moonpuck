@@ -204,7 +204,8 @@
         const r = await fetch('/api/shop/quote', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lines, destination: co.country ? { country: co.country, state: co.state || '' } : null, option: co.option || null, code: co.code || null }),
+          // The rest of the address, once typed: a carrier's live rates need the ZIP code.
+          body: JSON.stringify({ lines, destination: co.country ? { country: co.country, state: co.country === 'US' ? co.state || '' : co.region || '', zip: co.zip || '', city: co.city || '', line1: co.line1 || '', line2: co.line2 || '' } : null, option: co.option || null, code: co.code || null }),
           cache: 'no-store',
         });
         quote = r.ok ? await r.json() : null;
@@ -276,6 +277,11 @@
     });
     return input;
   };
+  // A field whose change prices the cart again (a carrier's rates follow the address).
+  const requote = (input) => {
+    input.addEventListener('change', () => renderCart());
+    return input;
+  };
   const select = (key, options, onChange) => {
     const s = el('select', {}, options.map(([v, label]) => el('option', { value: v, textContent: label })));
     s.value = co[key] || '';
@@ -292,6 +298,7 @@
   const checkoutForm = (c, quote, currency, blocked) => {
     const offer = offerOf(c);
     const shipping = quote.shipping || { needs: 'none', options: [] };
+    const live = (input) => (offer.carrier ? requote(input) : input);
     const chosen = quote.chosen;
     const totals = quote.totals || { total: quote.subtotal, tax: 0, shipping: 0, discount: 0 };
     const form = el('form', { className: 'c-checkout', noValidate: true });
@@ -319,7 +326,10 @@
       if (shipping.needs === 'any' && (offer.countries || []).length) {
         const row = el('div', { className: 'c-checkout__row' }, [field('Country', select('country', offer.countries, () => ((co.state = ''), renderCart())))]);
         if (co.country === 'US') row.append(field('State', select('state', [['', 'Choose…'], ...(offer.states || [])], renderCart)));
+        // Live carrier rates (Settings > Shop) come once the ZIP is in: asked for here, before the options.
+        if (offer.carrier) row.append(field(co.country === 'US' ? 'ZIP code' : 'Postal code', requote(textInput('zip', { required: true, autocomplete: 'postal-code' }))));
         how.append(row);
+        if (offer.carrier && !co.zip) how.append(el('p', { className: 'c-checkout__hint', textContent: `Enter your ${co.country === 'US' ? 'ZIP' : 'postal'} code to see the carriers' rates.` }));
       }
       if (shipping.problem === 'no-pickup') how.append(el('p', { className: 'c-cart__problem', textContent: "Something in your cart can only be collected, and there's nowhere to collect it from yet." }));
       else if (shipping.problem === 'no-rates') how.append(el('p', { className: 'c-cart__problem', textContent: "We don't ship there." + (offer.pickup ? ' You can pick up your order instead.' : '') }));
@@ -337,12 +347,12 @@
       }
       if (chosen?.kind === 'ship') {
         how.append(
-          field('Address', textInput('line1', { required: true, autocomplete: 'address-line1' })),
+          field('Address', live(textInput('line1', { required: true, autocomplete: 'address-line1' }))),
           field('Apartment, suite… (optional)', textInput('line2', { autocomplete: 'address-line2' })),
           el('div', { className: 'c-checkout__row' }, [
-            field('City', textInput('city', { required: true, autocomplete: 'address-level2' })),
+            field('City', live(textInput('city', { required: true, autocomplete: 'address-level2' }))),
             co.country !== 'US' ? field('State or region (optional)', textInput('region', { autocomplete: 'address-level1' })) : null,
-            field(co.country === 'US' ? 'ZIP code' : 'Postal code', textInput('zip', { required: true, autocomplete: 'postal-code' })),
+            offer.carrier ? null : field(co.country === 'US' ? 'ZIP code' : 'Postal code', textInput('zip', { required: true, autocomplete: 'postal-code' })),
           ]),
         );
       }

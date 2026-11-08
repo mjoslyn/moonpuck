@@ -52,6 +52,40 @@ Open a variant to give it its own **Price**, **SKU**, **Weight** or **Image** (s
 picks it). Left empty, it uses the product's. Tick **Not sold** for a combination that doesn't exist.
 **Every variant's price** and **Every variant's stock** set them all at once.
 
+## Carrier rates, labels and tracking
+
+With Shippo, checkout can offer live USPS, UPS, FedEx and DHL rates, and you can buy a label on each
+order's page. To set it up:
+
+1. Make an account at Shippo and connect your carriers there (USPS comes with it).
+2. Under **Settings**, **Connections**, **Shippo**, paste Shippo's API token (Settings > API in Shippo; a
+   test token starts with `shippo_test_`) and click **Connect**. The site sets up Shippo's tracking
+   updates itself.
+3. Under **Settings**, **Shop**, **Carrier rates and labels**, fill in the settings below.
+4. Give your products a weight (in their Shop settings).
+
+The settings:
+
+- **Offer live carrier rates at checkout**: on or off.
+- **In place of the shipping zones' rates**: on, only the carriers' rates are offered; off, they're
+  offered beside your own.
+- **Parcels go from**: your address, as the carriers need it (a phone number helps).
+- **The box**: its length, width and height, and the empty box's weight.
+- **Carriers offered**: tick the ones to offer; none ticked offers every carrier on your Shippo account.
+
+At checkout, the buyer types their ZIP or postal code and the carriers' rates appear, cheapest first.
+
+On a paid order's page, under **Shipping**:
+
+- **Buy a label…** lists the rates for the parcel (the buyer's choice is marked). Click one and confirm:
+  Shippo charges your account, the label is ready to print (**Print the label**), and the order is marked
+  shipped with its tracking number, which emails the buyer.
+- Typing a tracking number yourself, choose its **Carrier** too: the buyer's email links to the
+  carrier's tracking page, and with Shippo connected the parcel is followed.
+- The latest tracking news shows on the order, and on the buyer's order page. **Check the tracking
+  now** asks Shippo at once; otherwise it comes in by itself, and is checked hourly.
+- When the carrier says the parcel was delivered, the buyer gets the **Delivered** email, once.
+
 ## Downloads
 
 A product can be a file buyers download: an e-book, a pattern, a print-at-home ticket.
@@ -293,6 +327,7 @@ builder:
 
 - **Order confirmation**: to the buyer when the order is paid.
 - **Shipped**: to the buyer when you mark the order shipped, with its tracking number.
+- **Delivered**: to the buyer when the carrier says the parcel arrived (with Shippo connected).
 - **Refunded**: to the buyer when you refund the order on its page, all or part.
 - **Copy to the shop**: each paid order, to the shop. **Send the shop a copy of each order** turns it off.
 

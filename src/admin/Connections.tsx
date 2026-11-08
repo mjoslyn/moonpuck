@@ -28,12 +28,15 @@ const NAMES: Record<string, string> = {
   MAILGUN_WEBHOOK_SIGNING_KEY: 'Webhook signing key',
   MAILGUN_DOMAIN: 'Sending domain',
   MAILGUN_REGION: 'Region',
+  SHIPPO_API_KEY: 'API token',
+  SHIPPO_WEBHOOK_TOKEN: 'Webhook token',
 };
 const WHERE: Record<Service, string> = {
   anthropic: 'For Compose. In the Claude Console (console.anthropic.com), API keys: create a key and paste it here.',
   stripe: 'For card payments on forms and tickets. In Stripe, Developers > API keys: the secret key (sk_live_..., or sk_test_... to test). The site sets up its own webhook.',
   square: 'For card payments on forms and tickets. In Square’s Developer Console, your app > Credentials: the production (or sandbox) access token. The site finds your location and sets up its own webhook.',
   mailgun: 'For mailing lists. In Mailgun, API Security: a private API key. The site finds your sending domain and sets up its webhooks.',
+  shippo: 'For the shop’s live shipping rates, labels and tracking. In Shippo, Settings > API: a live token (shippo_live_..., or shippo_test_... to test). The site sets up its tracking webhook.',
 };
 /** Settings an admin may type in by hand, when the site can't set them up itself. */
 const ADVANCED: Partial<Record<Service, string>> = { stripe: 'STRIPE_WEBHOOK_SECRET', mailgun: 'MAILGUN_WEBHOOK_SIGNING_KEY' };

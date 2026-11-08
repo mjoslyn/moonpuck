@@ -13,8 +13,9 @@ import { CART_PATH, categoryDiscounts, maxQuantity, priceRange, productOf, sella
 import { leftOf, type StockMap } from '../../lib/shop/stock';
 import { ARCHIVE_PATHS } from '../../lib/site';
 import { ACCOUNT_PATH, memberSettings } from '../../lib/members/config';
-import { checkoutSettings, DEFAULT_NEWS_LABEL } from '../../lib/shop/checkout-settings';
+import { carrierProblem, checkoutSettings, DEFAULT_NEWS_LABEL } from '../../lib/shop/checkout-settings';
 import { mailingOn } from '../../lib/mailing/config';
+import { carrierName, trackingLink, TRACKING_WORDS } from '../../lib/shop/tracking';
 import { COUNTRY_CODES, ELSEWHERE, placeName, US_STATES } from '../../lib/shop/places';
 import type { ShopOrder } from '../../lib/shop/orders';
 
@@ -156,12 +157,15 @@ const addToCart: Renderer = (b, env) => {
 function checkoutOffer(env: Env) {
   const c = checkoutSettings(env.ctx.settings.site?.shop);
   const places = c.zones.flatMap((z) => z.places);
-  const codes = places.includes(ELSEWHERE) ? COUNTRY_CODES : [...new Set(places.map((p) => p.split('-')[0]))];
+  // With a carrier's live rates on, any country (the carrier says whether it ships there).
+  const codes = places.includes(ELSEWHERE) || (c.carrier.rates && !carrierProblem(c.carrier)) ? COUNTRY_CODES : [...new Set(places.map((p) => p.split('-')[0]))];
   const countries = codes.map((code): [string, string] => [code, placeName(code)]).sort((x, y) => x[1].localeCompare(y[1]));
-  const first = places.find((p) => p !== ELSEWHERE)?.split('-')[0];
   // The Email me news tick's words, while Mailing is on and lists are chosen for it.
   const news = mailingOn(env.ctx.settings.site) && c.news.lists.length ? c.news.label || DEFAULT_NEWS_LABEL : undefined;
-  return { countries, states: US_STATES.slice(), country: first ?? countries[0]?.[0] ?? '', pickup: c.pickup.length > 0, ...(news ? { news } : {}) };
+  // Live carrier rates, which need the buyer's ZIP code first.
+  const carrier = c.carrier.rates && !carrierProblem(c.carrier);
+  const first = places.find((p) => p !== ELSEWHERE)?.split('-')[0] ?? (carrier ? c.carrier.from.country : undefined);
+  return { countries, states: US_STATES.slice(), country: first ?? countries[0]?.[0] ?? '', pickup: c.pickup.length > 0, ...(news ? { news } : {}), ...(carrier ? { carrier: true } : {}) };
 }
 
 /** A buyer's order, as the cart's page shows it after checkout (paid, being confirmed, or not completed). */
@@ -191,6 +195,12 @@ function orderView(o: ShopOrder, a: Record<string, any>): string {
       : o.address
         ? `<div class="c-order__where"><h3>Shipping to</h3><p>${[o.name, o.address.line1, o.address.line2, [o.address.city, [o.address.state, o.address.zip].filter(Boolean).join(' ')].filter(Boolean).join(', '), placeName(o.address.country)].filter(Boolean).map((x) => esc(String(x))).join('<br>')}</p></div>`
         : '';
+  // A shipped order's tracking: the carrier's own page for the number, and its latest news.
+  const link = o.fulfilled === 'shipped' && o.tracking ? (o.carrier ? trackingLink(o.carrier, o.tracking) : '') : '';
+  const sent =
+    o.fulfilled === 'shipped'
+      ? `<div class="c-order__tracking"><h3>${o.delivered_at ? 'Delivered' : 'On its way'}</h3><p>${o.tracking ? `${o.carrier ? `${esc(carrierName(o.carrier))} ` : ''}tracking ${link ? `<a href="${escAttr(link)}" rel="noopener nofollow">${esc(o.tracking)}</a>` : esc(o.tracking)}` : 'Your order has been sent.'}${o.tracking_status && !o.delivered_at ? `<br>${esc(o.tracking_status.details || TRACKING_WORDS[o.tracking_status.status] || '')}` : ''}</p></div>`
+      : '';
   // A paid order's downloads (src/lib/shop/downloads.ts), each counted and limited where it is served.
   const files = o.status === 'paid' ? o.lines.flatMap((l, i) => (l.download ? [[i, l.download.name] as const] : [])) : [];
   const downloads = files.length
@@ -199,7 +209,7 @@ function orderView(o: ShopOrder, a: Record<string, any>): string {
   return (
     `<div ${root(a, ['c-cart', 'c-order', `is-${o.status}`])} data-cart data-order="${escAttr(o.status)}">` +
     heading +
-    `<table class="c-cart__table"><thead><tr><th scope="col">Item</th><th scope="col">Quantity</th><th scope="col">Total</th></tr></thead><tbody>${rows}</tbody></table>${totals}${downloads}${where}` +
+    `<table class="c-cart__table"><thead><tr><th scope="col">Item</th><th scope="col">Quantity</th><th scope="col">Total</th></tr></thead><tbody>${rows}</tbody></table>${totals}${sent}${downloads}${where}` +
     `</div>`
   );
 }

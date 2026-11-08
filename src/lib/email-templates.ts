@@ -37,6 +37,7 @@ export const TEMPLATE_DEFAULTS: Record<TemplateKit, [string, string][]> = {
   shop: [
     ['shop:confirmation', 'Shop order confirmations'],
     ['shop:shipped', 'Shop shipped emails'],
+    ['shop:delivered', 'Shop delivered emails'],
     ['shop:refunded', 'Shop refund emails'],
     ['shop:admin', 'Shop order copies'],
   ],

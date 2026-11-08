@@ -98,5 +98,6 @@ Concise and factual: what changed, why, and any measurements; no editorial frami
 - Core tests that run on the example site's content (several e2e scripts assume a site's content).
 - The shop (CORE.md, Shop; the full plan and its decisions: `docs/shop-plan.md`), on the preview branch until it is merged: phase 2, checkout (payments
   through `src/lib/payments`, manual shipping rates and pickup, tax, discounts, orders with stock holds,
-  refunds with a restock choice, order emails, stats, orders and stock in sync and backups), is built; phase 3 the Stock
-  screen, low-stock alerts, digital downloads and a carrier API.
+  refunds with a restock choice, order emails, stats, orders and stock in sync and backups), is built; phase 3 (the Stock
+  screen, low-stock alerts, digital downloads, Shippo rates, labels and tracking) is built, Shippo still to
+  check with a real test token.

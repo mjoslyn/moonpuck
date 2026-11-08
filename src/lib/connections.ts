@@ -168,6 +168,29 @@ export async function connect(service: Service, input: Record<string, string>, c
       return { ...done(sub.signature_key), after };
     }
 
+    case 'shippo': {
+      const key = val('SHIPPO_API_KEY');
+      if (!key) throw new ConnectError('Enter the API token.');
+      const base = (hostEnv('SHIPPO_API_BASE') || 'https://api.goshippo.com').replace(/\/$/, '');
+      const shippo = (method: string, path: string, body?: unknown) => fetch(`${base}${path}`, { method, headers: { Authorization: `ShippoToken ${key}`, 'Content-Type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+      const check = await shippo('GET', '/carrier_accounts/?results=1');
+      if (check.status === 401 || check.status === 403) throw new ConnectError('Shippo didn’t accept that token.');
+      if (!check.ok) throw new ConnectError(`Shippo answered ${check.status}. Try again.`);
+      // The tracking webhook's address carries a token of its own, kept with the key (its updates are only a
+      // prompt: the site reads the tracking again from Shippo).
+      const token = current('SHIPPO_WEBHOOK_TOKEN') || [...crypto.getRandomValues(new Uint8Array(24))].map((b) => b.toString(16).padStart(2, '0')).join('');
+      const values = { SHIPPO_API_KEY: key, SHIPPO_WEBHOOK_TOKEN: token };
+      const notes = [`Shippo is connected${key.startsWith('shippo_test_') ? ' with a test token: labels bought are test labels' : ''}.`];
+      if (!hooks) return { values, notes: [...notes, LOCAL] };
+      const url = `${site}/api/shop/carrier/shippo?token=${token}`;
+      const listed = await shippo('GET', '/webhooks/');
+      const have: { url?: string }[] = listed.ok ? ((await json(listed)).results ?? []) : [];
+      if (have.some((w) => w.url === url)) return { values, notes: [...notes, 'Shippo sends tracking updates to this site.'] };
+      const made = await shippo('POST', '/webhooks/', { url, event: 'track_updated', active: true, is_test: key.startsWith('shippo_test_') });
+      notes.push(made.ok ? 'Shippo sends tracking updates to this site.' : `Shippo’s tracking webhook couldn’t be made: add one in Shippo (Settings > Webhooks, event track_updated) for ${url}.`);
+      return { values, notes };
+    }
+
     case 'mailgun': {
       const key = val('MAILGUN_API_KEY');
       if (!key) throw new ConnectError('Enter the API key.');

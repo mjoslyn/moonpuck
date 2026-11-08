@@ -38,7 +38,8 @@ const SCHEDULES: Record<string, { name: string; run: () => Promise<string> }> = 
       const stats = await (await import('./lib/stats')).pruneStats(db).catch((e: Error) => `stats prune failed: ${e.message}`);
       const log = await (await import('./lib/mail-log')).pruneMailLog(db).catch((e: Error) => `mail log prune failed: ${e.message}`);
       const shop = await (await import('./lib/shop/orders')).expireShopHolds(db).then(() => 'shop holds expired', (e: Error) => `shop holds failed: ${e.message}`);
-      return `${await (await import('./lib/tickets/orders')).sendDueTicketEmails()}; ${stats}; ${log}; ${shop}`;
+      const tracking = await (await import('./lib/shop/fulfilment')).refreshDueTracking().then((n) => `${n} parcels tracked`, (e: Error) => `tracking failed: ${e.message}`);
+      return `${await (await import('./lib/tickets/orders')).sendDueTicketEmails()}; ${stats}; ${log}; ${shop}; ${tracking}`;
     },
   },
 };

@@ -95,7 +95,44 @@ export interface CheckoutSettings {
   /** How many times a bought download can be fetched (0: no limit), and for how many days after paying (0: always). */
   downloadLimit: number;
   downloadDays: number;
+  carrier: CarrierSettings;
 }
+
+/** Where parcels go from, for a carrier's rates and labels. */
+export interface ShipFrom {
+  name: string;
+  company: string;
+  street1: string;
+  street2: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  phone: string;
+  email: string;
+}
+
+/** A carrier's live rates and labels (src/lib/shop/carrier.ts): Shippo, with its key under Settings > Connections. */
+export interface CarrierSettings {
+  /** Offer its live rates at checkout. */
+  rates: boolean;
+  /** In place of the shipping zones' rates (else beside them). */
+  only: boolean;
+  from: ShipFrom;
+  /** The box every order is sent in, in inches (weights in pounds or ounces) or centimetres. */
+  box: { length: number; width: number; height: number };
+  /** The empty box's weight, in the shop's weight unit, added to the items'. */
+  boxWeight: number;
+  /** The carriers whose rates are offered (USPS, UPS, FedEx, DHL Express); none: all the account has. */
+  carriers: string[];
+}
+
+export const CARRIERS: [string, string][] = [
+  ['usps', 'USPS'],
+  ['ups', 'UPS'],
+  ['fedex', 'FedEx'],
+  ['dhl_express', 'DHL Express'],
+];
 
 export const DEFAULT_DOWNLOAD_LIMIT = 5;
 export const DEFAULT_DOWNLOAD_DAYS = 30;
@@ -193,6 +230,27 @@ export function cleanTax(raw: any): TaxSettings {
   };
 }
 
+export function cleanCarrier(raw: any): CarrierSettings {
+  const f = raw?.from ?? {};
+  const dim = (v: unknown) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Math.min(Math.round(Number(v) * 100) / 100, 10_000) : 0);
+  const country = /^[A-Za-z]{2}$/.test(String(f.country ?? '')) ? String(f.country).toUpperCase() : 'US';
+  return {
+    rates: raw?.rates === true,
+    only: raw?.only === true,
+    from: { name: text(f.name, 100), company: text(f.company, 100), street1: text(f.street1, 120), street2: text(f.street2, 120), city: text(f.city, 80), state: text(f.state, 40), zip: text(f.zip, 20), country, phone: text(f.phone, 40), email: text(f.email, 120) },
+    box: { length: dim(raw?.box?.length), width: dim(raw?.box?.width), height: dim(raw?.box?.height) },
+    boxWeight: dim(raw?.boxWeight),
+    carriers: [...new Set((Array.isArray(raw?.carriers) ? raw.carriers : []).filter((c: unknown) => CARRIERS.some(([k]) => k === c)))] as string[],
+  };
+}
+
+/** What a carrier's settings still need before it can quote: the address it ships from and the box. */
+export function carrierProblem(c: CarrierSettings): string | null {
+  if (!c.from.street1 || !c.from.city || !c.from.zip || !c.from.country) return 'Fill in the address parcels go from.';
+  if (!c.box.length || !c.box.width || !c.box.height) return 'Give the size of the box.';
+  return null;
+}
+
 /** The checkout settings with their defaults, from settings.site.shop. */
 export function checkoutSettings(shop: Record<string, any> | null | undefined): CheckoutSettings {
   const s = shop ?? {};
@@ -207,6 +265,7 @@ export function checkoutSettings(shop: Record<string, any> | null | undefined): 
     lowStockAlerts: s.lowStockAlerts !== false,
     downloadLimit: count(s.downloadLimit, DEFAULT_DOWNLOAD_LIMIT, 1000),
     downloadDays: count(s.downloadDays, DEFAULT_DOWNLOAD_DAYS, 3650),
+    carrier: cleanCarrier(s.carrier),
     news: {
       lists: [...new Set((Array.isArray(s.news?.lists) ? s.news.lists : []).map((x: unknown) => Math.trunc(Number(x))).filter((n: number) => n > 0))].slice(0, 20) as number[],
       ...(text(s.news?.label, 200) ? { label: text(s.news?.label, 200) } : {}),
@@ -235,6 +294,9 @@ export function checkoutSettingsFrom(raw: Record<string, any> | null | undefined
   if (!c.lowStockAlerts) out.lowStockAlerts = false;
   if (c.downloadLimit !== DEFAULT_DOWNLOAD_LIMIT) out.downloadLimit = c.downloadLimit;
   if (c.downloadDays !== DEFAULT_DOWNLOAD_DAYS) out.downloadDays = c.downloadDays;
+  const k = c.carrier;
+  // The ship-from country is US until changed: alone, it isn't a setting.
+  if (k.rates || k.only || Object.entries(k.from).some(([f, v]) => v && !(f === 'country' && v === 'US')) || k.box.length || k.box.width || k.box.height || k.boxWeight || k.carriers.length) out.carrier = k;
   return out;
 }
 

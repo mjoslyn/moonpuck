@@ -8,14 +8,16 @@ import { formatMoney } from '../payments/money';
 import { paymentTable, renderEmail, textVersion, type EmailContext, type EmailDoc, type EmailEvent, type EmailPayment } from '../forms/email';
 import { ticketEmailFrom, type TicketEmail } from '../tickets/config';
 import { placeName } from './places';
+import { carrierName, trackingLink } from './tracking';
 import type { ShopAddress, ShopOrder } from './orders';
 
-export type ShopEmailKind = 'confirmation' | 'shipped' | 'refunded' | 'admin';
+export type ShopEmailKind = 'confirmation' | 'shipped' | 'delivered' | 'refunded' | 'admin';
 export type ShopEmail = TicketEmail;
 
 export const SHOP_EMAIL_KINDS: [ShopEmailKind, string][] = [
   ['confirmation', 'Order confirmation'],
   ['shipped', 'Shipped'],
+  ['delivered', 'Delivered'],
   ['refunded', 'Refunded'],
   ['admin', 'Copy to the shop'],
 ];
@@ -36,6 +38,8 @@ export const SHOP_MERGE_TAGS: [string, string][] = [
   ['{shipping_method}', 'Shipping method or pickup location'],
   ['{delivery}', 'Where it goes: the address, or where to pick it up'],
   ['{tracking}', 'Tracking number (shipped)'],
+  ['{carrier}', 'Carrier (shipped)'],
+  ['{tracking_link}', 'Link to follow the parcel (shipped)'],
   ['{refund}', 'This refund (refunded)'],
   ['{refunded}', 'Refunded in all'],
   ['{order_summary}', 'Order summary'],
@@ -86,6 +90,14 @@ export const DEFAULT_SHOP_EMAILS: Record<ShopEmailKind, Required<Omit<ShopEmail,
       block('Button', 'b', { label: 'View your order', url: '{order_link}' }),
     ),
   },
+  delivered: {
+    subject: 'Your order {code} from {site_name} has arrived',
+    design: doc(
+      block('Heading', 'h', { text: 'Your order has arrived', level: 2 }),
+      block('Text', 't', { html: '<p>Hi {first_name},</p><p>The carrier says your order <strong>{code}</strong> was delivered. We hope you enjoy it.</p><p>If anything is wrong with it, reply to this email.</p>' }),
+      block('Button', 'b', { label: 'View your order', url: '{order_link}' }),
+    ),
+  },
   refunded: {
     subject: 'A refund for your order {code}',
     design: doc(
@@ -131,7 +143,7 @@ export const addressLines = (a: ShopAddress | null | undefined): string[] =>
 /** What an email needs of an order. */
 export type OrderForEmail = Pick<
   ShopOrder,
-  'code' | 'name' | 'email' | 'phone' | 'lines' | 'subtotal' | 'discount' | 'discount_code' | 'shipping_total' | 'tax' | 'total' | 'currency' | 'refunded_amount' | 'fulfilment' | 'shipping' | 'address' | 'tracking' | 'provider' | 'provider_payment' | 'paid_at' | 'status'
+  'code' | 'name' | 'email' | 'phone' | 'lines' | 'subtotal' | 'discount' | 'discount_code' | 'shipping_total' | 'tax' | 'total' | 'currency' | 'refunded_amount' | 'fulfilment' | 'shipping' | 'address' | 'tracking' | 'carrier' | 'provider' | 'provider_payment' | 'paid_at' | 'status'
 >;
 
 /** Where an email's links go, and the rest it says that isn't on the order. */
@@ -209,6 +221,8 @@ export function shopTagValues(o: OrderForEmail, x: ShopEmailExtras): Record<stri
     '{shipping_method}': o.shipping?.name ?? '',
     '{delivery}': where ? [where[0], ...where[1]].join('\n') : '',
     '{tracking}': o.tracking ?? '',
+    '{carrier}': o.carrier ? carrierName(o.carrier) : '',
+    '{tracking_link}': o.tracking && o.carrier ? trackingLink(o.carrier, o.tracking) : '',
     '{refund}': x.refund ? m(x.refund) : '',
     '{refunded}': o.refunded_amount ? m(o.refunded_amount) : '',
     '{order_summary}': [...o.lines.map((l) => `${l.quantity} × ${lineName(l)}: ${m(l.total)}`), ...totalRows(o).map(([k, v]) => `${k}: ${v}`)].join('\n'),
@@ -249,7 +263,11 @@ function orderDetail(id: string, showLabel: boolean, o: OrderForEmail, x: ShopEm
     case 'code':
       return p('Order number', `<strong style="font-size:20px;letter-spacing:0.08em">${esc(o.code)}</strong>`);
     case 'tracking':
-      return o.tracking ? p('Tracking number', `<strong>${esc(o.tracking)}</strong>`) : '';
+      if (!o.tracking) return '';
+      {
+        const link = o.carrier ? trackingLink(o.carrier, o.tracking) : '';
+        return p('Tracking number', `${o.carrier ? `${esc(carrierName(o.carrier))}: ` : ''}${link ? `<a href="${esc(link)}"><strong>${esc(o.tracking)}</strong></a>` : `<strong>${esc(o.tracking)}</strong>`}`);
+      }
     case 'refund':
       return x.refund || o.refunded_amount
         ? table(`${x.refund ? amountRow('This refund', m(x.refund)) : ''}${amountRow('Refunded in all', m(o.refunded_amount))}${amountRow('Order total', m(o.total))}`)
@@ -301,6 +319,7 @@ export const SAMPLE_SHOP_ORDER: OrderForEmail = {
   shipping: { id: 'manual:us:std', kind: 'ship', name: 'Standard', price: 600, source: 'manual' } as OrderForEmail['shipping'],
   address: { line1: '12 Elm Street', city: 'Example Town', state: 'NY', zip: '14731', country: 'US' },
   tracking: '',
+  carrier: '',
   provider: 'stripe',
   provider_payment: 'the payment ID',
   paid_at: '2026-10-15T15:00:00.000Z',

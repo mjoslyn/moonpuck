@@ -40,6 +40,10 @@ export interface ShipOption {
   hours?: string;
   /** Where the order is taxed for a pickup ("US-NY"; empty: the store's rate). */
   place?: string;
+  /** A carrier's rate (source `carrier`): its carrier's token (`usps`), service token and days on the way. */
+  carrier?: string;
+  service?: string;
+  days?: number | null;
 }
 
 /** A source of shipping rates: the manual zones, a carrier later. */

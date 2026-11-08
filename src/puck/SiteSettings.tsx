@@ -53,6 +53,8 @@ interface Props {
   notFound: NotFound[];
   /** Which payment providers have their keys set (for Tickets). */
   ticketProviders: Record<PaymentProvider, ProviderStatus>;
+  /** Whether Shippo is connected, with a live or a test token. */
+  shippo?: 'live' | 'test' | null;
   /** Mailgun's keys (for Mailing) and the mailing lists. */
   mailgun: MailgunInfo;
   mailLists: MailList[];
@@ -66,7 +68,7 @@ const OFF = '__off__';
 /** Every IANA timezone the browser knows. */
 const TIMEZONES: string[] = (Intl as any).supportedValuesOf?.('timeZone') ?? [config.timezone];
 
-export default function SiteSettings({ section, site: initialSite, options: initialOptions, pages, templates, redirects, notFound, ticketProviders, mailgun, mailLists, parts }: Props) {
+export default function SiteSettings({ section, site: initialSite, options: initialOptions, pages, templates, redirects, notFound, ticketProviders, mailgun, mailLists, parts, shippo }: Props) {
   const [site, setSite] = useState(initialSite);
   const [options, setOptions] = useState(initialOptions);
   const [status, setStatus] = useState('');
@@ -291,7 +293,7 @@ export default function SiteSettings({ section, site: initialSite, options: init
       id: 'shop',
       label: 'Shop',
       on: shopOn(site),
-      panel: <ShopSettingsPanel value={site.shop ?? {}} providers={ticketProviders} mailLists={site.mailing?.enabled ? mailLists : null} onChange={(shop) => setSite((s) => ({ ...s, shop }))} />,
+      panel: <ShopSettingsPanel value={site.shop ?? {}} providers={ticketProviders} shippo={shippo ?? null} mailLists={site.mailing?.enabled ? mailLists : null} onChange={(shop) => setSite((s) => ({ ...s, shop }))} />,
     },
     {
       id: 'popups',
@@ -792,7 +794,7 @@ function AdminThemePanel({ value, onChange }: { value: AdminTheme; onChange: (t:
 }
 
 /** Settings > Shop: on or off, the currency prices are in and the unit weights are in. */
-function ShopSettingsPanel({ value, providers, mailLists, onChange }: { value: Record<string, any>; providers: Record<PaymentProvider, ProviderStatus>; mailLists: MailList[] | null; onChange: (v: Record<string, any>) => void }) {
+function ShopSettingsPanel({ value, providers, shippo, mailLists, onChange }: { value: Record<string, any>; providers: Record<PaymentProvider, ProviderStatus>; shippo: 'live' | 'test' | null; mailLists: MailList[] | null; onChange: (v: Record<string, any>) => void }) {
   const s = shopSettings({ shop: value });
   return (
     <>
@@ -805,7 +807,7 @@ function ShopSettingsPanel({ value, providers, mailLists, onChange }: { value: R
       <Select title="Currency" value={s.currency} options={CURRENCIES} onChange={(v) => onChange({ ...value, currency: v || undefined })} />
       <Select title="Weights in" value={s.weightUnit} options={WEIGHT_UNITS} onChange={(v) => onChange({ ...value, weightUnit: v || undefined })} />
       <p className="-mt-2 mb-3 text-xs text-admin-muted">Products' and variants' weights are in this unit; shipping rates by weight use it.</p>
-      {s.enabled && <ShopCheckoutSettings value={value} currency={s.currency} weightUnit={s.weightUnit} providers={providers} mailLists={mailLists} onChange={onChange} />}
+      {s.enabled && <ShopCheckoutSettings value={value} currency={s.currency} weightUnit={s.weightUnit} providers={providers} shippo={shippo} mailLists={mailLists} onChange={onChange} />}
     </>
   );
 }

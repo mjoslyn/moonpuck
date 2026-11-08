@@ -1,5 +1,9 @@
 // The Orders screen's actions (/admin/shop/<id>/): POST { action, id, ... }
-//   fulfil { kind: 'shipped' | 'picked_up' | '', tracking }   shipped emails the buyer, with the tracking
+//   fulfil { kind: 'shipped' | 'picked_up' | '', tracking, carrier }   shipped emails the buyer, with the
+//                                       tracking (followed through the carrier service for a known carrier)
+//   label-rates                         the carrier service's rates for the order's label
+//   label-buy { rate }                  buy a label at one of them: marks it shipped, emails the buyer
+//   track                               read the parcel's tracking again
 //   notes { notes }                     the shop's own notes
 //   resend                              send a paid order's confirmation again
 //   cancel { restock }                  cancel an unpaid order (its hold goes), or a free or fully
@@ -12,7 +16,8 @@
 // The order's writes don't clear the page cache (what's left is asked live).
 import type { APIRoute } from 'astro';
 import { serviceClient } from '../../../../lib/db/site';
-import { cancelShopOrder, fulfilOrder, refundShopOrder, resendShopConfirmation, restockOrder, saveNotes, type Restock } from '../../../../lib/shop/orders';
+import { cancelShopOrder, fulfilOrder, refundShopOrder, resendShopConfirmation, restockOrder, saveNotes, type Restock, type ShopOrder } from '../../../../lib/shop/orders';
+import { buyLabel, labelRates, refreshTracking } from '../../../../lib/shop/fulfilment';
 
 const restockOf = (v: unknown): Restock =>
   Object.fromEntries(Object.entries(v && typeof v === 'object' ? (v as Record<string, unknown>) : {}).map(([k, n]) => [k, Math.max(0, Math.trunc(Number(n)) || 0)]).filter(([, n]) => (n as number) > 0));
@@ -25,8 +30,20 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     switch (body.action) {
       case 'fulfil': {
         const kind = body.kind === 'shipped' || body.kind === 'picked_up' ? body.kind : '';
-        await fulfilOrder(db, id, kind, String(body.tracking ?? ''), url.origin);
+        await fulfilOrder(db, id, kind, String(body.tracking ?? ''), url.origin, String(body.carrier ?? ''));
         return Response.json({ ok: true });
+      }
+      case 'label-rates':
+        return Response.json({ ok: true, ...(await labelRates(db, id)) });
+      case 'label-buy': {
+        const r = body.rate ?? {};
+        const o = await buyLabel(db, id, { rateId: String(r.rateId ?? ''), carrier: String(r.carrier ?? ''), carrierName: String(r.carrierName ?? ''), service: String(r.service ?? ''), serviceName: String(r.serviceName ?? ''), amount: Number(r.amount) || 0, currency: String(r.currency ?? '') }, url.origin);
+        return Response.json({ ok: true, label: o.label, tracking: o.tracking });
+      }
+      case 'track': {
+        const { data: o } = await db.from('shop_orders').select('*').eq('id', id).maybeSingle();
+        const t = o ? await refreshTracking(db, o as ShopOrder, url.origin) : null;
+        return t ? Response.json({ ok: true, status: t }) : new Response('This order has no carrier tracking to read (connect Shippo, and mark it shipped with a carrier and number).', { status: 400 });
       }
       case 'notes':
         await saveNotes(db, id, String(body.notes ?? ''));

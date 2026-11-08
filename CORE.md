@@ -1230,7 +1230,7 @@ never subscribes anyone again); the settings are, with the others. Migration `*_
 An optional feature, on under Settings > Shop (`settings.site.shop`: `enabled`, `currency`, `weightUnit`;
 `shopSettings`, `shopOn`, `src/lib/shop/config.ts`), built in phases on a preview branch: phase 1 has
 products, options, variants, stock and the cart; phase 2, checkout (payments, manual shipping rates and
-pickup, tax, orders, the Orders screen, discounts, order emails, stats, and orders and stock in sync and backups), is built. Off, nothing is deleted: the admin hides the core's product type and
+pickup, tax, orders, the Orders screen, discounts, order emails, stats, and orders and stock in sync and backups), and phase 3 (the Stock screen, low-stock alerts, digital downloads, and carrier rates, labels and tracking) are built. Off, nothing is deleted: the admin hides the core's product type and
 product categories (`showsType`, `showsTaxonomy`, `src/lib/features.ts`), the site serves none of them
 (`resolve`, the loader's `off` types), the shop's blocks render nothing (`SHOP_BLOCKS`) and its endpoints
 answer 404.
@@ -1308,6 +1308,27 @@ answer 404.
   `refund_attempt`, as ticket refunds) and put lines back in stock (`restockOrder`, `shop_restock`: each
   line at most what was bought, checked in the statement that records it, `lines[].restocked`; only once
   the order's stock was taken off). Cancel and refund take the lines to put back with them.
+- **Carrier rates, labels and tracking** (`src/lib/shop/carrier.ts`, `fulfilment.ts`; `tracking.ts` safe in the
+  browser): Shippo's REST API (no SDK; `SHIPPO_API_KEY` under Settings > Connections, `SHIPPO_API_BASE` a
+  stand-in for tests) behind a `Carrier` interface (`rates`, `buyLabel`, `track`, `follow`). Settings >
+  Shop's `carrier` (`CarrierSettings`, `cleanCarrier`, `carrierProblem`): live rates on, in place of the
+  zones' rates or beside them (`only`), the ship-from address, the box (inches for pounds and ounces,
+  else centimetres) and its empty weight, the carriers offered (`CARRIERS`). `shippingSources` gives
+  checkout and the quote the manual zones and `carrierSource`, whose rates come only for an address with
+  a ZIP code (the cart asks for it beside the country and re-quotes as the address changes; any country
+  is offered), for the shipped lines' weight plus the box's, of the carriers chosen and in the shop's
+  currency, as options `carrier:<carrier>:<service>` (kept 10 minutes per address and weight, so checkout
+  charges what the cart showed). The order keeps the option (`shipping.carrier`, `service`) and each
+  shipped line's `weight`. An order's page (editors) lists the label rates (`labelRates`, the buyer's
+  service marked) and buys one (`buyLabel`, once: `shop_orders.label` with the label's address, then
+  `fulfilOrder` shipped with its tracking and carrier, emailing the buyer); a tracking number typed with
+  a carrier (`shop_orders.carrier`) is followed through Shippo (`follow`). Tracking updates come to
+  `POST /api/shop/carrier/shippo?token=<SHIPPO_WEBHOOK_TOKEN>` (made when Shippo is connected), which takes
+  only the number and reads each order's tracking again from Shippo (`refreshTracking`:
+  `tracking_status`); the hourly run reads those not delivered of the last 30 days, at most 50
+  (`refreshDueTracking`); **Check the tracking now** on the order. Delivered, the buyer gets the Delivered
+  email once (`delivered_at`, set where null). Without a key a number with a carrier links to the
+  carrier's own page (`trackingLink`). Migration `*_shop_orders_carrier.sql`.
 - **Digital downloads** (`src/lib/shop/downloads.ts`): a product's `download` (`downloadOf`: a path under a
   random folder of the store's private `shop-downloads/` folder, its name, size and type), uploaded from its
   Shop settings (POST `/api/admin/shop/downloads`, the file as the body and its name in X-File-Name,
@@ -1355,7 +1376,8 @@ answer 404.
   `settings.site.shop.emails`, `shopEmailsFrom`): the buyer's confirmation (when paid, and Resend
   confirmation), shipped (marking an order shipped, with its tracking), refunded (a refund made on its
   page, with `{refund}`, that refund's amount; not one made in the provider's dashboard) and the shop's
-  copy, each a subject, an email builder design and an optional plain text, as ticket emails. Sent
+  copy, and delivered (the carrier said so), each a subject, an email builder design and an optional plain
+  text, as ticket emails; `{carrier}` and `{tracking_link}` name the carrier and link its tracking page. Sent
   (`sendShopEmail`, email log kind `shop`): the site's design, else the default template for its kind
   (`shop:<kind>`), else `DEFAULT_SHOP_EMAILS` (`shopEmailToSend`; a subject left empty is the built-in
   one). Rendered with the forms' renderer: the merge tags `SHOP_MERGE_TAGS` (`shopTagValues`, buyer's
@@ -1409,8 +1431,8 @@ answer 404.
 - **Totals** (`src/lib/shop/totals.ts`, safe in the browser): a zone is the first, in order, with a place
   covering the address, a `*` zone only when none names it (`zoneFor`); a rate is flat or by subtotal or
   shipped weight bands (min inclusive, max exclusive; a cart in no band isn't offered it), free over a
-  subtotal (`ratePrice`). Rates come from `ShippingSource`s (the manual zones, `manualSource`; a carrier
-  later), a failing source left out, listed cheapest first, then pickup (`shippingChoices`); a cart with a
+  subtotal (`ratePrice`). Rates come from `ShippingSource`s (the manual zones, `manualSource`; a carrier's,
+  `carrierSource`), a failing source left out, listed cheapest first, then pickup (`shippingChoices`); a cart with a
   pickup-only line gets only pickup, one with nothing shipped none. Tax is per line after its share of the
   discount (`spreadDiscount`, `orderTotals`), at the most specific region's rate for the address, or the
   chosen pickup location's place, else the store's (`taxRateFor`); with Stripe Tax it is left to checkout.
@@ -1658,7 +1680,8 @@ only add; one that switches block types or settings goes out with `npm run deplo
 - Bindings: `DB` (D1), `BUCKET` (R2), `IMAGES` (Cloudflare Images), `JOBS` (a queue: Compose turns, campaign
   sending runs and restores, each run once with up to 15 minutes, `src/lib/jobs.ts`),
   `CF_VERSION_METADATA` (the page cache's validators). The Cron Triggers: mailing every 5 minutes and at
-  06:20 UTC, snapshots at 07:00 UTC, ticket emails, the shop's expired holds and the statistics' and email log's pruning hourly (`SCHEDULES`).
+  06:20 UTC, snapshots at 07:00 UTC, ticket emails, the shop's expired holds and parcels' tracking, and the statistics' and email log's pruning
+  hourly (`SCHEDULES`).
 - Variables and secrets reach the code as `process.env` (`nodejs_compat`); secrets are set with
   `npx wrangler secret put`. Code reads them with `env()` (`src/lib/env.ts`), which reads `.env` through
   `import.meta.env` under `astro dev` only: a build would write the build machine's `.env` values into
@@ -1681,13 +1704,14 @@ only add; one that switches block types or settings goes out with `npm run deplo
 ### Connections
 
 Settings > Connections (admins; `src/admin/Connections.tsx`, GET and POST `/api/admin/connections`)
-keeps the keys for Claude, Stripe, Square and Mailgun (`SERVICES` in `src/lib/site-keys.ts`), so an admin
+keeps the keys for Claude, Stripe, Square, Mailgun and Shippo (`SERVICES` in `src/lib/site-keys.ts`), so an admin
 sets a service up by pasting one key. `connect` (`src/lib/connections.ts`) checks it with the service and
 sets the service up: Stripe's webhook endpoint at `/api/payments/stripe` (`STRIPE_EVENTS`; its signing
 secret kept; a key Stripe can't be asked about is refused, and a restricted key without webhook access is
 saved with a note to set the webhook up by hand),
 Square's environment found from the token, its location (chosen when there are several) and a webhook
-subscription (signature key and address kept), Mailgun's region found from the key, its sending domain
+subscription (signature key and address kept), Shippo's token checked and its tracking webhook made (`track_updated`, to an address with a random
+token of its own, `SHIPPO_WEBHOOK_TOKEN`), Mailgun's region found from the key, its sending domain
 (chosen when there are several), its webhooks (`MAILGUN_EVENTS`, this site's address added beside any
 already there, up to Mailgun's 3, so another copy of the site keeps its own) and signing key. With the key
 unchanged and its secret saved, Stripe's endpoint and Square's subscription stay as they are (their

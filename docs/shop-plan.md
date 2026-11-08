@@ -170,8 +170,10 @@ the guide's "Selling things" with new screenshots.
 
 ## Phase 3
 
-Done so far: the Stock screen (Shop > Stock), low-stock alerts (`src/lib/shop/low-stock.ts`) and digital
-downloads (`src/lib/shop/downloads.ts`).
+Built: the Stock screen (Shop > Stock), low-stock alerts (`src/lib/shop/low-stock.ts`), digital downloads
+(`src/lib/shop/downloads.ts`), and Shippo for live rates, labels and tracking (`src/lib/shop/carrier.ts`,
+`fulfilment.ts`), built against its documented API and tested with a stand-in; still to check with a real
+test token.
 
 - Stock screen: every product and variant with on-hand counts to edit, and a low-stock mark.
 - Low-stock alerts by email.

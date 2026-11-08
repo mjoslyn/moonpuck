@@ -23,7 +23,7 @@ export function shopEmailKit(kind: ShopEmailKind, subject: () => string, siteNam
   const origin = typeof window === 'undefined' ? '' : window.location.origin;
   // Each kind's sample as it would be when sent.
   const order: OrderForEmail =
-    kind === 'shipped' ? { ...SAMPLE_SHOP_ORDER, tracking: '1Z999AA10123456784' } : kind === 'refunded' ? { ...SAMPLE_SHOP_ORDER, refunded_amount: 1200 } : SAMPLE_SHOP_ORDER;
+    kind === 'shipped' || kind === 'delivered' ? { ...SAMPLE_SHOP_ORDER, tracking: '9400111899223197428490', carrier: 'usps' } : kind === 'refunded' ? { ...SAMPLE_SHOP_ORDER, refunded_amount: 1200 } : SAMPLE_SHOP_ORDER;
   const extras = { order: `${origin}/cart/?order=sample`, admin: `${origin}/admin/shop/`, siteName, refund: kind === 'refunded' ? 1200 : undefined, downloads: kind === 'admin' ? undefined : [{ name: 'Harbour pattern.pdf', url: `${origin}/api/shop/download?order=sample&line=0` }] };
   const sample = shopEmailContext(order, extras, origin);
   return {

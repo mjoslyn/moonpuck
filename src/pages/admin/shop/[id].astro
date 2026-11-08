@@ -7,6 +7,10 @@ import Admin from '../../../layouts/Admin.astro';
 import { SITE_TZ } from '../../../lib/site';
 import { formatMoney } from '../../../lib/payments/money';
 import { addressLines, type ShopOrder } from '../../../lib/shop/orders';
+import { CARRIERS } from '../../../lib/shop/checkout-settings';
+import { carrierName, trackingLink, TRACKING_WORDS } from '../../../lib/shop/tracking';
+import { activeCarrier } from '../../../lib/shop/carrier';
+import { orderWeight } from '../../../lib/shop/fulfilment';
 
 const id = Number(Astro.params.id) || 0;
 const { data } = await Astro.locals.db.from('shop_orders').select('*').eq('id', id).maybeSingle();
@@ -17,6 +21,8 @@ const money = (n: number) => formatMoney(n, o.currency);
 const when = (s: string | null) => (s ? new Date(s).toLocaleString('en-US', { timeZone: SITE_TZ, month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '');
 const STATUS: Record<string, string> = { paid: 'Paid', pending: 'Awaiting payment', cancelled: 'Cancelled', expired: 'Expired: not paid in time', refunded: 'Refunded' };
 const left = o.total - o.refunded_amount;
+const carrierOn = !!activeCarrier();
+const trackingHref = o.tracking && o.carrier ? trackingLink(o.carrier, o.tracking) : '';
 // Lines whose stock was taken off and not all put back yet.
 const restockable = o.stock_taken ? o.lines.map((l, i) => ({ ...l, i, room: l.track ? l.quantity - (l.restocked ?? 0) : 0 })).filter((l) => l.room > 0) : [];
 const canCancel = ['pending', 'expired'].includes(o.status) || (o.status === 'paid' && left <= 0) || o.status === 'refunded';
@@ -78,11 +84,36 @@ const canRefund = isAdmin && o.status === 'paid' && o.provider !== 'free' && lef
       {o.status === 'paid' && o.fulfilment !== 'none' && (
         <section class="rounded bg-white p-5 text-sm shadow-[0_0_0_1px_rgba(26,26,46,0.08)] print:hidden">
           <h2 class="mb-2 text-lg">{o.fulfilment === 'ship' ? 'Shipping' : 'Pickup'}</h2>
-          {o.fulfilled && <p class="mb-2">{o.fulfilled === 'shipped' ? 'Shipped' : 'Picked up'} {when(o.fulfilled_at)}{o.tracking ? `, tracking ${o.tracking}` : ''}.</p>}
+          {o.fulfilled && <p class="mb-2">{o.fulfilled === 'shipped' ? 'Shipped' : 'Picked up'} {when(o.fulfilled_at)}{o.tracking ? <>, {o.carrier ? `${carrierName(o.carrier)} ` : ''}tracking {trackingHref ? <a class="underline hover:text-admin-accent" href={trackingHref} target="_blank" rel="noopener">{o.tracking}</a> : o.tracking}</> : ''}.</p>}
+          {o.shipping?.source === 'carrier' && <p class="mb-2 text-xs text-admin-muted">The buyer chose {o.shipping.name}.</p>}
+          {o.tracking_status && (
+            <p class="mb-2">
+              <strong>{TRACKING_WORDS[o.tracking_status.status] ?? o.tracking_status.status}</strong>{o.tracking_status.details ? `: ${o.tracking_status.details}` : ''}
+              <span class="block text-xs text-admin-muted">{o.tracking_status.at ? `${when(o.tracking_status.at)}; ` : ''}checked {when(o.tracking_status.checked_at)}{o.delivered_at ? '; the buyer was emailed it arrived' : ''}</span>
+            </p>
+          )}
+          {o.fulfilled === 'shipped' && o.tracking && o.carrier && carrierOn && <button type="button" data-track class="mb-3 text-xs underline hover:text-admin-accent">Check the tracking now</button>}
+          {o.label && (
+            <p class="mb-3">
+              Label: {o.label.service}, {formatMoney(o.label.amount, o.label.currency)}. <a class="underline hover:text-admin-accent" href={o.label.url} target="_blank" rel="noopener">Print the label</a>
+            </p>
+          )}
+          {o.fulfilment === 'ship' && carrierOn && !o.label && (
+            <div class="mb-4" data-labels>
+              <button type="button" data-label-rates class="rounded border border-admin-ink/15 bg-white px-3 py-1.5 hover:border-admin-accent hover:text-admin-accent">Buy a label…</button>
+              <p class="mt-1 text-xs text-admin-muted">Rates for this parcel through Shippo{orderWeight(o) ? '' : ' (its items have no weight: only the box counts)'}. Buying one marks the order shipped and emails the buyer.</p>
+              <div data-rate-list class="mt-2 grid gap-1"></div>
+            </div>
+          )}
           {o.fulfilment === 'ship' ? (
             <form data-fulfil="shipped" class="grid gap-2">
               <label class="text-xs text-admin-muted" for="tracking">Tracking number (optional)</label>
               <input id="tracking" name="tracking" value={o.tracking} class="rounded border border-admin-ink/15 bg-white px-2 py-1.5" />
+              <label class="text-xs text-admin-muted" for="carrier">Carrier</label>
+              <select id="carrier" name="carrier" class="rounded border border-admin-ink/15 bg-white px-2 py-1.5">
+                <option value="">Another, or not known</option>
+                {CARRIERS.map(([k, label]) => <option value={k} selected={o.carrier === k}>{label}</option>)}
+              </select>
               <button class="justify-self-start rounded bg-admin-accent px-3 py-1.5 text-white hover:bg-admin-accent-dark">{o.fulfilled ? 'Save and email the buyer again' : 'Mark shipped and email the buyer'}</button>
             </form>
           ) : (
@@ -156,7 +187,34 @@ const canRefund = isAdmin && o.status === 'paid' && o.provider !== 'free' && lef
 
   document.querySelector('[data-fulfil]')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (await post({ action: 'fulfil', kind: e.target.dataset.fulfil, tracking: e.target.tracking.value })) location.reload();
+    if (await post({ action: 'fulfil', kind: e.target.dataset.fulfil, tracking: e.target.tracking.value, carrier: e.target.carrier.value })) location.reload();
+  });
+  document.querySelector('[data-track]')?.addEventListener('click', async () => {
+    if (await post({ action: 'track' })) location.reload();
+  });
+  // A label: the rates for this parcel, then one bought (the buyer's choice first, marked).
+  document.querySelector('[data-label-rates]')?.addEventListener('click', async (e) => {
+    const list = document.querySelector('[data-rate-list]');
+    e.target.disabled = true;
+    const r = await post({ action: 'label-rates' });
+    e.target.disabled = false;
+    if (!r) return;
+    list.textContent = '';
+    if (!r.rates.length) list.textContent = 'No rates for this parcel. Check the address and Settings > Shop, Carrier.';
+    for (const rate of r.rates) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'flex justify-between gap-3 rounded border border-admin-ink/15 bg-white px-3 py-1.5 text-left hover:border-admin-accent';
+      b.textContent = `${rate.carrierName} ${rate.serviceName}${rate.days ? ` (${rate.days} ${rate.days === 1 ? 'day' : 'days'})` : ''}${rate.rateId === r.chosen ? ' · the buyer’s choice' : ''}`;
+      const price = document.createElement('strong');
+      price.textContent = money(rate.amount, rate.currency);
+      b.append(price);
+      b.addEventListener('click', async () => {
+        if (!confirm(`Buy a ${rate.carrierName} ${rate.serviceName} label for ${money(rate.amount, rate.currency)}? Shippo charges your account, and the buyer is emailed the tracking.`)) return;
+        if (await post({ action: 'label-buy', rate })) location.reload();
+      });
+      list.append(b);
+    }
   });
   for (const b of document.querySelectorAll('[data-fulfil-now]')) {
     b.addEventListener('click', async () => {

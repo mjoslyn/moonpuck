@@ -3,6 +3,7 @@ import Admin from '../../../layouts/Admin.astro';
 import SiteSettings from '../../../puck/SiteSettings';
 import { hasContentBlock } from '../../../lib/templates';
 import { providerStatus } from '../../../lib/payments';
+import { env } from '../../../lib/env';
 import { mailgunStatus } from '../../../lib/mailing/mailgun';
 import { sectionOf, settingsPath } from '../../../lib/admin/settings-sections';
 
@@ -25,5 +26,5 @@ const byKey = Object.fromEntries((settings ?? []).map((s) => [s.key, s.value]));
 ---
 <Admin title="Settings">
   <h1 class="mb-6 text-3xl font-normal">Settings</h1>
-  <SiteSettings client:load section={section || 'general'} site={byKey.site ?? {}} options={byKey.options ?? {}} pages={pages ?? []} templates={(templates ?? []).map((t) => ({ slug: t.slug, title: t.title, content: hasContentBlock((t.content as any)?.content) }))} redirects={redirects ?? []} notFound={notFound ?? []} ticketProviders={providerStatus()} mailgun={mailgunStatus()} mailLists={mailLists ?? []} parts={parts ?? []} />
+  <SiteSettings client:load section={section || 'general'} site={byKey.site ?? {}} options={byKey.options ?? {}} pages={pages ?? []} templates={(templates ?? []).map((t) => ({ slug: t.slug, title: t.title, content: hasContentBlock((t.content as any)?.content) }))} redirects={redirects ?? []} notFound={notFound ?? []} ticketProviders={providerStatus()} mailgun={mailgunStatus()} shippo={env('SHIPPO_API_KEY') ? (env('SHIPPO_API_KEY')!.startsWith('shippo_test_') ? 'test' : 'live') : null} mailLists={mailLists ?? []} parts={parts ?? []} />
 </Admin>
