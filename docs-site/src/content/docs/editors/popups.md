@@ -2,7 +2,7 @@
 title: Popups
 description: "What popups and the cookie consent banner are, and how to change what they say."
 sidebar:
-  order: 10
+  order: 11
 ---
 
 A popup shows a message over the site's pages: a newsletter sign-up, a sale, an announcement. The

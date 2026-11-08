@@ -40,7 +40,7 @@ An item can also open a larger drop-down panel: add **Links** under a **Links he
 | **Stats** | Whether Stats recognises returning visitors with a cookie (see [The Stats cookie](/admins/popups-and-cookies/#the-stats-cookie)). |
 | **Code snippets** | Code to put on every page: paste a tag from an analytics, chat or advertising service, or a site verification tag, into **Header**, **Body start** or **Footer**, as the service's instructions say. Paste only code from a service you trust. Tick **Only after visitors accept cookies** for tracking tags. |
 | **Events**, **Tickets**, **Members**, **Mailing Lists** | Features the site can use, each turned on here (see [Turning features on](/admins/features/)). |
-| **Shop** | The shop on or off, its currency and the unit weights are in (a preview; see [Selling things](/admins/shop/)). |
+| **Shop** | The shop on or off, its currency and the unit weights are in and its checkout (see [Setting up the shop](/admins/shop/)). |
 | **Connections** | Connecting Claude, card payments (Stripe or Square) and Mailgun (see [Connections](/admins/connections/)). |
 | **Accessibility** | Whether publishing waits for the [accessibility check](/editors/accessibility/). |
 | **Appearance** | The colours and logo of these admin screens. |
