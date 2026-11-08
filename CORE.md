@@ -839,7 +839,7 @@ Refunds of gifts, shop orders and ticket orders claim their row first (`claimRef
 it was read (its `updated_at`) and no other refund started in the last ten minutes (`REFUND_HOLD_MS`) is
 unanswered, so two people refunding at once can't both refund; a retry of the same refund (amount and
 refunded total) reuses its key. Gifts, monthly gifts and shop orders keep the copy of the site they were
-made on (`home`, `src/lib/payments/home.ts`; migrations `*_donation_plans_home.sql` and
+made on (`home`: `SITE_URL`, none on a copy without it; `src/lib/payments/home.ts`; migrations `*_donation_plans_home.sql` and
 `*_payments_home.sql`): rows reach other copies through sync, and a copy with its own webhook on the same
 provider account gets their events too, so only the home copy acts on them (`atHome`: marks them paid,
 records monthly payments, sends their emails, expires their checkouts, cancels or refunds them at the
@@ -1542,7 +1542,7 @@ at Stripe) are still recorded. A gift gives no membership.
   (the target's plan with that token); one whose plan isn't on the target, and isn't brought by a chosen
   Monthly donors group, is a conflict when comparing. A receipt number or invoice another gift has there
   is a conflict too. Nothing is sent and nothing changes at Stripe: a monthly gift is looked after only by
-  the copy it started on (`donation_plans.home`, `SITE_URL` or the request's address then, migration
+  the copy it started on (`donation_plans.home`, `SITE_URL` then, none without it, migration
   `*_donation_plans_home.sql`; `atHome`): another copy with the plan, even with a webhook on the same
   Stripe account, records none of its payments, sends no emails, and refuses Cancel, Update your card and
   Check at Stripe for it. Snapshots and sync backups hold `donations` and `donation_plans`; a restore never
