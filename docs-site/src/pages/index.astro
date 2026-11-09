@@ -48,6 +48,7 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 .mp-card{border:3px solid #120C1F;border-radius:18px;padding:24px 24px 26px}
 @media (max-width:900px){.mp-nav{display:none!important}.mp-compose{display:none!important}}
 @media (max-width:600px){.mp-wrap{padding-inline:16px}.mp-h1{font-size:60px!important}.mp-h2{font-size:44px!important}.mp-step{font-size:40px!important}.mp-lead{font-size:24px!important}.mp-rail{display:none!important}}
+.mp-dev-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:56px}.mp-dev-card{display:flex;flex-direction:column;gap:10px;padding:24px;background:#2C3C85;border:3px solid #120C1F;border-radius:18px;color:#F7F0F5;text-decoration:none}.mp-dev-card:hover{color:#F7F0F5;background:#34479A}.mp-dev-card:focus-visible{outline:3px solid #FFA5FF;outline-offset:3px}.mp-dev-card code{font-size:15px;color:#FDF152}.mp-dev-code{margin:16px 0 0;background:#0F1840;border:3px solid #120C1F;border-radius:18px;color:#DCD8FF;padding:28px;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:14px;line-height:1.8;overflow-x:auto}
 .mp-build-list{margin:32px 0 0;padding:0 0 0 1.1em;display:grid;gap:12px;font-size:18px;line-height:1.45}
 .mp-form{display:grid;gap:14px;background:#FFFFFF;border:3px solid #120C1F;border-radius:18px;padding:28px}
 .mp-field{display:grid;gap:6px;font-size:14px;font-weight:600}
@@ -285,27 +286,46 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 
 <!-- DEVELOPERS -->
 <section id="developers" style="background: #1B2A6B; color: #F7F0F5; padding: 104px 0 112px">
-<div class="mp-wrap" style="display: flex; flex-wrap: wrap; gap: 56px; align-items: flex-start">
-<div style="flex: 1 1 420px; min-width: 0">
-<p class="mp-label" style="margin: 0 0 18px; color: #FFA5FF">Under the hood</p>
+<div class="mp-wrap">
+<div style="display: flex; flex-wrap: wrap; gap: 32px 56px; align-items: flex-end; justify-content: space-between">
+<div style="flex: 1 1 560px; min-width: 0">
+<p class="mp-label" style="margin: 0 0 18px; color: #FFA5FF">For developers</p>
 <h2 class="mp-serif mp-h2" style="margin: 0; font-size: 68px; line-height: 1">One Worker, your own database, no servers</h2>
-<p style="margin: 22px 0 28px; font-size: 19px; line-height: 1.55; color: #DCD8FF">Moonpuck is Astro on a Cloudflare Worker, with content in D1 and files in R2. Each site is its own repository: your blocks, styles and types live in one folder, and core updates merge in with git.</p>
-<div style="display: flex; flex-wrap: wrap; gap: 8px">
-<span style="border: 1.5px solid #DCD8FF; border-radius: 999px; padding: 6px 14px; font-size: 14px">Pages cached at the edge</span>
-<span style="border: 1.5px solid #DCD8FF; border-radius: 999px; padding: 6px 14px; font-size: 14px">Keys kept encrypted</span>
-<span style="border: 1.5px solid #DCD8FF; border-radius: 999px; padding: 6px 14px; font-size: 14px">Blocks you write yourself</span>
+<p style="margin: 22px 0 0; font-size: 19px; line-height: 1.55; color: #DCD8FF; max-width: 640px">Moonpuck is Astro on a Cloudflare Worker, with content in D1 and files in R2. Each site is its own repository: its blocks, types and starting theme live in one folder, and core updates merge in with git.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<a href="/docs/" class="mp-pill" style="background: #FFA5FF; color: #120C1F">Read the developer docs</a>
+<a href="https://github.com/mjoslyn/moonpuck" class="mp-pill" style="border: 2px solid #DCD8FF; color: #F7F0F5">View on GitHub</a>
 </div>
 </div>
-<pre style="flex: 1 1 480px; min-width: 0; margin: 0; background: #0F1840; border: 3px solid #120C1F; border-radius: 18px; color: #DCD8FF; padding: 28px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 14px; line-height: 1.8; overflow-x: auto"><span style="color: #9898FF"># your site, beside the core</span>
-src/site/
-  config.ts      <span style="color: #9898FF">types, taxonomies, fields</span>
-  render.ts      <span style="color: #9898FF">blocks, cards, head</span>
-  editor.tsx     <span style="color: #9898FF">panels, settings</span>
-  styles/tokens.css
+<div class="mp-dev-grid">
+<a href="/docs/local-setup/" class="mp-dev-card">
+<span class="mp-label" style="color: #FFA5FF">Run it locally</span>
+<span style="font-size: 17px; line-height: 1.5">One clone, one database migration and a dev server that runs the Worker as it runs in production.</span>
+</a>
+<a href="/site/configuration/" class="mp-dev-card">
+<span class="mp-label" style="color: #FFA5FF">Shape the content</span>
+<span style="font-size: 17px; line-height: 1.5">Types, fields and taxonomies in <code>config.ts</code>. The editor, Compose, addresses and listings follow them.</span>
+</a>
+<a href="/site/examples/" class="mp-dev-card">
+<span class="mp-label" style="color: #FFA5FF">Write your own blocks</span>
+<span style="font-size: 17px; line-height: 1.5">A renderer, a settings panel and an optional data hook. Worked examples of blocks, templates and patterns.</span>
+</a>
+<a href="/docs/sites-and-upstream/" class="mp-dev-card">
+<span class="mp-label" style="color: #FFA5FF">Take core updates</span>
+<span style="font-size: 17px; line-height: 1.5">Your site only changes its own folder, so <code>npm run core:update</code> merges the core in cleanly.</span>
+</a>
+</div>
+<pre class="mp-dev-code"><span style="color: #9898FF">// src/site/render.ts: a block of your own</span>
+<span style="color: #FFA5FF">export default</span> defineRender(&#123;
+  blocks: &#123;
+    hours: &#123; label: <span style="color: #FDF152">'Opening hours'</span>, category: <span style="color: #FDF152">'site'</span>, render: hours &#125;,
+  &#125;,
+&#125;);
 
-<span style="color: #9898FF"># take core updates</span>
-<span style="color: #FDF152">npm run core:update</span>
-<span style="color: #FDF152">npm run deploy</span></pre>
+<span style="color: #9898FF"># then, from the site's folder</span>
+<span style="color: #FDF152">npm run core:update</span>   <span style="color: #9898FF"># merge the latest core</span>
+<span style="color: #FDF152">npm run deploy</span>        <span style="color: #9898FF"># build and deploy the Worker</span></pre>
 </div>
 </section>
 
