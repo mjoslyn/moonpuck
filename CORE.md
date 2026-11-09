@@ -119,7 +119,7 @@ shows the theme's logo.
 Entries have a `type` (from the site config) and terms a `taxonomy`; custom values live in
 `entries.fields` under plain names (the type's `fields`). Events use `start`/`end` (wall-clock in
 `timezone`), `all_day`, `cost`, `website`, `venue` (entry id), `featured`, `recurrence`, `schedule`.
-Image fields hold media ids. `entries.body_text` is the entry's readable text, filled from its
+Image fields hold a media id (imports, Compose) or an image's address (what the editor's picker saves). `entries.body_text` is the entry's readable text, filled from its
 content by the query layer whenever `content` is written (`src/lib/content/body-text.ts`), for search
 and event descriptions. Site-wide values are in `settings` (`site`, `options`). Schema:
 `db/migrations/` (D1).
