@@ -12,6 +12,7 @@ export const SETTINGS_GROUPS: { label: string; sections: SettingsSection[] }[] =
     sections: [
       { id: 'general', label: 'General' },
       { id: 'menu', label: 'Menu' },
+      { id: 'theme', label: 'Theme' },
       { id: 'social', label: 'Social' },
       { id: 'search', label: 'Search' },
       { id: 'types', label: 'Types' },

@@ -34,6 +34,8 @@ export function turnsInFull(turns: { images: number; pdfs: number; bytes: number
 import { converse, type Layout, type Turn, type UserTurn } from './claude';
 import { buildPage } from './build';
 import { outline, isComposed } from './outline';
+import { siteTheme } from '../theme/site';
+import { themePresets } from '../theme/theme';
 import { sanitizeBlocks } from './edit';
 import { searchSite } from './site';
 import { describeFields, editorPatch, entryColumns, entryFields, type EditorFields } from './entry-fields';
@@ -176,10 +178,12 @@ export async function runJob(jobId: string, token: string): Promise<void> {
     const currentFields = liveFields ? describeFields(s.entry_type, liveFields) : '';
     const { data: pages } = await db.from('entries').select('id, type, slug, title').eq('type', 'page').eq('status', 'publish').order('title').limit(60);
     const materials = await buildMaterials(db, s.materials);
+    const { data: siteRow } = await db.from('settings').select('value').eq('key', 'site').maybeSingle();
+    const colors = themePresets(siteTheme(siteRow?.value as Record<string, any> | undefined)).colors.map((c) => c.slug);
 
     set({ progress: s.turns.length > 1 ? 'Claude is working on it' : 'Claude is laying out the page' });
     const result = await converse(
-      { turns: s.turns, materialBlocks, entryType: s.entry_type, otherContent: other || undefined, currentSections: current || undefined, sitePages: (pages ?? []).map((p) => ({ title: p.title, path: permalink(p) })), tags: [...materials.tags.keys()], currentFields: currentFields || undefined, layout: input.layout },
+      { turns: s.turns, materialBlocks, entryType: s.entry_type, otherContent: other || undefined, currentSections: current || undefined, sitePages: (pages ?? []).map((p) => ({ title: p.title, path: permalink(p) })), tags: [...materials.tags.keys()], currentFields: currentFields || undefined, layout: input.layout, colors },
       {
         status: (t) => set({ progress: t }),
         text: (chunk) => set({ say: progress.say + chunk }),

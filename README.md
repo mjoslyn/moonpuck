@@ -165,8 +165,8 @@ Everything site-specific lives in `src/site/`:
 | File | What it holds |
 | --- | --- |
 | `config.ts` | Name, organization, timezone, mail sender, admin email, a short brief for Compose, content types (labels, URLs, fields), taxonomies, and changes to the core's event types (`events`) |
-| `styles/tokens.css` | Colors, fonts, type sizes and spacing. The core's styles use the role colors (`--color-text`, `--color-accent`, `--color-dark`, ...), which this file maps onto your palette |
-| `presets.json` | The colors, sizes and spacing the editor offers |
+| `render.ts` `theme` | The starting theme: palette, the role colors the core's styles use (`--color-text`, `--color-accent`, `--color-dark`, ...), fonts, type sizes, spacing and widths. Admins change it under Settings > Theme |
+| `styles/tokens.css` | Any tokens the theme doesn't cover |
 | `styles/theme.css` | Your own styles |
 | `lib/content/cards.ts` | Card designs for collections |
 | `render.ts`, `editor.tsx` | Your own blocks (their markup in `render/c/`), and their settings panels |

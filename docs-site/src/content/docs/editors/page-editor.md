@@ -143,6 +143,10 @@ the **Columns** settings.
 Most blocks share the same style settings, near the end of their panel. Groups can be folded away by
 clicking their heading. Which groups a block has depends on the block.
 
+The site's colours, text sizes, fonts and spacing sizes offered here are the site's theme, which an
+admin sets under **Settings**, **Theme** (see [The site's theme](/admins/settings/#the-sites-theme)).
+A colour an admin left out of the choices doesn't show here, but blocks already using it keep it.
+
 - **Width**: **Default**, **Wide** or **Full width**. Inside a section that keeps its content to a
   reading width, **Wide** lets the block spread wider and **Full width** takes it from edge to edge.
 - **Color**:
@@ -550,12 +554,14 @@ Its settings:
 
 #### Site title
 
-The site's icon and name, linking to the home page (usually in the header).
+The site's icon and name, linking to the home page (usually in the header), or the site's logo.
 
 ![The Site title block on a page](../../../assets/guide/blocks/site-title.png)
 
 Its settings:
 
+- **Show the logo instead**: shows the logo chosen under **Settings**, **Theme** in place of the icon
+  and name. With no logo chosen there, the block shows the icon and name.
 - **Icon**: whether to show it.
 - **Name**: whether to show it.
 - **Before the name**: words in front of it, such as "Welcome to ".

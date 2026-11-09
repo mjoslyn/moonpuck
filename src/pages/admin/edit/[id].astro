@@ -1,4 +1,6 @@
 ---
+import { siteTheme } from '../../../lib/theme/site';
+import { siteDb as themeDb } from '../../../lib/db/site';
 import AdminTheme from '../../../layouts/AdminTheme.astro';
 import '../../../styles/tailwind.css';
 import '../../../styles/admin.css';
@@ -13,6 +15,8 @@ const { data: row } = await Astro.locals.db.from('entries').select('type, title'
 if (!row) return Astro.redirect('/admin/');
 const record = RECORD_TYPES.has(row.type);
 const singular = typeLabel(row.type);
+// The site's theme as it is now, for the editor's colour and size choices (src/lib/theme/theme.ts, PRESETS).
+const siteThemeNow = siteTheme((await (Astro.locals.db ?? themeDb()).from('settings').select('value').eq('key', 'site').maybeSingle()).data?.value);
 ---
 {record ? (
   <Admin title={`Edit ${singular}`}>
@@ -26,7 +30,7 @@ const singular = typeLabel(row.type);
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <meta name="robots" content="noindex" />
-      <script is:inline define:vars={{ siteTz: SITE_TZ, siteTypes: appliedTypeSettings() }}>window.__siteTz = siteTz; window.__siteTypes = siteTypes;</script>
+      <script is:inline define:vars={{ siteTz: SITE_TZ, siteTypes: appliedTypeSettings(), siteThemeNow }}>window.__siteTz = siteTz; window.__siteTypes = siteTypes; window.__siteTheme = siteThemeNow;</script>
       <AdminTheme />
       <title>Edit · {site.name} admin</title>
     </head>

@@ -1,7 +1,7 @@
 // Puck field UIs for block attributes. Everything edits the block's `attrs` object; the
 // Advanced tab edits the raw JSON so no attribute is out of reach.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { PRESETS as themeJson } from '../lib/site';
+import { PRESETS as themeJson } from '../lib/theme/theme';
 import { browserClient } from '../lib/db/browser';
 import { mediaUrl } from '../lib/media/image';
 import { uploadMedia } from '../lib/media/upload';

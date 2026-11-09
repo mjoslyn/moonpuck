@@ -13,7 +13,7 @@ calls `defineSite` (types in `src/lib/site/types.ts`).
 | `config.ts` | Name, organization, timezone, mail sender, admin email, the Compose brief, content types and taxonomies |
 | `render.ts` | The site's own blocks, card designs, listing filters, `<head>` markup, footer scripts, old-URL redirects ([Blocks and hooks](../extending/)) |
 | `editor.tsx` | Settings panels for the site's blocks, site-wide options ([Blocks and hooks](../extending/)) |
-| `styles/tokens.css`, `styles/theme.css`, `presets.json` | Design tokens, styles, the editor's choices ([Styling](../styling/)) |
+| `styles/tokens.css`, `styles/theme.css` | Extra tokens and the site's styles; the theme is in `render.ts` ([Styling](../styling/)) |
 | `lib/content/cards.ts` | Card designs for collections |
 | `migrations/` | Content migrations for the site's own data changes |
 | `pages/api/`, `routes.json` | The site's own endpoints |

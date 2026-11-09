@@ -2,7 +2,6 @@
 // taxonomies, timezone and identity from here, never from src/site directly.
 import siteConfig from '../../site/config';
 import movedPaths from '../../site/moved-paths.json';
-import presets from '../../site/presets.json';
 import type { ContentType, EventsConfig, FieldDef, ShopConfig, SiteConfig, Taxonomy, TypeExtension } from './types';
 import { withEvents } from '../events/types';
 import { withShop } from '../shop/types';
@@ -26,8 +25,6 @@ for (const t of ['category', 'tag']) if (!config.taxonomies.some((c) => c.name =
 export const site: SiteConfig = config;
 /** Path prefixes the site moved ([old, new] pairs, src/site/moved-paths.json). */
 export const MOVED_PATHS = movedPaths as [string, string][];
-/** The colors, font sizes and spacing the editor offers (src/site/presets.json). */
-export const PRESETS = presets;
 /**
  * The site's timezone: the admin setting (settings.site.timezone) when there is one, else the config's.
  * A live binding: the server sets it from the settings (src/lib/site/timezone.ts, per request, cached),

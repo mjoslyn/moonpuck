@@ -40,6 +40,7 @@ import { publishNeedsCheck } from '../lib/a11y-gate';
 import parse, { Element, type DOMNode } from 'html-react-parser';
 // The public site stylesheet, so the canvas matches the site.
 import siteCss from '../styles/site.css?url';
+import { siteThemeCss } from '../lib/theme/site';
 
 export interface EditorProps {
   entryId?: number;
@@ -1243,6 +1244,10 @@ function CanvasStyles({ document: doc, ctx, children }: { document?: Document; c
     style.textContent = '.cms-editor-note{padding:1rem;border:1px dashed #b87333;color:#64748b;font:13px system-ui}.c-media-text__content[data-puck-dropzone]{height:auto}.cms-area{position:relative}.cms-area__label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#64748b;font:13px system-ui;z-index:1}.cms-source-outline{position:fixed;z-index:9998;pointer-events:none;outline:2px dashed #b87333;outline-offset:-2px}.cms-source-link{position:fixed;z-index:9999;padding:4px 10px;border-radius:4px;background:#0f0f1c;color:#fff;font:500 12px/1.4 system-ui;text-decoration:none;white-space:nowrap}.cms-source-link:hover,.cms-source-link:focus-visible{background:#b87333}';
     add(style);
     link(siteCss);
+    // The site's theme (Settings > Theme): its colours, fonts and sizes, as on the site.
+    const theme = doc.createElement('style');
+    theme.textContent = siteThemeCss(first.settings?.site ?? { theme: (window as any).__siteTheme });
+    add(theme);
     // Layout rules for sections added or changed while editing are created during rendering.
     const live = doc.createElement('style');
     add(live);
@@ -1260,7 +1265,6 @@ function CanvasStyles({ document: doc, ctx, children }: { document?: Document; c
     };
     syncCss();
     const sync = setInterval(syncCss, 300);
-    link('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,300;1,9..144,400&family=Work+Sans:wght@300;400;500;600;700&display=swap');
     // Links inside the canvas must not navigate the editor frame (the edit links open a new tab).
     const stop = (e: Event) => {
       if ((e.target as HTMLElement).closest?.('a:not(.cms-source-link)')) e.preventDefault();

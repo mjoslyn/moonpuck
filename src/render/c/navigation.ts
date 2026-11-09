@@ -11,10 +11,12 @@ import { eventDates } from '../events/date';
 import { typeDef } from '../../lib/site';
 import { MENU_CARDS, menuItems, type MenuItem } from '../../lib/navigation';
 
-/** The site's icon and name, linking home. */
+/** The site's icon and name, linking home; or the theme's logo (Settings > Theme) in their place. */
 export const siteTitle: Renderer = (b, { ctx }) => {
   const a = b.attrs ?? {};
   const site = ctx.settings.site ?? {};
+  const logo = a.logo && site.theme?.logo_url ? `<img class="c-site-title__logo" src="${esc(site.theme.logo_url)}" alt="${esc(site.name ?? 'Home')}" />` : '';
+  if (logo) return `<a class="c-site-title${a.className ? ` ${esc(a.className)}` : ''}" href="/" rel="home">${logo}</a>`;
   const icon = a.icon !== false && site.icon_192 ? `<img class="c-site-title__icon" src="${esc(site.icon_192)}" alt="" width="40" height="40" />` : '';
   const name = a.name === false ? '' : `<span class="c-site-title__text">${esc(`${a.prefix ?? ''}${site.name ?? ''}`)}</span>`;
   return `<a class="c-site-title${a.className ? ` ${esc(a.className)}` : ''}" href="/" rel="home">${icon}${name}${!name ? `<span class="c-sr-only">${esc(site.name ?? 'Home')}</span>` : ''}</a>`;

@@ -3,7 +3,7 @@
 // with the complete revised page plan.
 import Anthropic from '@anthropic-ai/sdk';
 import { planSchema, UPDATE_FIELDS_SCHEMA, type PagePlan } from './spec';
-import { EDIT_SCHEMA, COMPONENT_GUIDE } from './edit';
+import { EDIT_SCHEMA, componentGuide } from './edit';
 import { SEARCH_SCHEMA } from './site';
 import { site, typeLabel, ARCHIVE_PATHS, CONTENT_TYPES, LISTABLE_TYPES } from '../site';
 
@@ -56,6 +56,8 @@ export interface ConverseRequest {
   tags: string[];
   /** The entry's own fields as they are now. */
   currentFields?: string;
+  /** The site's palette names (its theme's colours the editor offers). */
+  colors?: string[];
   /** Working on a template, part or pattern (shared by pages) rather than one page's content. */
   layout?: Layout;
 }
@@ -83,7 +85,7 @@ You are in a conversation with a site editor. They give you a brief and material
 - You may add one or two sentences of text saying what you did. If a request is unclear, ask one short question in text instead of calling a tool.
 - Keep what the editor did not ask to change. If the page's current sections (shown with the latest message) differ from your last plan, the editor edited them by hand: keep those edits.
 
-${COMPONENT_GUIDE}
+${componentGuide(r.colors ?? [])}
 
 SEO: every build_page includes seo. Write the title and description for people searching: say what the page is about in the words they would search with, and give a reason to visit. No clickbait, no keyword stuffing, no invented facts.
 

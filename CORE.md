@@ -59,11 +59,12 @@ Everything that differs between sites lives in `src/site/`:
   category, string renderer, an async `prepare` hook that loads data onto ctx, and optional `types`
   (the entry types a block reads fields from, so the editor offers it only there and in templates);
   `cards` (collection card designs; the first is the default); `archiveQuery` to add search or filters
-  to listing pages; `head` (fonts, meta); `pageScripts` for footer scripts.
+  to listing pages; `head` (meta); `pageScripts` for footer scripts; `theme` (`default`, the site's
+  starting theme, and `darkSelectors`, its own classes on dark backgrounds; see Theme).
 - `editor.tsx` (`defineEditor`, read through `src/lib/site/editor.ts`): settings `panels` for the
   site's blocks, `settingsFields` and `settingsTitle` for site options under Settings.
-- `styles/tokens.css` (design token values, including the role colors the core uses) and `presets.json` (the colors, sizes and spacing the editor
-  offers), `styles/theme.css` (the site's styles, imported by `src/styles/site.css`).
+- `styles/tokens.css` (tokens the theme doesn't cover) and `styles/theme.css` (the site's styles), imported
+  by `src/styles/site.css`. The palette, fonts, sizes and spacing are the theme's (see Theme).
 - `migrations/index.ts` (`MIGRATIONS`, content migrations run before the core's), `routes.json` (the
   site's own endpoints in `src/site/pages/api/`, added by the `site-routes` integration in
   `astro.config.mjs`), `moved-paths.json` (URL prefixes that moved, 301ed).
@@ -75,13 +76,43 @@ output `c-*` classes; a site's classes in content are only styling hooks for its
 Colors: the core's styles use only role tokens (`--color-text`, `-muted`, `-accent`, `-accent-hover`,
 `-dark`, `-on-dark`, `-on-accent` (optional), `-accent-fill` (optional: the accent as a background under
 `-on-accent` text, such as the Hero's first button and button hovers; else the accent), `-surface`,
-`-surface-alt`, `-surface-soft`), which the site's `tokens.css` maps
-onto its own palette (and re-maps inside dark bands; a site whose dark bands lighten the accent sets
-`-accent-fill` outside them, so white text on a fill keeps 4.5:1). Content and `presets.json` use the palette names.
+`-surface-alt`, `-surface-soft`), which the theme maps
+onto its own palette (and re-maps inside dark bands; a theme whose dark bands lighten the accent sets
+`-accent-fill` outside them, so white text on a fill keeps 4.5:1). Content uses the palette names.
 Compose's house style comes from the config's `compose`: colors (bands `plain`/`tint`/`soft`/`dark`,
 body, on-dark, accent and card; role tokens by default), and shapes and type (`headingFont`, `rule`
 between eyebrow and heading, `bodySize`/`bodyWeight`/`bodyLineHeight`, `bandPadding`, `textWidth`,
 `wideWidth`, `radius`, `buttonRadius`, `buttonCaps`; the defaults are the original house style).
+
+## Theme
+
+A site's look is settings (Settings > Theme, admins; `settings.site.theme`, `src/lib/theme/theme.ts`,
+`src/admin/ThemeSettings.tsx`), so a site needs no code for it: the palette (`colors`: slug, name,
+colour, `dark` for a dark background, `onDark` its shade inside dark bands, `hidden` out of the editor's
+choices), the role colours (`roles`), what dark bands re-map (`bands`: text, muted, accent, on-accent,
+accent-fill, headings, links, buttons), the buttons (`buttons`), fonts (`fonts.heading`, `fonts.body`: a
+library font or a CSS stack), text sizes and spacing (`fontSizes`, `spacing`, each slug, name and CSS
+length), widths (`layout.content`, `layout.wide`) and a logo (`logo`, a media id, its `logo_url` made by
+the settings API from the media row). Colour values are palette slugs or colour codes. The theme in use
+(`siteTheme`, `src/lib/theme/site.ts`) is the saved one, else the site's `theme.default` in `render.ts`
+(`codeTheme`), else `DEFAULT_THEME`; `cleanTheme` keeps only known shapes, colours and lengths (`isColor`,
+`isLength`: units and calc/clamp/min/max only), so nothing saved can break out of the style.
+
+`themeCss` writes it as custom properties: on `:root` the palette (`--color-<slug>`), roles, `--font-display`
+and `--font-body`, `--text-*`, `--space-*`, `--content-size`, `--wide-size`, the overlays in the dark
+role's colour and the buttons; inside dark bands (`darkSelectors`: sections whose style sets a `dark`
+colour as background, `.c-cover:not(.is-light)`, `.c-hero` and the site's `theme.darkSelectors`) each
+colour's `onDark`, the roles using those colours again (custom properties inherit their value) and the
+`bands` values. `renderRequest` puts it in the head after the stylesheet (`siteThemeHead`: `<style
+id="site-theme">`, unlayered, so it wins over `tokens.css`) with `@font-face` rules and preloads for its
+fonts; the editor's canvas and the form builder's preview add the same CSS. The fonts (`FONT_LIBRARY`,
+`src/lib/theme/fonts.ts`: Inter, Work Sans, DM Sans, Montserrat, Source Sans 3, Fraunces, Lora,
+Merriweather, Playfair Display, Source Serif 4, Anton, Oswald, and the device's own) are latin and
+latin-ext WOFF2 in `public/assets/fonts/library/` (OFL), each face only on pages whose theme uses it.
+Admin pages hand the theme to the browser as `window.__siteTheme`, from which `PRESETS`
+(`themePresets`) gives the editor its colour, size, font and spacing choices and Compose's targeted edits
+the colour names (`componentGuide`). The Site title block's **Show the logo instead** (`attrs.logo`)
+shows the theme's logo.
 
 ## Data model
 
@@ -506,7 +537,7 @@ term fires a cancelable `c-search:term` on the form.
   of a type; upcoming for events); a search button opening the search form; a menu button on small
   screens. Top-level links take the colour of where the block sits; the header part is the box panels
   span. **Site title** (`site-title`): the site's icon and name from Settings, with optional text
-  before the name.
+  before the name, or the theme's logo (`attrs.logo`).
 
 ## Statistics
 
@@ -649,9 +680,9 @@ conversation.
   `forms.css` and `events.css`; the page shell links the compiled file. Swiper (sliders)
   and Leaflet (maps) are served from the site, in versioned folders under `public/assets/vendor/`
   (`src/render/vendor.ts`), not a CDN, whose connection would hold up the page; their stylesheets are
-  linked only on pages that use them (`ctx.assets`). Scripts are in `public/assets/js/`. A site serves
-  its fonts the same way (files in `src/site/public/assets/fonts/`, `@font-face` in its `theme.css`, the
-  first faces preloaded from its `render.ts` `head`).
+  linked only on pages that use them (`ctx.assets`). Scripts are in `public/assets/js/`. Fonts are served
+  the same way: the theme's from the core's library (see Theme); a font outside it from the site's
+  `src/site/public/assets/fonts/`, its `@font-face` in the site's `theme.css`, the theme naming its stack.
 - Pages are cached at the CDN through Astro's route cache (`cache` in `astro.config.mjs`, the Cloudflare
   provider; `src/lib/cache.ts`): fresh for 60s, then served stale for up to a week while they refresh,
   in the Workers cache, tagged `pages` (and each page's path). A successful admin write
@@ -1733,7 +1764,7 @@ template's `<kind>:<slug>`) and opens its editor with `?compose`, where Compose 
 builder's and campaign editor's Compose dialogs, or the editor's panel, whose conversation it starts.
 
 **Settings** (admins; `src/puck/SiteSettings.tsx`, page `src/pages/admin/settings/[...section].astro`): a side
-menu of sections in groups (`SETTINGS_GROUPS`, `src/lib/admin/settings-sections.ts`): Site (General, Menu,
+menu of sections in groups (`SETTINGS_GROUPS`, `src/lib/admin/settings-sections.ts`): Site (General, Menu, Theme,
 Social, Search, Types, the site's own options, Popups, Stats, Code snippets), Features (Events, Tickets, Members, Mailing Lists, Shop, Donations,
 marked On or Off), Services (Connections), Admin (Accessibility, Appearance) and Upkeep (Redirects, Email log, Sync,
 Backups); a Section dropdown on phones. Each section has its own address, `/admin/settings/<section>/`

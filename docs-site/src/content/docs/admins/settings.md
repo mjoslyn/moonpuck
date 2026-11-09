@@ -35,6 +35,7 @@ An item can also open a larger drop-down panel: add **Links** under a **Links he
 | **General** | The site's name, tagline, which page is the home page, and which page people see when an address doesn't exist. |
 | **Types** | The kinds of content the site has, which layout (template) each uses, and which kinds can be marked featured (see [Kinds of content and taxonomies](/admins/content-types/)). Usually set up once. |
 | **Search** | Which kinds of content the site search covers. |
+| **Theme** | The site's colours, fonts, text sizes, spacing, widths and logo (see [The site's theme](#the-sites-theme)). |
 | **Social** | Your social media profiles (shown as icons), share cards (see [Share cards](#share-cards)) and the picture used when a page without its own image is shared. |
 | **Popups** | Popups over the site's pages and the cookie consent banner (see [Popups and cookie consent](/admins/popups-and-cookies/)). |
 | **Stats** | Whether Stats recognises returning visitors with a cookie (see [The Stats cookie](/admins/popups-and-cookies/#the-stats-cookie)). |
@@ -47,6 +48,65 @@ An item can also open a larger drop-down panel: add **Links** under a **Links he
 | **Redirects** | Send visitors from an old address to a new one (see [Redirects and missing pages](/admins/redirects/)). |
 | **Email log** | Keep a record of the emails the site sends (see [Email log and backups](/admins/email-log-and-backups/)). |
 | **Sync** and **Backups** | Copying content between copies of the site, and backups. Usually left to whoever set up the site. |
+
+## The site's theme
+
+**Settings**, **Theme** sets how the site looks. A preview at the top shows text, a link and buttons
+on a light background and on a dark band as you change things. Click **Save settings** to put the
+changes on the site.
+
+**Colours** are the site's palette. Each colour has:
+
+- **Colour**: pick it, or type a code such as `#1a1a2e`.
+- **Name**: what editors see when they choose it.
+- **Dark background**: tick it for dark colours. A section with this background gets light text and
+  the lighter shades below.
+- **Not in the editor's choices**: hide it from the colour choices in the page editor. Blocks already
+  using it keep it.
+- **On dark backgrounds**: the colour to use in its place inside dark sections, such as a lighter blue,
+  so text in it stays readable.
+
+**Add colour** adds one. A colour that something else in the theme uses can't be removed until that
+is changed.
+
+**What each colour is for**, each one of the palette's colours or a colour code:
+
+- **Text**: body text.
+- **Muted text**: dates, captions and other quiet text.
+- **Accent (links, highlights)** and **Accent on hover**: links, eyebrows and buttons.
+- **Button fill**: the accent when it is a button's background (optional).
+- **Dark background** and **Text on dark backgrounds**: dark bands, and the text on them.
+- **Text on the accent**: words on an accent-coloured button.
+- **Page background**, **Alternate background** and **Soft background**: light backgrounds.
+
+**On dark backgrounds** sets what changes inside dark sections, covers and heroes: text, muted text,
+accent, headings, links and buttons. Leave one at **Unchanged** to keep it as it is.
+
+**Buttons**:
+
+- **Background** and **Text**.
+- **Background on hover** and **Text on hover**.
+
+**Fonts**:
+
+- **Headings**: the font for headings, quotes and big numbers.
+- **Text**: the font for everything else.
+- Each is one of the fonts the site comes with (serif, sans-serif and display fonts, or the device's
+  own), served from the site itself.
+
+**Text sizes** and **Spacing** list the sizes editors choose from, each a name and a size such as
+`1.25rem`. Open the list to change one.
+
+**Layout**:
+
+- **Text width**: how wide text runs (such as `720px`).
+- **Wide width**: how wide **Wide** blocks run (such as `1280px`).
+
+**Logo**: an image shown by a Site title block with **Show the logo instead** on (see
+[Site title](/editors/page-editor/#site-title)). **Remove logo** takes it away.
+
+**Go back to the site's starting theme** throws away the changes made here and uses the theme the site
+was built with. Click **Save settings** to keep that.
 
 ## Share cards
 

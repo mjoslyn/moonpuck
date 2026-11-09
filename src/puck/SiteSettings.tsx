@@ -41,13 +41,15 @@ import { MENU_FIELDS } from '../lib/navigation';
 import { SNIPPET_MAX, SNIPPET_PLACES, type CodeSnippets } from '../lib/snippets';
 import { consentPopup, type Popup, type StatsSettings } from '../lib/popups';
 import PopupsSettings from '../admin/PopupsSettings';
+import ThemeSettings from '../admin/ThemeSettings';
+import type { Theme } from '../lib/theme/theme';
 import type { TaxonomyMeta } from '../lib/page-meta';
 import { ADMIN_THEME_DEFAULTS, ADMIN_THEME_FIELDS, adminThemeVars, contrast, type AdminTheme } from '../lib/admin-theme';
 
 interface Props {
   /** The section the address names. */
   section: string;
-  site: { name?: string; description?: string; front_page_id?: number | null; not_found_page_id?: number | null; timezone?: string; search_types?: string[]; social?: { network: string; url: string }[]; share_image?: number; share_image_url?: string; share_cards?: boolean; templates?: TemplateMap; taxonomy_templates?: Record<string, string>; taxonomy_pages_off?: string[]; taxonomy_meta?: Record<string, TaxonomyMeta>; listing_meta?: Record<string, TaxonomyMeta>; listings_off?: string[]; featured_types?: string[]; icons?: Record<string, string>; icon_media_id?: number | null; icon_preview?: string; admin_theme?: AdminTheme; tickets?: TicketSettings; members?: Partial<MemberSettings>; mailing?: MailingSettings; events?: { enabled?: boolean }; shop?: Partial<ShopSettings>; donations?: Record<string, any>; a11y?: { block_publish?: boolean }; snippets?: CodeSnippets; popups?: Popup[]; stats?: StatsSettings; mail_log?: { enabled?: boolean; days?: number } };
+  site: { name?: string; description?: string; front_page_id?: number | null; not_found_page_id?: number | null; timezone?: string; search_types?: string[]; social?: { network: string; url: string }[]; share_image?: number; share_image_url?: string; share_cards?: boolean; theme?: Theme; templates?: TemplateMap; taxonomy_templates?: Record<string, string>; taxonomy_pages_off?: string[]; taxonomy_meta?: Record<string, TaxonomyMeta>; listing_meta?: Record<string, TaxonomyMeta>; listings_off?: string[]; featured_types?: string[]; icons?: Record<string, string>; icon_media_id?: number | null; icon_preview?: string; admin_theme?: AdminTheme; tickets?: TicketSettings; members?: Partial<MemberSettings>; mailing?: MailingSettings; events?: { enabled?: boolean }; shop?: Partial<ShopSettings>; donations?: Record<string, any>; a11y?: { block_publish?: boolean }; snippets?: CodeSnippets; popups?: Popup[]; stats?: StatsSettings; mail_log?: { enabled?: boolean; days?: number } };
   options: Record<string, any>;
   pages: { id: number; title: string }[];
   templates: TemplateInfo[];
@@ -185,6 +187,11 @@ export default function SiteSettings({ section, site: initialSite, options: init
         })}
         </>
       ),
+    },
+    {
+      id: 'theme',
+      label: 'Theme',
+      panel: <ThemeSettings value={site.theme} onChange={(t) => setSite((s) => ({ ...s, theme: t }))} />,
     },
     {
       id: 'social',

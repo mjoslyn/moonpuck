@@ -14,6 +14,7 @@ import { site, ARCHIVE_PATHS, PAGELESS_TYPES, RECORD_TYPES, TAXONOMY_BASES, TYPE
 import { texturize } from '../lib/text/formatting';
 import { optimizeImages } from '../lib/media/image';
 // The site stylesheet (Tailwind, compiled by Vite); linked after the legacy bundles.
+import { siteThemeHead } from '../lib/theme/site';
 import siteCss from '../styles/site.css?url';
 import { modernizeImages } from '../lib/media/modernize';
 import { esc } from './html';
@@ -401,6 +402,7 @@ ${meta}${pre}<style id='core-block-supports-inline-css'>
 ${css}
 </style>
 ${(ctx.headScripts ?? []).map((s) => `${s}\n`).join('')}<link rel='stylesheet' id='site-css' href='${siteCss}' media='all' />
+${siteThemeHead(site)}
 ${SITE_RENDER.head ? `${SITE_RENDER.head(ctx)}\n` : ''}${icons['32'] ? `<link rel="icon" href="${icons['32']}" sizes="32x32" />\n` : ''}${icons['192'] ? `<link rel="icon" href="${icons['192']}" sizes="192x192" />\n` : ''}${icons['180'] ? `<link rel="apple-touch-icon" href="${icons['180']}" />\n` : ''}${snippetAt(snippets, 'head')}</head>
 
 <body class="${bodyClasses(queried)}"${editTargets(queried, templateSlug, !!preview)}>

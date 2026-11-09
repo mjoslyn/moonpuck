@@ -1,4 +1,5 @@
 ---
+import { siteTheme } from '../lib/theme/site';
 import { COMPOSABLE_TYPES, CONTENT_TYPES, SITE_TZ, appliedTypeSettings, site } from '../lib/site';
 import AdminTheme from './AdminTheme.astro';
 import { loadAdminTheme } from '../lib/admin-theme';
@@ -25,6 +26,8 @@ const isAdmin = user?.role === 'admin';
 const theme = await loadAdminTheme(Astro.locals.db ?? siteDb());
 // Members, Tickets, Mailing and the Shop while they are on (Settings > Members, Events, Mailing, Shop).
 const siteSettings = (await (Astro.locals.db ?? siteDb()).from('settings').select('value').eq('key', 'site').maybeSingle()).data?.value;
+// The site's theme as it is now, for the editor's colour and size choices (src/lib/theme/theme.ts, PRESETS).
+const siteThemeNow = siteTheme(siteSettings);
 const membersOn = isAdmin && memberSettings(siteSettings).enabled;
 const ticketsOn = eventsOn(siteSettings);
 const mailOn = mailingOn(siteSettings);
@@ -42,7 +45,7 @@ const link = (on: boolean) => (on ? 'bg-admin-on-bar/15 text-admin-on-bar' : 'te
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
-    <script is:inline define:vars={{ siteTz: SITE_TZ, siteTypes: appliedTypeSettings() }}>window.__siteTz = siteTz; window.__siteTypes = siteTypes;</script>
+    <script is:inline define:vars={{ siteTz: SITE_TZ, siteTypes: appliedTypeSettings(), siteThemeNow }}>window.__siteTz = siteTz; window.__siteTypes = siteTypes; window.__siteTheme = siteThemeNow;</script>
     <title>{title} · {site.name} admin</title>
     <AdminTheme theme={theme} />
   </head>

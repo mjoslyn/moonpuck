@@ -12,6 +12,7 @@ import { MAX_QUANTITY, productsOf } from '../lib/forms/payment';
 import { CURRENCIES } from '../lib/payments/money';
 import type { ProviderStatus } from '../lib/payments';
 import siteCss from '../styles/site.css?url';
+import { siteThemeCss } from '../lib/theme/site';
 import { site, typeDef } from '../lib/site';
 import { MergeTags, mergeTagOptions } from './rich-message';
 import EmailBuilder from './EmailBuilder';
@@ -462,8 +463,8 @@ function Preview({
 
   const srcDoc = useMemo(
     () =>
-      `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Work+Sans:wght@300;400;500;600&display=swap">` +
-      `<link rel="stylesheet" href="${siteCss}"><style>${PREVIEW_CSS}</style></head><body><div class="cms-preview" id="root"></div></body></html>`,
+      `<!doctype html><html><head><meta charset="utf-8">` +
+      `<link rel="stylesheet" href="${siteCss}"><style>${siteThemeCss({ theme: (window as any).__siteTheme })}\n${PREVIEW_CSS}</style></head><body><div class="cms-preview" id="root"></div></body></html>`,
     [],
   );
 

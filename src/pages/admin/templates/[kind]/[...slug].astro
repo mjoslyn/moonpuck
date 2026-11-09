@@ -1,4 +1,6 @@
 ---
+import { siteTheme } from '../../../../lib/theme/site';
+import { siteDb as themeDb } from '../../../../lib/db/site';
 import AdminTheme from '../../../../layouts/AdminTheme.astro';
 import { SITE_TZ, appliedTypeSettings, site } from '../../../../lib/site';
 import '../../../../styles/tailwind.css';
@@ -16,6 +18,8 @@ if (!here) {
   const moved = (all ?? []).find((t) => ((t.former_slugs as string[] | null) ?? []).includes(slug));
   if (moved) return Astro.redirect(`/admin/templates/${kind}/${moved.slug}/`);
 }
+// The site's theme as it is now, for the editor's colour and size choices (src/lib/theme/theme.ts, PRESETS).
+const siteThemeNow = siteTheme((await (Astro.locals.db ?? themeDb()).from('settings').select('value').eq('key', 'site').maybeSingle()).data?.value);
 ---
 <!doctype html>
 <html lang="en">
@@ -23,7 +27,7 @@ if (!here) {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
-    <script is:inline define:vars={{ siteTz: SITE_TZ, siteTypes: appliedTypeSettings() }}>window.__siteTz = siteTz; window.__siteTypes = siteTypes;</script>
+    <script is:inline define:vars={{ siteTz: SITE_TZ, siteTypes: appliedTypeSettings(), siteThemeNow }}>window.__siteTz = siteTz; window.__siteTypes = siteTypes; window.__siteTheme = siteThemeNow;</script>
     <AdminTheme />
     <title>{slug} · {site.name} admin</title>
   </head>

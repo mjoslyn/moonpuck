@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 import { Code, LinkInput, MediaModal, MediaPicker, mediaLibraryUrl, Num, RichText, Row, Segmented, Select, Text, Toggle, inputClass, type Attrs, FieldGroup } from './fields';
 import { videoEmbedAttrs } from '../lib/media/video-link';
-import { PRESETS as themeJson } from '../lib/site';
+import { PRESETS as themeJson } from '../lib/theme/theme';
 import { site } from '../lib/site';
 import { LIST_ICONS, iconSvg } from '../render/c/icons';
 import { useEffect, useState } from 'react';
@@ -535,10 +535,11 @@ Object.assign(CONTENT_PANELS, {
   ),
   'site-title': (a: Attrs, set: SetFn) => (
     <>
-      <p className="mb-3 text-xs text-admin-muted">The site's icon and name (Settings), linking to the home page.</p>
-      <Toggle title="Icon" value={a.icon !== false} onChange={(v) => set({ icon: v ? undefined : false })} />
-      <Toggle title="Name" value={a.name !== false} onChange={(v) => set({ name: v ? undefined : false })} />
-      {a.name !== false && <Text title="Before the name" value={a.prefix} placeholder="e.g. Welcome to " onChange={(v) => set({ prefix: v || undefined })} />}
+      <p className="mb-3 text-xs text-admin-muted">The site's icon and name (Settings), linking to the home page, or the logo chosen under Settings &gt; Theme.</p>
+      <Toggle title="Show the logo instead" value={!!a.logo} onChange={(v) => set({ logo: v || undefined })} />
+      {!a.logo && <Toggle title="Icon" value={a.icon !== false} onChange={(v) => set({ icon: v ? undefined : false })} />}
+      {!a.logo && <Toggle title="Name" value={a.name !== false} onChange={(v) => set({ name: v ? undefined : false })} />}
+      {!a.logo && a.name !== false && <Text title="Before the name" value={a.prefix} placeholder="e.g. Welcome to " onChange={(v) => set({ prefix: v || undefined })} />}
     </>
   ),
   map: (a: Attrs, set: SetFn) => (
