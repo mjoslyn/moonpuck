@@ -109,7 +109,7 @@ async function must<T = any>(q: any, what: string): Promise<T[]> {
   return data;
 }
 /** Rows whose `column` is one of `ids`, 200 ids a request, each read in pages (ordered by `order`,
- *  which must end on a unique column) so none past PostgREST's 1000-row limit are lost. */
+ *  which must end on a unique column) so none past a page of 1000 rows are lost. */
 async function byIds<T = any>(db: Db, table: string, select: string, column: string, ids: (number | string)[], order: string[] = [column]): Promise<T[]> {
   const out: T[] = [];
   for (let i = 0; i < ids.length; i += 200) {

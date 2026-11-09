@@ -18,7 +18,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
   const id = Number(params.id);
   const { data: form, error } = await locals.db.from('forms').select('title, definition').eq('id', id).single();
   if (error) return new Response(error.message, { status: 404 });
-  // Every submission (PostgREST answers 1000 rows at a time).
+  // Every submission (read 1000 rows at a time).
   const { data: rows, error: e2 } = await allRows(locals.db.from('form_submissions').select('id, data, payment, created_at').eq('form_id', id).order('created_at', { ascending: false }).order('id'));
   if (e2) return new Response(e2.message, { status: 400 });
   const def = form.definition as FormDef;

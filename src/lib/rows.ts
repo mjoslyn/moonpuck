@@ -1,5 +1,5 @@
-// A query that needs many rows reads them a page at a time (PostgREST answered at most 1000 rows; the
-// query layer has no cap, and pages keep each answer small).
+// A query that needs many rows reads them a page at a time (the query layer has no cap; pages keep
+// each answer small).
 export const MAX_ROWS = 1000;
 
 /**

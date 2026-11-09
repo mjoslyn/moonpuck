@@ -44,14 +44,12 @@
     "esbuild": true
   },
   "devDependencies": {
-    "@types/pg": "^8.23.1",
     "@types/pngjs": "^6.0.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/spark-md5": "^3.0.5",
     "node-html-parser": "^9.0.4",
     "parse5": "^8.0.1",
-    "pg": "^8.23.1",
     "pixelmatch": "^7.2.0",
     "playwright": "^1.63.0",
     "pngjs": "^7.0.0",

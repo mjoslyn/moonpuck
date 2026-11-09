@@ -147,8 +147,8 @@ visitor chose.
 
 ## Below the Loader
 
-`ctx.loader.db` is the query layer (`db.from('entries').select(...).eq(...)`, the calls of the Supabase
-client, on D1). It reads as the server and isn't limited to what visitors may see: a query of
+`ctx.loader.db` is the query layer, a chained query builder on D1
+(`db.from('entries').select(...).eq(...)`, `src/lib/db`). It reads as the server and isn't limited to what visitors may see: a query of
 `entries` through it should go through `visibleTo(query, ctx.loader.scope)` (`src/lib/data.ts`), which
 adds the Loader's limits. Reach for it only for what the Loader doesn't read: a table of the site's own,
 or a count. Each statement stays within D1's limits (100 bound values; lists are bound as one value, so

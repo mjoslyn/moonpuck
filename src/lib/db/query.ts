@@ -1,4 +1,4 @@
-// The query builder the code reads and writes with: the same chained calls the Supabase client had
+// The query builder the code reads and writes with: chained calls
 // (from, select, eq, or, order, range, single...), so call sites keep their shape. It only describes a
 // query (a QuerySpec); an Executor runs it: on the server, compiled to SQL (src/lib/db/sqlite.ts); in the
 // admin's browser, posted to /api/admin/db, which runs it as the signed-in editor. Safe in the browser.
@@ -65,7 +65,7 @@ export function shape(result: Result, single?: 'one' | 'maybe'): Result {
   return { data: null, error: { ...SINGLE_ERROR, details: `The result contains ${rows.length} rows` }, count: result.count, status: 406 };
 }
 
-/** PostgREST's text form of a list: `(a,b,"c,d")`. */
+/** The text form of a list: `(a,b,"c,d")`. */
 function parseList(text: string): string[] {
   const inner = text.trim().replace(/^\(/, '').replace(/\)$/, '');
   return splitTop(inner).map(unquote);
@@ -101,7 +101,7 @@ function splitTop(text: string): string[] {
 
 const OPS = new Set<string>(['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'like', 'ilike', 'is', 'in', 'cs', 'cd', 'fts']);
 
-/** One condition in PostgREST's text form (`col.op.value`, `not.and(...)`), as used in or(). */
+/** One condition in text form (`col.op.value`, `not.and(...)`), as used in or(). */
 function parseCondition(text: string): Filter {
   let s = text.trim();
   let not = false;
@@ -137,12 +137,12 @@ function parseValue(op: Op, raw: string): unknown {
   return unquote(raw);
 }
 
-/** A list of conditions in PostgREST's text form, any of which may hold. */
+/** A list of conditions in text form, any of which may hold. */
 export function parseOr(text: string): Filter {
   return { any: splitTop(text).map(parseCondition) };
 }
 
-/** Builds one query; awaiting it runs it. Methods change the query and return it, as Supabase's did. */
+/** Builds one query; awaiting it runs it. Methods change the query and return it. */
 export class QueryBuilder<T = any[]> implements PromiseLike<Result<T>> {
   private spec: QuerySpec;
 
@@ -217,7 +217,7 @@ export class QueryBuilder<T = any[]> implements PromiseLike<Result<T>> {
     return this;
   }
 
-  /** `not(col, op, value)`; an `in` value can be PostgREST's text list, `(1,2,3)`. */
+  /** `not(col, op, value)`; an `in` value can be a text list, `(1,2,3)`. */
   not(col: string, op: string, value: unknown): this {
     if (!OPS.has(op)) throw new Error(`Unknown operator: ${op}`);
     const v = op === 'in' && typeof value === 'string' ? parseList(value) : value;

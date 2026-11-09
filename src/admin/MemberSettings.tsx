@@ -54,7 +54,7 @@ export default function MemberSettingsPanel({ value, onChange }: { value: Partia
           )}
           <Text title="Message for visitors who can't see members-only things" value={value.message} placeholder="This is for members." onChange={(message) => set({ message: message || undefined })} />
           <p className="text-xs text-admin-muted">
-            Members sign in and sign up at <a className="underline" href="/account/" target="_blank">/account/</a>. Their links (set a password, confirm an address) go there, so Supabase Auth's redirect URLs must include this site's address.
+            Members sign in and sign up at <a className="underline" href="/account/" target="_blank">/account/</a>. Their links (set a password, confirm an address) go there.
           </p>
         </>
       )}

@@ -21,7 +21,6 @@ npx tsx --env-file=.env scripts/create-editor.ts you@example.org 'password' [edi
 npx tsx --env-file=.env scripts/migrate-content.ts [--dry-run]   # site then core content migrations
 npx tsx --env-file=.env scripts/media-formats.ts                 # backfill AVIF/WebP for existing media
 npx tsx --env-file=.env scripts/copy-storage.ts                  # files from another S3-compatible store (moving a site)
-npx tsx --env-file=.env scripts/pg-to-d1.ts                      # a Postgres copy's data into D1 (moving a site)
 ```
 
 ## Database

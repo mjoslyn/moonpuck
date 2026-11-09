@@ -1,7 +1,7 @@
 // Accounts (src/lib/auth) against the running site, without a browser: admin sign-in and sign-out, an
 // invitation from its email to a password and a session, an admin's password link, used links refused,
-// a member's sign-in, password link and account page, a sign-up's confirmation link, and a password
-// carried over from Supabase Auth (bcrypt) signing in and being rehashed. Emails are read from the local
+// a member's sign-in, password link and account page, a sign-up's confirmation link, and an older
+// bcrypt password signing in and being rehashed. Emails are read from the local
 // mail catcher (LOCAL_MAIL_URL). Removes what it makes.
 //   npx tsx --env-file=.env scripts/auth-e2e.ts
 import bcrypt from 'bcryptjs';
@@ -118,7 +118,7 @@ try {
   ok('a bad confirmation link says so', (r.headers.get('location') ?? '').includes('error='));
   await deleteUser(s.id);
 
-  // A password carried over from Supabase Auth.
+  // An older bcrypt password.
   const c = await createUser({ email: carried, emailVerified: true });
   await db.from('accounts').insert({ id: crypto.randomUUID(), user_id: c.id, account_id: c.id, provider_id: 'credential', password: bcrypt.hashSync('carried-password-1', 10) });
   r = await post('/api/auth/login', { email: carried, password: 'carried-password-1' });

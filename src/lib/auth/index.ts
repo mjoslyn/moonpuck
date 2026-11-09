@@ -2,8 +2,8 @@
 // accounts, verifications; migration *_auth_tables.sql): passwords, sessions in a signed cookie,
 // password links and email confirmation. Its HTTP routes aren't mounted: the site's own endpoints
 // (src/pages/api/auth/, src/pages/api/members/) call it and send its emails themselves
-// (src/lib/auth/mail.ts), with links to the site's pages. Passwords carried over from Supabase Auth are
-// bcrypt; they are checked as such and rehashed (scrypt) the next time their owner signs in.
+// (src/lib/auth/mail.ts), with links to the site's pages. Older passwords (accounts brought over from a
+// site's earlier host) are bcrypt; they are checked as such and rehashed (scrypt) the next time their owner signs in.
 import { betterAuth } from 'better-auth';
 import { APIError, createEmailVerificationToken } from 'better-auth/api';
 import { hashPassword, verifyJWT, verifyPassword } from 'better-auth/crypto';

@@ -204,8 +204,6 @@ follow the config. `CORE.md` describes each option.
    npx tsx --env-file=.env.production scripts/seed.ts
    npx tsx --env-file=.env.production scripts/create-editor.ts you@example.org 'a-password' admin
    ```
-   A site moving from Netlify and Supabase copies its files with `scripts/copy-storage.ts` and its data
-   with `scripts/pg-to-d1.ts` instead (`docs/cloudflare-migration.md`, Moving an existing site).
 4. **The Worker.**
    Set the secrets (`npx wrangler secret put <NAME>`): `AUTH_SECRET` (a long random value of its own,
    e.g. `openssl rand -hex 32`), `SYNC_SECRET` (to sync with another copy: the same long random value on

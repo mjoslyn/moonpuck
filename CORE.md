@@ -32,8 +32,7 @@ remote. Its history starts from this one, with a commit that swaps the example `
   site's `styles/tokens.css` and `styles/theme.css` in `src/styles/site.css` aside). New core code must not hard-code a site's types, URLs or names.
 - Migrations (core and site, `db/migrations/`) are named with the time they were written
   (`YYYYMMDDHHMMSS_name.sql`) and applied with `npx wrangler d1 migrations apply DB --local` (or
-  `--remote`), which applies every one not yet applied, in order. The Postgres migrations from before
-  D1 are in the history (commit `68b7327` is the last with `supabase/migrations/`).
+  `--remote`), which applies every one not yet applied, in order.
 - Content changes (renamed props, moved settings) ship as migrations: see Changing stored content.
 
 ## Site config
@@ -388,8 +387,8 @@ rest fills a `*` in the target (`src/lib/redirects.ts`, tables `redirects` and `
 rule covers an address is decided in one place, `ruleCovers`: an exact rule covers its own path, a
 wildcard every path under its prefix. Redirects apply when an address would otherwise be Not found
 (`renderRequest`, before the slug guess), so they never hide a live page: the exact rule first, else
-the wildcard with the longest prefix (the `wildcard` column; in a like pattern of the query layer, as
-in PostgREST's, `*` means `%`). Uses are counted (`redirect_hit`). A rule that would lead back to itself is refused
+the wildcard with the longest prefix (the `wildcard` column; in a like pattern of the query layer `*` means
+`%`). Uses are counted (`redirect_hit`). A rule that would lead back to itself is refused
 (`loopReason`: a wildcard whose target is under its own prefix). A published entry whose address
 changes gets one automatically (`redirectMovedEntry`, from the entries API).
 
@@ -702,7 +701,8 @@ conversation.
 
 Files are kept in the site's store (`src/lib/storage.ts`): one private R2 bucket, the `BUCKET` binding
 (under `astro dev` a local bucket in `.wrangler/state`), with the folders `media/`, `compose/` and
-`sync-backups/`; a Db carries it as `storage`, answering the calls the code made of Supabase Storage.
+`sync-backups/`; a Db carries it as `storage` (`storage.from(folder).upload/download/list/remove`,
+answering `{ data, error }`).
 Scripts in Node reach the same local bucket through wrangler's platform proxy
 (`src/lib/local-bindings.ts`; a script that uses it calls `closeLocalBindings()` before it ends), or the
 deployed one over R2's S3 API with `STORAGE_ENDPOINT`, `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY_ID` and
@@ -714,8 +714,8 @@ folder paths with a leading slash, a backslash or a `.` or `..` segment are refu
 file, one past its end 416 (`parseRange`). Videos are sent as the request's body
 (`src/lib/media/upload.ts`) and streamed to the store, up to 200 MB (Cloudflare refuses requests over
 100 MB on its Free and Pro plans); forms over 90 MB are refused.
-`scripts/copy-storage.ts` copies a site's files from another S3-compatible store (Supabase Storage's S3
-endpoint, whose buckets are the folders, or another copy's bucket) into the store (resumable).
+`scripts/copy-storage.ts` copies a site's files from another S3-compatible store (another copy's bucket,
+or a store whose buckets are the folders) into the store (resumable).
 
 **Documents** (`src/lib/media/documents.ts`): PDF, Word, Excel, PowerPoint, OpenDocument, plain text and
 CSV, up to `DOC_MAX_MB` (50), are uploaded like images (the Media screen takes several files at once)
@@ -1700,8 +1700,7 @@ link to edit that template, part or pattern in a new tab (`markSources`, `Source
 ### Accounts
 
 Accounts are the site's own (`src/lib/auth`, server only), kept by Better Auth in `users`, `sessions`,
-`accounts` (a password) and `verifications` (one-time values; migration `*_auth_tables.sql`, which
-copied Supabase Auth's users with their ids, passwords and open invitations). Better Auth's routes
+`accounts` (a password) and `verifications` (one-time values; migration `*_auth_tables.sql`). Better Auth's routes
 aren't mounted: the site's endpoints call it (`signIn`, `signOut`, `sessionUser`, `createUser`,
 `setPassword`, `passwordToken`, `setPasswordWithToken`, `confirmToken`, `confirmAddress`) and send its
 emails themselves (`src/lib/auth/mail.ts`, through `sendMail`: Email Service, else SMTP). The session is a signed cookie,
@@ -1716,9 +1715,8 @@ Every account has a profile, made with it (`databaseHooks`); sign-ins set `users
 Failed sign-ins are limited to 10 per address and 30 per visitor in 15 minutes, and password links to 3
 per address and 20 per visitor an hour (`src/lib/auth/attempts.ts`, rows in `verifications`); over a
 limit sign-in says to try again later, and a password link request answers as usual and sends nothing.
-Setting a password from a link ends the account's other sessions. Passwords are scrypt; those carried
-over from Supabase Auth are bcrypt, checked as such and rehashed
-on the next sign-in. Editors and admins sign in at `/admin/login/` (`/api/auth/login`); a password
+Setting a password from a link ends the account's other sessions. Passwords are scrypt; older bcrypt ones
+(accounts brought over from a site's earlier host) are checked as such and rehashed on the next sign-in. Editors and admins sign in at `/admin/login/` (`/api/auth/login`); a password
 link (Forgot password, `/api/auth/forgot`) and an opened invitation both lead to
 `/admin/set-password/?token=` (a one-time token, an hour; members: the account page), where setting the
 password confirms the address, spends any invitation and signs in. Without SMTP a visitor's own request
@@ -1831,14 +1829,12 @@ titled, returns the id).
 ## Database access
 
 The database is D1 (SQLite; the `DB` binding, schema in `db/migrations/`). The code reads and writes
-through the query layer (`src/lib/db`), whose calls are the ones the Supabase client had
+through the query layer (`src/lib/db`), a chained query builder
 (`db.from('entries').select(...).eq(...)`, embedded relations, `or()` strings, `range`, `single`,
 `upsert`, `rpc`), so the code kept its shape: `query.ts` builds a query (safe in the browser),
-`sqlite.ts` compiles it to one SQLite statement whose rows are JSON built in SQL, typed as PostgREST
-answered them: booleans as `true`/`false`, JSON and arrays as values, embeds in jsonb's key order,
-times as ISO strings in UTC with milliseconds, text sorted without regard to case, nulls last going up
-(checked against PostgREST on the same data by `scripts/checks/d1-parity.ts` while a Postgres copy
-exists). Tables and columns are checked against `schema.ts` (generated from the local D1 by
+`sqlite.ts` compiles it to one SQLite statement whose rows are JSON built in SQL, typed as the code reads
+them: booleans as `true`/`false`, JSON and arrays as values, embeds in jsonb's key order,
+times as ISO strings in UTC with milliseconds, text sorted without regard to case, nulls last going up. Tables and columns are checked against `schema.ts` (generated from the local D1 by
 `scripts/db-schema.ts`; run it after a migration that changes tables). Every value is bound, lists and
 written rows as one JSON value each (`json_each`), so a statement stays inside D1's 100 bound values.
 D1 also takes at most 32 arguments per SQL function and 50-byte LIKE and GLOB patterns (local SQLite
@@ -1850,8 +1846,8 @@ takes more, so local runs don't show these): a row's `json_object` has 16 column
   `TIMESTAMPTZ`, `DATE`, `UUID`, `INTEGER`, `TEXT`, `REAL`); booleans are kept as 1 and 0, JSON as
   text. `*_touch` triggers keep `updated_at` current when a write doesn't set it (the layer sets it; a
   write that sets `updated_at` itself keeps it, the layer writing it again after the trigger);
-  generated columns (`contacts.name`, `redirects.wildcard`) are D1's. What Postgres computed in
-  triggers the layer fills on write: `entries.body_text` from `content`, `contacts.email_hash` (the
+  generated columns (`contacts.name`, `redirects.wildcard`) are D1's. What the database doesn't
+  compute the layer fills on write: `entries.body_text` from `content`, `contacts.email_hash` (the
   address as `mail_suppressions` keeps it) from `email`.
 - `src/lib/db/d1.ts` (`database()`): in the Worker the binding; in Node scripts the local D1 file
   (`.wrangler/state`, through `node:sqlite`; `D1_LOCAL_FILE` when there are several) or, with
@@ -1988,8 +1984,7 @@ npm test                                # unit tests (Vitest), with D1's limits 
 npx tsx scripts/checks/formatting.ts    # autop/texturize against scripts/checks/formatting-cases.json
 npx tsx scripts/checks/recurrence.ts    # recurrence rules, DST, event date sync
 npx tsx scripts/db-schema.ts            # src/lib/db/schema.ts from the local D1, after a migration
-npx tsx --env-file=.env scripts/pg-to-d1.ts [--replace | --out data.sql]   # a Postgres copy's data into D1 (moving a site)
-npx tsx --env-file=.env scripts/copy-storage.ts [folder...]   # files from another store (moving a site)
+npx tsx --env-file=.env scripts/copy-storage.ts [folder...]   # files from another S3-compatible store
 npx tsx scripts/checks/mailing.ts       # signed links, mailing emails, link tracking, click verdicts, digest times
 npx tsx --env-file=.env scripts/media-formats.ts   # backfill AVIF/WebP for existing media
 ```
@@ -2014,7 +2009,7 @@ Square's testing panel, whose Test Payment pays the order) and reports the confi
 payment (that needs the provider's test keys and network access to it).
 `scripts/auth-e2e.ts` runs accounts without a browser: admin sign-in, an invitation from its email to a
 password, password links (spent once used), a member's sign-in, password link and account page, a
-sign-up's confirmation link, and a bcrypt password carried over from Supabase Auth.
+sign-up's confirmation link, and and an older bcrypt password.
 `scripts/mailing-e2e.ts` runs Mailing without Mailgun (emails read from the local mail catcher,
 `LOCAL_MAIL_URL`): sign-up and confirmation, preferences, unsubscribing (one-click from another site),
 a campaign with its variables, footer and tracked links, clicks as a person and a machine, signed and

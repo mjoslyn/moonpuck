@@ -1,8 +1,8 @@
 // Signed links in mailing emails and pages: a contact's id with an HMAC, so the preferences, unsubscribe
 // and confirmation pages know who they are for without a stored token, and a link can't be changed to
 // reach someone else. Each use has its own purpose, so a link made for one can't serve another. The key
-// is MAIL_LINK_SECRET, else one made from AUTH_SECRET (changing either breaks links already sent; a site
-// that moved off Supabase without one set it to `mail-links:<its old service_role key>`).
+// is MAIL_LINK_SECRET, else one made from AUTH_SECRET (changing either breaks links already sent, so a
+// site whose links were made with another key sets MAIL_LINK_SECRET to that key).
 // Server only.
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { env } from '../env';

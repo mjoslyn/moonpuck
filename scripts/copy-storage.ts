@@ -1,9 +1,8 @@
 // Copy a site's files into its store (STORAGE_* when set, else the local bucket astro dev uses), each
 // folder (media, compose, sync-backups) from its source. The source is an S3-compatible store:
 // SOURCE_STORAGE_ENDPOINT, SOURCE_STORAGE_ACCESS_KEY_ID, SOURCE_STORAGE_SECRET_ACCESS_KEY and
-// SOURCE_STORAGE_REGION. For Supabase Storage (a site moving off it) that is the project's S3 endpoint
-// (https://<ref>.supabase.co/storage/v1/s3, keys from Storage > S3 Connection), whose buckets are the
-// folders; with SOURCE_STORAGE_BUCKET, one bucket holding the folders (another copy's store). Resumable:
+// SOURCE_STORAGE_REGION. A store whose buckets are
+// the folders; or with SOURCE_STORAGE_BUCKET, one bucket holding the folders (another copy's store). Resumable:
 // objects already in the store are skipped.
 //   npx tsx --env-file=.env scripts/copy-storage.ts [folder...]
 import { Storage, siteStorage, storageConfig } from '../src/lib/storage';

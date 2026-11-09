@@ -1,7 +1,7 @@
 // Runs QuerySpecs (src/lib/db/query.ts) on D1 (SQLite), server only. A read compiles to one statement
 // whose rows are JSON objects built in SQLite (json_object), typed as the code has always read them:
 // booleans as true/false, JSON columns and arrays as values, embedded relations as objects or arrays
-// (their keys in jsonb's order, as PostgREST had them). Identifiers are checked against the schema
+// (their keys in a fixed order). Identifiers are checked against the schema
 // (src/lib/db/schema.ts) and values are bound (?1, ?2...); lists and written rows go as one JSON value
 // each, so a query stays inside D1's 100 bound values. Times are ISO strings in UTC. For roles other than
 // the server's, the policies (src/lib/db/policies.ts) decide what a query sees and may write; D1 has no
@@ -421,7 +421,7 @@ function selectPairs(items: Item[], table: string, alias: string, path: string, 
         pairs.push([key, rel.many ? `json_array(json_object('count', ${count}))` : `json_object('count', ${count})`]);
         continue;
       }
-      // As PostgREST embedded them: keys in jsonb's order.
+      // Embedded keys in a fixed order (jsonb's: by length, then name).
       const sub = selectPairs(item.items, rel.table, child, childPath, scope).sort(byJsonbOrder);
       const inner = innerExists(item.items, rel.table, child, childPath, scope);
       const conds = whereFor(rel.table, child, childPath, scope, [on, ...inner]).join(' AND ');

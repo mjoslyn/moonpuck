@@ -1,11 +1,9 @@
 // The site's files (server only): one private R2 bucket. In the Worker it is the BUCKET binding (under
 // astro dev, a local bucket in .wrangler/state); scripts in Node reach it over R2's S3 API with
 // STORAGE_ENDPOINT, STORAGE_BUCKET, STORAGE_ACCESS_KEY_ID and STORAGE_SECRET_ACCESS_KEY (set, these win
-// in the Worker too: any S3-compatible store works). What were Supabase Storage buckets are folders in
-// it: `media/` (the media library, served by the site at /media/, src/pages/media/[...path].ts),
-// `compose/` (Compose's documents) and `sync-backups/` (Settings > Backups). The calls are the ones the
-// code made of Supabase Storage (`storage.from(folder).upload/download/list/remove`), answering
-// { data, error }.
+// in the Worker too: any S3-compatible store works). Its folders: `media/` (the media library, served by the site at /media/, src/pages/media/[...path].ts),
+// `compose/` (Compose's documents) and `sync-backups/` (Settings > Backups). The calls are
+// `storage.from(folder).upload/download/list/remove`, answering { data, error }.
 import { AwsClient } from 'aws4fetch';
 import { bindings, type R2BucketLike } from './platform';
 import { localBindings } from './local-bindings';
@@ -22,7 +20,7 @@ export interface StorageConfig {
 export interface StorageError { message: string; statusCode?: string }
 export type Res<T> = { data: T; error: null } | { data: null; error: StorageError };
 
-/** A file or folder in a listing, as Supabase Storage listed them (folders have no id). */
+/** A file or folder in a listing (folders have no id). */
 export interface ListedFile {
   name: string;
   id: string | null;
@@ -221,7 +219,7 @@ class R2 implements Backend {
   }
 }
 
-/** A folder's calls (what Supabase Storage's bucket had). */
+/** A folder's calls. */
 export type FolderCalls = Pick<Folder, 'upload' | 'download' | 'list' | 'remove'>;
 
 /** Files as a Db carries them: this site's store, or the other copy's through Sync (src/lib/sync-remote.ts). */
@@ -238,7 +236,7 @@ export class Storage implements Files {
     this.backend = 'endpoint' in source ? new S3(source) : new R2(source);
   }
 
-  /** A folder of the bucket (what were Supabase Storage buckets). */
+  /** A folder of the bucket. */
   from(folder: string): Folder {
     return new Folder(this, folder.replace(/\/+$/, ''));
   }
@@ -283,7 +281,7 @@ const failed = async (res: Response): Promise<StorageError> => {
   return { message: xmlText(xml, 'Message')[0] || xmlText(xml, 'Code')[0] || res.statusText || `HTTP ${res.status}`, statusCode: String(res.status) };
 };
 
-/** A folder: Supabase Storage's bucket calls, on keys under `<folder>/`. */
+/** A folder: its calls, on keys under `<folder>/`. */
 export class Folder {
   constructor(private store: Storage, private folder: string) {}
 
@@ -328,7 +326,7 @@ export class Folder {
   }
 
   /**
-   * The files and folders directly in `prefix`, as Supabase Storage listed them: names relative to it,
+   * The files and folders directly in `prefix`, names relative to it,
    * `search` keeping those whose name starts with it, sorted by name (or time), paged by limit and offset.
    */
   async list(prefix = '', options: { limit?: number; offset?: number; search?: string; sortBy?: { column?: string; order?: string } } = {}): Promise<Res<ListedFile[]>> {

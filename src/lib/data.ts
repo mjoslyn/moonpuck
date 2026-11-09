@@ -65,7 +65,7 @@ const memberLevel = (v?: Viewer | null) => (isActive(v?.member) && /^[a-z0-9-]+$
 /** Members-only entries for any level, or for this one (an or() condition). */
 const forLevel = (level: string) => `fields->access->levels.is.null,fields->access->levels.eq.[],fields->access->levels.cs.["${level}"]`;
 
-/** An entries query (a PostgREST filter builder) limited to what a scope's viewer may see. */
+/** An entries query (a query builder) limited to what a scope's viewer may see. */
 export function visibleTo<Q>(query: Q, scope: LoaderScope | undefined): Q {
   if (!scope) return query;
   // Typed loosely: the builder's own types are too deep to pass through a generic helper.

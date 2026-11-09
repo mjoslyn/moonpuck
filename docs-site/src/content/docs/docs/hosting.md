@@ -45,9 +45,6 @@ npx tsx --env-file=.env.production scripts/seed.ts
 npx tsx --env-file=.env.production scripts/create-editor.ts you@example.org 'a-password' admin
 ```
 
-A site moving from Netlify and Supabase copies its files with `scripts/copy-storage.ts` (resumable) and
-its data with `scripts/pg-to-d1.ts` instead (`docs/cloudflare-migration.md` in the repository).
-
 ## 4. The Worker
 
 Give the queue a name of the site's own in `wrangler.jsonc`, then:
@@ -161,7 +158,6 @@ Admins invite editors from `/admin/users/`. See [Editor and roles](../../feature
 | `STORAGE_ENDPOINT`, `STORAGE_BUCKET`, `STORAGE_REGION`, `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY` | Scripts only: the deployed files over R2's S3 API (set, they win over the binding) |
 | `AUTH_SECRET` | Signs sessions and the site's links: a long random value (`openssl rand -hex 32`) |
 | `AUTH_CONFIRM_EMAIL` | `false` lets member sign-ups in without confirming their address |
-| `DATABASE_URL` | Moving a site only: the Postgres database `scripts/pg-to-d1.ts` copies from |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE` or `SMTP_URL` | Outgoing mail over SMTP, when the Worker has no `EMAIL` binding (Cloudflare Email Service) |
 | `MAIL_FROM` | Sender, overriding the config's `mailFrom` |
 | `FORMS_ADMIN_EMAIL` | Where form notifications go when a form doesn't say |
