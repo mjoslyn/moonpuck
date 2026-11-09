@@ -271,8 +271,9 @@ The photo is the image's large size as a JPEG or PNG data URL (other formats are
 is the core's (`coreCard`: Inter 400 and 700, `src/lib/share-card/fonts/`, OFL) in `DEFAULT_CARD_COLORS`,
 or a site's `shareCard` in its `render.ts` (`ShareCardDesign`): `render` (the view to an element tree,
 written with `h`; Satori's CSS subset, `display: flex` on anything with several children), `fonts`
-(WOFF, TTF or OTF; Satori reads no WOFF2; imported as `.bin` Data modules inside the function, so tests
-and the editor never load them), `colors` for the core's design, and `version`.
+(WOFF, TTF or OTF, Satori reading no WOFF2, kept anywhere under `src/site/` as `<name>.woff.bin` and named
+by file: `{ name, file, weight, style }`; `siteCardFonts`, `src/lib/site/share-card-fonts.ts`, loads them
+as Data modules for the renderer only, since the editor's browser bundle loads the site's `render.ts`), `colors` for the core's design, and `version`.
 
 ## Types in Settings
 

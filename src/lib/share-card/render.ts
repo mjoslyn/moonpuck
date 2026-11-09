@@ -6,6 +6,7 @@ import yoga from 'satori/yoga.wasm';
 import { Resvg, initWasm } from '@resvg/resvg-wasm';
 import resvgWasm from '@resvg/resvg-wasm/index_bg.wasm';
 import { SITE_RENDER } from '../site/render';
+import { siteCardFonts } from '../site/share-card-fonts';
 import { siteStorage } from '../storage';
 import { CARD_HEIGHT, CARD_WIDTH, DEFAULT_CARD_COLORS, coreCard, type ShareCardFont, type ShareCardView } from './design';
 import type { ShareCardData } from './card';
@@ -54,7 +55,10 @@ export async function renderCard(card: ShareCardData, media?: Media): Promise<Ui
   ready ??= Promise.all([init(yoga), initWasm(resvgWasm)]);
   const design = SITE_RENDER.shareCard;
   coreFonts ??= loadCoreFonts();
-  siteFonts ??= design?.fonts ? design.fonts() : Promise.resolve([]);
+  siteFonts ??= siteCardFonts(design?.fonts ?? []).catch((e) => {
+    siteFonts = null;
+    throw e;
+  });
   const [, core, own, image, icon] = await Promise.all([ready, coreFonts, siteFonts, photo(media), card.iconPath ? dataUrl(card.iconPath).catch(() => undefined) : undefined]);
   const view: ShareCardView = { title: card.title, label: card.label, siteName: card.siteName, isFront: card.isFront, tagline: card.tagline, image, icon };
   const tree = design?.render ? design.render(view) : coreCard(view, { ...DEFAULT_CARD_COLORS, ...design?.colors });

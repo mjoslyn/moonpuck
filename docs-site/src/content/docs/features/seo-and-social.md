@@ -77,8 +77,8 @@ site's name and tagline. **Make share cards** under Settings > Social turns them
   (a few hundred milliseconds), keeps it in the store (`share-cards/`, deleting the page's earlier
   cards) and answers with a year's caching at the CDN.
 - **Design**: the core's (`coreCard`, Inter) in the site's colors, or the site's own: `shareCard` in its
-  `render.ts` gives `render` (an element tree for Satori, written with `h`), `fonts` (WOFF or TTF files
-  imported as `.bin` modules, loaded inside the function), `colors` for the core's design, and
+  `render.ts` gives `render` (an element tree for Satori, written with `h`), `fonts` (WOFF or TTF files kept
+  under `src/site/` with `.bin` added to their names, listed by file name and weight), `colors` for the core's design, and
   `version`, changed with the design so every card is made again.
 
 ## Social profiles

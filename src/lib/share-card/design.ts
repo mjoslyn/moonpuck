@@ -97,9 +97,10 @@ export function coreCard(v: ShareCardView, c: ShareCardColors = DEFAULT_CARD_COL
 export interface ShareCardDesign {
   /** The card (else the core's, `coreCard`, in `colors`). */
   render?: (v: ShareCardView) => CardNode;
-  /** Its fonts, loaded when a card is drawn: import the files as `.bin` modules (Cloudflare's Data
-   * modules) inside the function, so nothing else loads them. Without: the core's Inter, 400 and 700. */
-  fonts?: () => Promise<ShareCardFont[]>;
+  /** Its fonts: WOFF, TTF or OTF files kept anywhere under src/site/ with `.bin` added to their name
+   * (`fraunces-500.woff.bin`, Cloudflare's Data modules), named by file. Only the card renderer loads
+   * them (src/lib/site/share-card-fonts.ts). Without: the core's Inter, 400 and 700. */
+  fonts?: { name: string; file: string; weight?: ShareCardFont['weight']; style?: ShareCardFont['style'] }[];
   /** Colors for the core's design. */
   colors?: Partial<ShareCardColors>;
   /** Change it when the design changes, so every card is made again. */
