@@ -65,7 +65,7 @@ changes on the site.
 - **On dark backgrounds**: the color to use in its place inside dark sections, such as a lighter blue,
   so text in it stays readable.
 
-**Add color** adds one. A color that something else in the theme uses can't be removed until that
+**Add color** adds one, and **↑** and **↓** move a color up or down the list editors choose from. A color that something else in the theme uses can't be removed until that
 is changed.
 
 **What each color is for**, each one of the palette's colors or a color code:
@@ -94,7 +94,7 @@ accent, headings, links and buttons. Leave one at **Unchanged** to keep it as it
   own), served from the site itself.
 
 **Text sizes** and **Spacing** list the sizes editors choose from, each a name and a size such as
-`1.25rem`. Open the list to change one.
+`1.25rem`. Change the name or the size in place.
 
 **Layout**:
 
