@@ -6,7 +6,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { BANDS, BUTTONS, ROLES, isColor, resolveColor, slugFrom, type Theme, type ThemeColor, type ThemeSize } from '../lib/theme/theme';
 import { FONT_LIBRARY, fontFaces, fontStack } from '../lib/theme/fonts';
 import { codeTheme } from '../lib/theme/site';
-import { FieldGroup, MediaPicker, inputClass } from '../puck/fields';
+import { MediaPicker, inputClass } from '../puck/fields';
 
 const small = 'rounded-sm border border-admin-ink/20 bg-white px-2 py-0.5 text-xs hover:border-admin-ink/50 disabled:opacity-30';
 
@@ -36,9 +36,7 @@ function ColorRef({ label, value, colors, none, onChange }: { label: string; val
 function SizeList({ title, hint, sizes, prefix, onChange }: { title: string; hint: string; sizes: ThemeSize[]; prefix: string; onChange: (s: ThemeSize[]) => void }) {
   const set = (i: number, patch: Partial<ThemeSize>) => onChange(sizes.map((s, k) => (k === i ? { ...s, ...patch } : s)));
   return (
-    <details className="mb-4 rounded-sm border border-admin-ink/10 bg-white p-3">
-      <summary className="cursor-pointer text-sm font-semibold">{title}</summary>
-      <p className="my-2 text-xs text-admin-muted">{hint}</p>
+    <Group title={title} hint={hint}>
       {sizes.map((s, i) => (
         <div key={s.slug} className="mb-1 flex items-center gap-2 text-sm">
           <code className="w-28 shrink-0 text-xs text-admin-muted">{prefix}{s.slug}</code>
@@ -46,17 +44,20 @@ function SizeList({ title, hint, sizes, prefix, onChange }: { title: string; hin
           <input aria-label={`${s.slug}: size`} className={inputClass} value={s.size} onChange={(e) => set(i, { size: e.target.value })} />
         </div>
       ))}
-    </details>
+    </Group>
   );
 }
 
-const Group = ({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) => (
-  <section className="mb-6">
-    <h3 className="mb-1 text-sm font-semibold">{title}</h3>
-    {hint && <p className="mb-3 text-xs text-admin-muted">{hint}</p>}
-    {children}
-  </section>
-);
+/** One part of the Theme screen: every part has the same heading, a hint under it and a rule above. */
+export function Group({ title, hint, children }: { title: string; hint?: ReactNode; children: ReactNode }) {
+  return (
+    <section className="mb-6 border-t border-admin-ink/10 pt-5" aria-label={title}>
+      <h3 className="m-0 text-base font-semibold">{title}</h3>
+      {hint ? <p className="mt-1 mb-3 text-xs text-admin-muted">{hint}</p> : <div className="mb-3" />}
+      {children}
+    </section>
+  );
+}
 
 export default function ThemeSettings({ value, onChange }: { value: Theme | undefined; onChange: (t: Theme | undefined) => void }) {
   const fallback = useMemo(() => codeTheme(), []);
@@ -228,15 +229,14 @@ export default function ThemeSettings({ value, onChange }: { value: Theme | unde
         </label>
       </Group>
 
-      <FieldGroup title="Logo">
-        <p className="mb-2 text-xs text-admin-muted">Shown by a Site title block with "Show the logo instead" on, in place of the icon and name.</p>
-        <MediaPicker title="Logo" url={theme.logo_url} mediaId={theme.logo} fit="contain" onSelect={(m) => put({ logo: m.id ?? m.mediaId ?? undefined, logo_url: m.url })} />
+      <Group title="Logo" hint={'Shown by a Site title block with "Show the logo instead" on, in place of the icon and name.'}>
+        <MediaPicker title="Logo" hideTitle url={theme.logo_url} mediaId={theme.logo} fit="contain" onSelect={(m) => put({ logo: m.id ?? m.mediaId ?? undefined, logo_url: m.url })} />
         {!!theme.logo && (
           <button type="button" className="mb-3 block text-xs text-[#b3261e]" onClick={() => put({ logo: undefined, logo_url: undefined })}>
             Remove logo
           </button>
         )}
-      </FieldGroup>
+      </Group>
     </div>
   );
 }

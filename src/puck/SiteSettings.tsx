@@ -41,7 +41,7 @@ import { MENU_FIELDS } from '../lib/navigation';
 import { SNIPPET_MAX, SNIPPET_PLACES, type CodeSnippets } from '../lib/snippets';
 import { consentPopup, type Popup, type StatsSettings } from '../lib/popups';
 import PopupsSettings from '../admin/PopupsSettings';
-import ThemeSettings from '../admin/ThemeSettings';
+import ThemeSettings, { Group as ThemeGroup } from '../admin/ThemeSettings';
 import type { Theme } from '../lib/theme/theme';
 import type { TaxonomyMeta } from '../lib/page-meta';
 import { ADMIN_THEME_DEFAULTS, ADMIN_THEME_FIELDS, adminThemeFrom, adminThemeVars, contrast, effectiveAdminTheme, matchedAdminTheme, type AdminTheme } from '../lib/admin-theme';
@@ -776,7 +776,7 @@ function TaxonomyTemplatesPanel({ features, value, off, templates, meta, onChang
 function AdminScreens({ site, onChange }: { site: Record<string, any>; onChange: (t: AdminTheme | undefined) => void }) {
   const own = !!adminThemeFrom(site.admin_theme);
   return (
-    <FieldGroup title="Admin screens">
+    <ThemeGroup title="Admin screens" hint="The look of these admin screens and the page editor, for everyone who signs in.">
       <Toggle
         title="Match the site"
         value={!own}
@@ -785,11 +785,11 @@ function AdminScreens({ site, onChange }: { site: Record<string, any>; onChange:
       />
       <p className="mb-3 text-xs text-admin-muted">
         {own
-          ? 'These admin screens and the page editor have their own logo and colors, for everyone who signs in.'
-          : "These admin screens and the page editor take the site's accent, its dark background color for the menu bar, and its logo. Untick to choose their own."}
+          ? 'Their own logo and colors, below. They change here as you pick them; Save keeps them.'
+          : "They take the site's accent, its dark background color for the menu bar, and its logo. Untick to choose their own."}
       </p>
       {own && <AdminThemePanel value={site.admin_theme ?? { own: true }} onChange={(t) => onChange({ ...t, own: true })} />}
-    </FieldGroup>
+    </ThemeGroup>
   );
 }
 
@@ -798,9 +798,8 @@ function AdminThemePanel({ value, onChange }: { value: AdminTheme; onChange: (t:
   const { logo: _logo, logo_url: _url, logo_name: _name, own: _own, ...colors } = value;
   return (
     <>
-      <p className="mb-3 text-xs text-admin-muted">They change here as you pick them; Save keeps them.</p>
-      <MediaPicker title="Logo" fit="contain" url={value.logo_url} mediaId={value.logo} onSelect={(m) => onChange({ ...value, logo: m.id ?? m.mediaId ?? undefined, logo_url: m.url })} />
-      <p className="-mt-2 mb-3 text-xs text-admin-muted">In the menu bar, in place of the site name, up to 32px tall. Choose one that reads on the menu bar's color.</p>
+      <MediaPicker title="Menu bar logo" fit="contain" url={value.logo_url} mediaId={value.logo} onSelect={(m) => onChange({ ...value, logo: m.id ?? m.mediaId ?? undefined, logo_url: m.url })} />
+      <p className="-mt-2 mb-3 text-xs text-admin-muted">In place of the site name, up to 32px tall. Choose one that reads on the menu bar's color.</p>
       {!!value.logo && (
         <>
           <Toggle title="Show the site name beside it" value={!!value.logo_name} onChange={(v) => onChange({ ...value, logo_name: v || undefined })} />
@@ -817,21 +816,27 @@ function AdminThemePanel({ value, onChange }: { value: AdminTheme; onChange: (t:
           else delete next[f.key];
           onChange(next);
         };
+        const warning =
+          (f.key === 'accent' || f.key === 'ink') && contrast(color, '#ffffff') < 4.5
+            ? 'White text on this color is hard to read; choose a darker one.'
+            : f.key === 'bg' && contrast(color, value.ink ?? '#1a1a2e') < 7
+              ? 'Text on this background is hard to read; choose a lighter one or a darker text color.'
+              : null;
         return (
-          <FieldGroup key={f.key} title={f.label}>
-            <div className="flex items-center gap-2">
-              <input type="color" aria-label={f.label} value={color} onChange={(e) => set(e.target.value)} className="h-8 w-10 cursor-pointer rounded border border-admin-ink/15" />
-              <input aria-label={`${f.label} (hex)`} className="w-28 rounded border border-admin-ink/15 bg-white px-2 py-1.5 font-mono text-sm outline-none focus:border-admin-accent" defaultValue={color} key={color} onBlur={(e) => /^#[0-9a-f]{6}$/i.test(e.target.value.trim()) && set(e.target.value.trim().toLowerCase())} />
+          <div key={f.key} className="mb-2" role="group" aria-label={f.label}>
+            <div className="flex items-center gap-2 text-sm">
+              <input type="color" aria-label={f.label} value={color} onChange={(e) => set(e.target.value)} className="h-6 w-8 shrink-0 cursor-pointer rounded border border-admin-ink/15 p-0" />
+              <span className="w-40 shrink-0">{f.label}</span>
+              <input aria-label={`${f.label} (hex)`} className="w-28 rounded border border-admin-ink/15 bg-white px-2 py-1 font-mono text-sm outline-none focus:border-admin-accent" defaultValue={color} key={color} onBlur={(e) => /^#[0-9a-f]{6}$/i.test(e.target.value.trim()) && set(e.target.value.trim().toLowerCase())} />
               {value[f.key] && (
                 <button type="button" className="text-xs text-admin-muted hover:text-admin-accent" onClick={() => set(undefined)}>
                   Default
                 </button>
               )}
             </div>
-            <p className="mt-1 text-xs text-admin-muted">{f.help}</p>
-            {(f.key === 'accent' || f.key === 'ink') && contrast(color, '#ffffff') < 4.5 && <p className="mt-1 text-xs text-[#b3261e]">White text on this color is hard to read; choose a darker one.</p>}
-            {f.key === 'bg' && contrast(color, value.ink ?? '#1a1a2e') < 7 && <p className="mt-1 text-xs text-[#b3261e]">Text on this background is hard to read; choose a lighter one or a darker text color.</p>}
-          </FieldGroup>
+            <p className="mt-0.5 ml-10 text-xs text-admin-muted">{f.help}</p>
+            {warning && <p className="mt-0.5 ml-10 text-xs text-[#b3261e]">{warning}</p>}
+          </div>
         );
       })}
     </>

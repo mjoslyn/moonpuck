@@ -111,7 +111,7 @@ was built with. Click **Save settings** to keep that.
 
 - **Match the site**: on, they take the site's accent colour, its dark background colour for the menu bar,
   and its logo. Untick it to choose their own.
-- **Logo**: shown in the menu bar in place of the site name, up to 32px tall. Choose one that reads on
+- **Menu bar logo**: shown in the menu bar in place of the site name, up to 32px tall. Choose one that reads on
   the menu bar's colour.
 - **Show the site name beside it**: the name next to the logo (on phones only the logo shows).
 - **Accent**, **Text**, **Menu bar** and **Background**: each a colour, or **Default**. The screen

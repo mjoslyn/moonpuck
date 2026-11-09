@@ -230,13 +230,14 @@ export const mediaLibraryUrl = (id: number) => `/admin/media/?id=${id}`;
  * Choose/Replace, and Edit, which opens it in the media library in a new tab. The file's id is
  * `mediaId` when the caller keeps it, else found from its address.
  */
-export function MediaPicker({ title, url, mediaId, onSelect, fit = 'cover', only = 'image' }: { title: string; url?: string; mediaId?: number | null; fit?: 'cover' | 'contain'; only?: 'image' | 'video'; onSelect: (m: { url: string; id: number | null; mediaId?: number; alt: string; width?: number | null; height?: number | null }) => void }) {
+export function MediaPicker({ title, hideTitle, url, mediaId, onSelect, fit = 'cover', only = 'image' }: { title: string; hideTitle?: boolean; url?: string; mediaId?: number | null; fit?: 'cover' | 'contain'; only?: 'image' | 'video'; onSelect: (m: { url: string; id: number | null; mediaId?: number; alt: string; width?: number | null; height?: number | null }) => void }) {
   const [open, setOpen] = useState(false);
   const id = useLibraryId(url, mediaId);
   const button = 'rounded border border-admin-ink/15 bg-white px-3 py-1.5 text-xs hover:border-admin-accent';
   const name = url ? decodeURIComponent(url.split('?')[0].split('/').pop() ?? '') : '';
   return (
-    <FieldGroup title={title}>
+    <div className="mb-3 block" role="group" aria-label={title}>
+      {!hideTitle && <span className={label}>{title}</span>}
       <div className="flex items-center gap-2">
         {url && only === 'video' ? (
           <span className="flex h-14 w-20 shrink-0 items-center justify-center rounded bg-admin-ink text-[10px] font-semibold tracking-wider text-white uppercase">Video</span>
@@ -260,7 +261,7 @@ export function MediaPicker({ title, url, mediaId, onSelect, fit = 'cover', only
         </div>
       </div>
       {open && <MediaModal only={only} onClose={() => setOpen(false)} onSelect={(m) => { onSelect(m); setOpen(false); }} />}
-    </FieldGroup>
+    </div>
   );
 }
 
