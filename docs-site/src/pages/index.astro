@@ -50,6 +50,7 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 @media (max-width:600px){.mp-wrap{padding-inline:16px}.mp-h1{font-size:60px!important}.mp-h2{font-size:44px!important}.mp-step{font-size:40px!important}.mp-lead{font-size:24px!important}.mp-rail{display:none!important}}
 .mp-dev-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:56px}.mp-dev-card{display:flex;flex-direction:column;gap:10px;padding:24px;background:#2C3C85;border:3px solid #120C1F;border-radius:18px;color:#F7F0F5;text-decoration:none}.mp-dev-card:hover{color:#F7F0F5;background:#34479A}.mp-dev-card:focus-visible{outline:3px solid #FFA5FF;outline-offset:3px}.mp-dev-card code{font-size:15px;color:#FDF152}.mp-dev-code{margin:16px 0 0;background:#0F1840;border:3px solid #120C1F;border-radius:18px;color:#DCD8FF;padding:28px;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:14px;line-height:1.8;overflow-x:auto}
 .mp-pillars{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;padding:0 0 112px}.mp-pillar{border-top:2px solid #FFA5FF;padding-top:18px;color:#F7F0F5}
+.mp-spot{display:block;width:200px;height:auto;margin:0 0 20px -6px}
 .mp-build-list{margin:32px 0 0;padding:0 0 0 1.1em;display:grid;gap:12px;font-size:18px;line-height:1.45}
 .mp-form{display:grid;gap:14px;background:#FFFFFF;border:3px solid #120C1F;border-radius:18px;padding:28px}
 .mp-field{display:grid;gap:6px;font-size:14px;font-weight:600}
@@ -262,15 +263,15 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 </div>
 </section>
 
-<!-- FEATURES CLOSE UP: tickets, shop, forms, mailing lists, each with a call to action -->
-<section id="events" style="background: #C5E975; padding: 104px 0 112px">
-<div class="mp-wrap" style="display: flex; flex-direction: column; gap: 96px">
+<!-- FEATURES CLOSE UP: tickets, shop, forms, mailing lists, each a band of its own with an illustration and a call to action -->
+<section id="events" style="background: #C5E975; padding: 96px 0 104px">
+<div class="mp-wrap">
 <div class="mp-showcase" style="display: flex; flex-wrap: wrap; gap: 56px; align-items: center">
 <div style="flex: 1 1 400px; min-width: 0">
+<svg class="mp-spot" width="240" height="180" viewBox="0 0 240 180" role="img" aria-label="An illustration: two tickets standing on a small moon puck"><ellipse cx="120" cy="140" rx="108" ry="34" fill="none" stroke="#120C1F" stroke-width="2" stroke-dasharray="1 8" stroke-linecap="round" transform="rotate(-6 120 136)"></ellipse><path d="M34 136 L34 154 A86 22 0 0 0 206 154 L206 136 Z" fill="#E2B92E" stroke="#120C1F" stroke-width="3.5" stroke-linejoin="round"></path><g fill="#120C1F"><ellipse cx="70" cy="156" rx="9" ry="5"></ellipse><ellipse cx="128" cy="164" rx="12" ry="5"></ellipse><ellipse cx="176" cy="156" rx="7" ry="4"></ellipse></g><ellipse cx="120" cy="136" rx="86" ry="22" fill="#FDF152" stroke="#120C1F" stroke-width="3.5"></ellipse><g transform="rotate(-12 96 92)"><path d="M58 66 h76 v14 a8 8 0 0 0 0 16 v14 h-76 v-14 a8 8 0 0 0 0 -16 Z" fill="#FFA5FF" stroke="#120C1F" stroke-width="3.5" stroke-linejoin="round"></path><line x1="110" y1="68" x2="110" y2="108" stroke="#120C1F" stroke-width="2" stroke-dasharray="3 4"></line><path d="M78 88 l4 -8 4 8 -4 8 Z" fill="#120C1F"></path></g><g transform="rotate(10 150 100)"><path d="M112 82 h76 v14 a8 8 0 0 0 0 16 v14 h-76 v-14 a8 8 0 0 0 0 -16 Z" fill="#FEA903" stroke="#120C1F" stroke-width="3.5" stroke-linejoin="round"></path><line x1="164" y1="84" x2="164" y2="124" stroke="#120C1F" stroke-width="2" stroke-dasharray="3 4"></line><circle cx="138" cy="104" r="7" fill="#F7F0F5" stroke="#120C1F" stroke-width="2.5"></circle></g><path d="M32 31 Q32 40 41 40 Q32 40 32 49 Q32 40 23 40 Q32 40 32 31 Z" fill="#FFFFFF" stroke="#120C1F" stroke-width="1.5" stroke-linejoin="round"></path><path d="M210 27 Q210 34 217 34 Q210 34 210 41 Q210 34 203 34 Q210 34 210 27 Z" fill="#FFFFFF" stroke="#120C1F" stroke-width="1.5" stroke-linejoin="round"></path><path d="M200 69 Q200 74 205 74 Q200 74 200 79 Q200 74 195 74 Q200 74 200 69 Z" fill="#FFA5FF" stroke="#120C1F" stroke-width="1.5" stroke-linejoin="round"></path></svg>
 <p class="mp-label" style="margin: 0 0 14px">Events and tickets</p>
 <h2 class="mp-serif mp-h2" style="margin: 0; font-size: 68px; line-height: 1">Sell out the night market</h2>
 <p style="margin: 22px 0 0; font-size: 19px; line-height: 1.55">No ticketing service. One ticket can cover several events, like a pass. Members see their own price. When it sells out, a waitlist takes over and tells people in turn as tickets come free.</p>
-<a href="/features/tickets/" class="mp-pill" style="margin-top: 28px; background: #120C1F; color: #C5E975">How tickets work</a>
 </div>
 <div role="img" aria-label="A ticket form for the Full Moon Night Market with entry and member tickets and a total" style="flex: 1 1 420px; min-width: 0; background: #FFFFFF; border: 3px solid #120C1F; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
 <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap"><span class="mp-serif" style="font-size: 34px; line-height: 1">Full Moon Night Market</span><span style="font-size: 14px; color: #4A4458">Sat, Jun 20, 7 pm</span></div>
@@ -280,6 +281,11 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 <span class="mp-pill" style="justify-content: center; background: #1B2A6B; color: #DCD8FF">Continue to payment</span>
 </div>
 </div>
+</div>
+</section>
+
+<section id="shop" style="background: #F5D8EF; padding: 96px 0 104px">
+<div class="mp-wrap">
 <div class="mp-showcase" style="display: flex; flex-wrap: wrap-reverse; gap: 56px; align-items: center">
 <div role="img" aria-label="A product, a Trail Map Poster in two sizes, added to a cart with shipping and pickup choices" style="flex: 1 1 420px; min-width: 0; background: #FFFFFF; border: 3px solid #120C1F; border-radius: 18px; overflow: hidden">
 <div style="display: flex; gap: 18px; padding: 24px 28px; border-bottom: 1.5px solid #120C1F">
@@ -297,18 +303,23 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 </div>
 </div>
 <div style="flex: 1 1 400px; min-width: 0">
+<svg class="mp-spot" width="240" height="180" viewBox="0 0 240 180" role="img" aria-label="An illustration: a shopping bag and a parcel on a small moon puck"><ellipse cx="120" cy="140" rx="108" ry="34" fill="none" stroke="#120C1F" stroke-width="2" stroke-dasharray="1 8" stroke-linecap="round" transform="rotate(-6 120 136)"></ellipse><path d="M34 136 L34 154 A86 22 0 0 0 206 154 L206 136 Z" fill="#E2B92E" stroke="#120C1F" stroke-width="3.5" stroke-linejoin="round"></path><g fill="#120C1F"><ellipse cx="70" cy="156" rx="9" ry="5"></ellipse><ellipse cx="128" cy="164" rx="12" ry="5"></ellipse><ellipse cx="176" cy="156" rx="7" ry="4"></ellipse></g><ellipse cx="120" cy="136" rx="86" ry="22" fill="#FDF152" stroke="#120C1F" stroke-width="3.5"></ellipse><rect x="132" y="96" width="50" height="40" fill="#C5E975" stroke="#120C1F" stroke-width="3.5" stroke-linejoin="round"></rect><path d="M132 96 l8 -12 h50 l-8 12" fill="#E8F5C8" stroke="#120C1F" stroke-width="3" stroke-linejoin="round"></path><path d="M182 96 l8 -12 v38 l-8 14" fill="#9DCB4C" stroke="#120C1F" stroke-width="3" stroke-linejoin="round"></path><line x1="157" y1="96" x2="157" y2="136" stroke="#120C1F" stroke-width="2.5"></line><path d="M58 62 h60 l6 74 h-72 Z" fill="#9898FF" stroke="#120C1F" stroke-width="3.5" stroke-linejoin="round"></path><path d="M74 66 v-10 a14 14 0 0 1 28 0 v10" fill="none" stroke="#120C1F" stroke-width="3.5" stroke-linecap="round"></path><circle cx="74" cy="68" r="3" fill="#120C1F"></circle><circle cx="102" cy="68" r="3" fill="#120C1F"></circle><path d="M80 98 q8 10 16 0" fill="none" stroke="#120C1F" stroke-width="3" stroke-linecap="round"></path><path d="M30 39 Q30 48 39 48 Q30 48 30 57 Q30 48 21 48 Q30 48 30 39 Z" fill="#FDF152" stroke="#120C1F" stroke-width="1.5" stroke-linejoin="round"></path><path d="M212 32 Q212 40 220 40 Q212 40 212 48 Q212 40 204 40 Q212 40 212 32 Z" fill="#FDF152" stroke="#120C1F" stroke-width="1.5" stroke-linejoin="round"></path><path d="M196 73 Q196 78 201 78 Q196 78 196 83 Q196 78 191 78 Q196 78 196 73 Z" fill="#FFFFFF" stroke="#120C1F" stroke-width="1.5" stroke-linejoin="round"></path></svg>
 <p class="mp-label" style="margin: 0 0 14px">Shop</p>
 <h2 class="mp-serif mp-h2" style="margin: 0; font-size: 68px; line-height: 1">Sell the poster, ship it or hand it over</h2>
 <p style="margin: 22px 0 0; font-size: 19px; line-height: 1.55">Products with options, sales and stock counts, a cart and checkout through Stripe or Square. Your own shipping rates or live carrier rates and labels, pickup at the desk, discounts, tax and downloads.</p>
-<a href="/features/shop/" class="mp-pill" style="margin-top: 28px; background: #120C1F; color: #C5E975">Set up the shop</a>
 </div>
 </div>
+</div>
+</section>
+
+<section id="forms" style="background: #FEA903; padding: 96px 0 104px">
+<div class="mp-wrap">
 <div class="mp-showcase" style="display: flex; flex-wrap: wrap; gap: 56px; align-items: center">
 <div style="flex: 1 1 400px; min-width: 0">
+<svg class="mp-spot" width="240" height="180" viewBox="0 0 240 180" role="img" aria-label="An illustration: a clipboard with ticked boxes on a small moon puck"><ellipse cx="120" cy="140" rx="108" ry="34" fill="none" stroke="#120C1F" stroke-width="2" stroke-dasharray="1 8" stroke-linecap="round" transform="rotate(-6 120 136)"></ellipse><path d="M34 136 L34 154 A86 22 0 0 0 206 154 L206 136 Z" fill="#E2B92E" stroke="#120C1F" stroke-width="3.5" stroke-linejoin="round"></path><g fill="#120C1F"><ellipse cx="70" cy="156" rx="9" ry="5"></ellipse><ellipse cx="128" cy="164" rx="12" ry="5"></ellipse><ellipse cx="176" cy="156" rx="7" ry="4"></ellipse></g><ellipse cx="120" cy="136" rx="86" ry="22" fill="#FDF152" stroke="#120C1F" stroke-width="3.5"></ellipse><g transform="rotate(-6 120 80)"><rect x="80" y="26" width="80" height="104" rx="6" fill="#F7F0F5" stroke="#120C1F" stroke-width="3.5"></rect><rect x="104" y="18" width="32" height="16" rx="4" fill="#9898FF" stroke="#120C1F" stroke-width="3"></rect><rect x="92" y="48" width="12" height="12" fill="#C5E975" stroke="#120C1F" stroke-width="2.5"></rect><path d="M94 54 l3 3 6 -7" fill="none" stroke="#120C1F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path><line x1="112" y1="54" x2="148" y2="54" stroke="#120C1F" stroke-width="3" stroke-linecap="round"></line><rect x="92" y="72" width="12" height="12" fill="#C5E975" stroke="#120C1F" stroke-width="2.5"></rect><path d="M94 78 l3 3 6 -7" fill="none" stroke="#120C1F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path><line x1="112" y1="78" x2="142" y2="78" stroke="#120C1F" stroke-width="3" stroke-linecap="round"></line><rect x="92" y="96" width="12" height="12" fill="#FFFFFF" stroke="#120C1F" stroke-width="2.5"></rect><line x1="112" y1="102" x2="146" y2="102" stroke="#120C1F" stroke-width="3" stroke-linecap="round"></line></g><g transform="rotate(35 176 70)"><rect x="170" y="40" width="12" height="54" fill="#FF542F" stroke="#120C1F" stroke-width="3" stroke-linejoin="round"></rect><path d="M170 94 l6 12 6 -12 Z" fill="#F3D27A" stroke="#120C1F" stroke-width="3" stroke-linejoin="round"></path></g><path d="M36 35 Q36 44 45 44 Q36 44 36 53 Q36 44 27 44 Q36 44 36 35 Z" fill="#FFFFFF" stroke="#120C1F" stroke-width="1.5" stroke-linejoin="round"></path><path d="M212 23 Q212 30 219 30 Q212 30 212 37 Q212 30 205 30 Q212 30 212 23 Z" fill="#FDF152" stroke="#120C1F" stroke-width="1.5" stroke-linejoin="round"></path><path d="M44 87 Q44 92 49 92 Q44 92 44 97 Q44 92 39 92 Q44 92 44 87 Z" fill="#FFFFFF" stroke="#120C1F" stroke-width="1.5" stroke-linejoin="round"></path></svg>
 <p class="mp-label" style="margin: 0 0 14px">Forms</p>
 <h2 class="mp-serif mp-h2" style="margin: 0; font-size: 68px; line-height: 1">Forms that ask the right questions</h2>
 <p style="margin: 22px 0 0; font-size: 19px; line-height: 1.55">Build any form on the page: questions that show only when they matter, fields that take payment, and notification emails designed like the rest of the site. Or describe the form and let Compose write it.</p>
-<a href="/features/forms/" class="mp-pill" style="margin-top: 28px; background: #120C1F; color: #C5E975">Build a form</a>
 </div>
 <div role="img" aria-label="A volunteer form with a choice of shifts, a field shown only for one choice, and a donation amount" style="flex: 1 1 420px; min-width: 0; background: #FFFFFF; border: 3px solid #120C1F; border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
 <span class="mp-serif" style="font-size: 30px; line-height: 1">Volunteer sign-up</span>
@@ -319,6 +330,11 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 <span class="mp-pill" style="justify-content: center; background: #1B2A6B; color: #DCD8FF">Sign up and pay</span>
 </div>
 </div>
+</div>
+</section>
+
+<section id="mailing" style="background: #9898FF; padding: 96px 0 104px">
+<div class="mp-wrap">
 <div class="mp-showcase" style="display: flex; flex-wrap: wrap-reverse; gap: 56px; align-items: center">
 <div role="img" aria-label="A campaign's numbers: sent, delivered, opened and people who clicked, with machine clicks counted apart" style="flex: 1 1 420px; min-width: 0; background: #FFFFFF; border: 3px solid #120C1F; border-radius: 18px; overflow: hidden">
 <div style="padding: 18px 28px; border-bottom: 1.5px solid #120C1F; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap"><span style="font-weight: 600">Spring Fair: save the date</span><span style="font-size: 12px; background: #C5E975; padding: 3px 10px; border-radius: 999px; border: 1.5px solid #120C1F">Sent</span></div>
@@ -331,10 +347,10 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 <div style="padding: 14px 28px; border-top: 1.5px solid #120C1F; font-size: 13px; color: #4A4458">Lists: Newsletter, Volunteers · Segment: Opened in the last 90 days</div>
 </div>
 <div style="flex: 1 1 400px; min-width: 0">
+<svg class="mp-spot" width="240" height="180" viewBox="0 0 240 180" role="img" aria-label="An illustration: an envelope and a paper plane circling a small moon puck"><ellipse cx="120" cy="140" rx="108" ry="34" fill="none" stroke="#120C1F" stroke-width="2" stroke-dasharray="1 8" stroke-linecap="round" transform="rotate(-6 120 136)"></ellipse><path d="M34 136 L34 154 A86 22 0 0 0 206 154 L206 136 Z" fill="#E2B92E" stroke="#120C1F" stroke-width="3.5" stroke-linejoin="round"></path><g fill="#120C1F"><ellipse cx="70" cy="156" rx="9" ry="5"></ellipse><ellipse cx="128" cy="164" rx="12" ry="5"></ellipse><ellipse cx="176" cy="156" rx="7" ry="4"></ellipse></g><ellipse cx="120" cy="136" rx="86" ry="22" fill="#FDF152" stroke="#120C1F" stroke-width="3.5"></ellipse><path d="M150 40 q-40 -20 -80 10" fill="none" stroke="#120C1F" stroke-width="2" stroke-dasharray="1 7" stroke-linecap="round"></path><rect x="72" y="74" width="92" height="62" rx="4" fill="#F7F0F5" stroke="#120C1F" stroke-width="3.5"></rect><path d="M74 78 l44 32 44 -32" fill="none" stroke="#120C1F" stroke-width="3.5" stroke-linejoin="round"></path><circle cx="148" cy="122" r="8" fill="#FFA5FF" stroke="#120C1F" stroke-width="2.5"></circle><g transform="translate(166 30) rotate(-14)"><path d="M0 14 L44 0 L22 34 L18 20 Z" fill="#FDF152" stroke="#120C1F" stroke-width="3" stroke-linejoin="round"></path><path d="M18 20 L44 0" stroke="#120C1F" stroke-width="2.5"></path></g><path d="M34 37 Q34 46 43 46 Q34 46 34 55 Q34 46 25 46 Q34 46 34 37 Z" fill="#FFFFFF" stroke="#120C1F" stroke-width="1.5" stroke-linejoin="round"></path><path d="M56 17 Q56 22 61 22 Q56 22 56 27 Q56 22 51 22 Q56 22 56 17 Z" fill="#FDF152" stroke="#120C1F" stroke-width="1.5" stroke-linejoin="round"></path><path d="M218 86 Q218 92 224 92 Q218 92 218 98 Q218 92 212 92 Q218 92 218 86 Z" fill="#FFFFFF" stroke="#120C1F" stroke-width="1.5" stroke-linejoin="round"></path></svg>
 <p class="mp-label" style="margin: 0 0 14px">Mailing lists</p>
-<h2 class="mp-serif mp-h2" style="margin: 0; font-size: 68px; line-height: 1">Mail people who asked for it</h2>
-<p style="margin: 22px 0 0; font-size: 19px; line-height: 1.55">Lists people sign up to and confirm, campaigns and a weekly digest of what you published, and segments to reach the right few. Clicks from mail scanners are counted apart, so the numbers are people.</p>
-<a href="/features/mailing/" class="mp-pill" style="margin-top: 28px; background: #120C1F; color: #C5E975">Start a mailing list</a>
+<h2 class="mp-serif mp-h2" style="margin: 0; font-size: 68px; line-height: 1">Newsletters people want to open</h2>
+<p style="margin: 22px 0 0; font-size: 19px; line-height: 1.55">Sign-up forms that confirm by email, newsletters designed in the email editor, and a weekly digest of what you published that writes itself. Send to a whole list or just the people who fit, and see who opened and clicked, with mail scanners counted apart.</p>
 </div>
 </div>
 </div>
