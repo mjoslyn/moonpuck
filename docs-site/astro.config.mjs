@@ -7,7 +7,7 @@ import starlightSidebarTopics from 'starlight-sidebar-topics';
 const FONTS =
   'https://fonts.googleapis.com/css2?family=Roboto+Serif:ital,opsz,wdth,wght@0,8..144,50..150,300..700;1,8..144,50..150,300..700&family=Instrument+Sans:wght@400;500;600;700&display=swap';
 
-const SHARE_ALT = 'Moonpuck, the open source website builder: Hand it the flyer. Get the page.';
+const SHARE_ALT = 'Moonpuck, the opinionated, batteries-included CMS: everything your site needs, on Cloudflare.';
 
 export default defineConfig({
   site: 'https://moonpuck.com',

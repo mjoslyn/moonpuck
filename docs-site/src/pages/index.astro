@@ -3,9 +3,9 @@
 const FONTS =
   'https://fonts.googleapis.com/css2?family=Roboto+Serif:ital,opsz,wdth,wght@0,8..144,50..150,300..700;1,8..144,50..150,300..700&family=Instrument+Sans:wght@400;500;600;700&display=swap';
 // The share card (public/og.png), also on every docs page (astro.config.mjs).
-const SHARE_ALT = 'Moonpuck, the open source website builder: Hand it the flyer. Get the page.';
+const SHARE_ALT = 'Moonpuck, the opinionated, batteries-included CMS: everything your site needs, on Cloudflare.';
 const description =
-  'Moonpuck is an open source website builder for small organizations, with Claude built in. Events, tickets, members, mailing lists, donations and a shop come with it, on your own Cloudflare account.';
+  'Moonpuck is an opinionated, batteries-included open source CMS built on Cloudflare. A visual editor, events, tickets, members, mailing lists, donations, a shop and Claude come with it, on your own Cloudflare account.';
 // Turnstile's site key for the contact form (public; its secret is the Worker's). Cloudflare's always-passing
 // test key under astro dev.
 const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || (import.meta.env.DEV ? '1x00000000000000000000AA' : '');
@@ -15,13 +15,13 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || (import.
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Moonpuck: hand it the flyer, get the page</title>
+<title>Moonpuck: the batteries-included CMS on Cloudflare</title>
 <meta name="description" content={description}>
 <link rel="canonical" href="https://moonpuck.com/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://moonpuck.com/">
 <meta property="og:site_name" content="moonpuck">
-<meta property="og:title" content="Moonpuck: hand it the flyer, get the page">
+<meta property="og:title" content="Moonpuck: the batteries-included CMS on Cloudflare">
 <meta property="og:description" content={description}>
 <meta property="og:image" content="https://moonpuck.com/og.png">
 <meta property="og:image:width" content="1200">
@@ -49,6 +49,7 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 @media (max-width:900px){.mp-nav{display:none!important}.mp-compose{display:none!important}}
 @media (max-width:600px){.mp-wrap{padding-inline:16px}.mp-h1{font-size:60px!important}.mp-h2{font-size:44px!important}.mp-step{font-size:40px!important}.mp-lead{font-size:24px!important}.mp-rail{display:none!important}}
 .mp-dev-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:56px}.mp-dev-card{display:flex;flex-direction:column;gap:10px;padding:24px;background:#2C3C85;border:3px solid #120C1F;border-radius:18px;color:#F7F0F5;text-decoration:none}.mp-dev-card:hover{color:#F7F0F5;background:#34479A}.mp-dev-card:focus-visible{outline:3px solid #FFA5FF;outline-offset:3px}.mp-dev-card code{font-size:15px;color:#FDF152}.mp-dev-code{margin:16px 0 0;background:#0F1840;border:3px solid #120C1F;border-radius:18px;color:#DCD8FF;padding:28px;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:14px;line-height:1.8;overflow-x:auto}
+.mp-pillars{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;padding:0 0 112px}.mp-pillar{border-top:2px solid #FFA5FF;padding-top:18px;color:#F7F0F5}
 .mp-build-list{margin:32px 0 0;padding:0 0 0 1.1em;display:grid;gap:12px;font-size:18px;line-height:1.45}
 .mp-form{display:grid;gap:14px;background:#FFFFFF;border:3px solid #120C1F;border-radius:18px;padding:28px}
 .mp-field{display:grid;gap:6px;font-size:14px;font-weight:600}
@@ -73,8 +74,8 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 <span class="mp-serif" style="font-size: 38px; line-height: 1; color: #FFA5FF; letter-spacing: -0.5px">moonpuck</span>
 </a>
 <nav class="mp-nav" aria-label="Main" style="display: flex; gap: 28px">
-<a href="#compose" class="mp-nav-link mp-label" style="font-size: 13px">Compose</a>
 <a href="#features" class="mp-nav-link mp-label" style="font-size: 13px">Features</a>
+<a href="#compose" class="mp-nav-link mp-label" style="font-size: 13px">Compose</a>
 <a href="#events" class="mp-nav-link mp-label" style="font-size: 13px">Events</a>
 <a href="#developers" class="mp-nav-link mp-label" style="font-size: 13px">Developers</a>
 <a href="/docs/" class="mp-nav-link mp-label" style="font-size: 13px">Docs</a>
@@ -84,7 +85,7 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 </header>
 
 <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: center; padding: 40px 0 24px">
-<h1 class="mp-serif mp-h1" style="flex: 1 1 440px; min-width: 0; margin: 0; font-size: 112px; line-height: 0.98; letter-spacing: -1.5px; color: #F7F0F5">Hand it the flyer. Get the page.</h1>
+<h1 class="mp-serif mp-h1" style="flex: 1 1 440px; min-width: 0; margin: 0; font-size: 112px; line-height: 0.98; letter-spacing: -1.5px; color: #F7F0F5">Everything your site needs. On Cloudflare.</h1>
 
 <div style="flex: 1 1 500px; min-width: 0">
 <svg width="100%" viewBox="0 0 600 560" role="img" aria-label="An illustration: the moon as a hockey puck, floating among clouds and stars, with a tiny town of web pages, a tree and a planted flag on top">
@@ -140,7 +141,7 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 </div>
 </div>
 
-<div style="display: flex; flex-wrap: wrap; gap: 56px; align-items: flex-start; padding: 32px 0 120px">
+<div style="display: flex; flex-wrap: wrap; gap: 56px; align-items: flex-start; padding: 32px 0 72px">
 <div style="flex: 0 0 260px; display: flex; justify-content: center">
 <svg width="240" height="240" viewBox="0 0 240 240" role="img" aria-label="A round badge reading: edit the page, publish the page">
 <defs><path id="mpBadge" d="M120 120 m-92 0 a92 92 0 1 1 184 0 a92 92 0 1 1 -184 0"></path></defs>
@@ -151,15 +152,58 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 </svg>
 </div>
 <div style="flex: 1 1 520px; min-width: 0">
-<p class="mp-label" style="margin: 0 0 18px; color: #FFA5FF">The open source website builder for small organizations</p>
-<p class="mp-serif mp-lead" style="margin: 0; font-size: 34px; line-height: 1.22; color: #F7F0F5">Moonpuck is a visual editor with Claude built in. Drop in a PDF, a few photos and a link, and get a finished page in your house style, every block still yours to edit.</p>
-<p class="mp-serif mp-lead" style="margin: 26px 0 0; font-size: 34px; line-height: 1.22; color: #F7F0F5">Events, tickets, members, mailing lists, donations and a shop come with it, running on your own Cloudflare account.</p>
+<p class="mp-label" style="margin: 0 0 18px; color: #FFA5FF">The opinionated, batteries-included CMS</p>
+<p class="mp-serif mp-lead" style="margin: 0; font-size: 34px; line-height: 1.22; color: #F7F0F5">Moonpuck is an open source CMS built on Cloudflare: one Worker, with your content in D1 and your files in R2, on your own account. Nothing to host, nothing to patch.</p>
+<p class="mp-serif mp-lead" style="margin: 26px 0 0; font-size: 34px; line-height: 1.22; color: #F7F0F5">A visual editor, events and tickets, members, mailing lists, donations, a shop and Claude come with it. Turn on what you need.</p>
 <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 40px">
 <a href="/docs/local-setup/" class="mp-pill" style="background: #F5D8EF; color: #120C1F">Get started</a>
-<a href="#compose" class="mp-pill" style="background: #1B2A6B; color: #DCD8FF">How Compose works</a>
+<a href="#features" class="mp-pill" style="background: #1B2A6B; color: #DCD8FF">See what's included</a>
 <a href="#build" class="mp-pill" style="border: 2px solid #F7F0F5; color: #F7F0F5">Have us build it</a>
 </div>
 </div>
+</div>
+
+<div class="mp-pillars">
+<div class="mp-pillar">
+<p class="mp-label" style="margin: 0; color: #FFA5FF">Built on Cloudflare</p>
+<p style="margin: 10px 0 0; font-size: 17px; line-height: 1.5">A Worker with D1 and R2. Pages are cached at the edge, images resized for you, mail and jobs handled by the platform. No servers, no database to run.</p>
+</div>
+<div class="mp-pillar">
+<p class="mp-label" style="margin: 0; color: #FFA5FF">Batteries included</p>
+<p style="margin: 10px 0 0; font-size: 17px; line-height: 1.5">What a small organization runs on is already in the box and works together: one place for members, tickets, orders and mail. No plugins to choose or keep up to date.</p>
+</div>
+<div class="mp-pillar">
+<p class="mp-label" style="margin: 0; color: #FFA5FF">Opinionated</p>
+<p style="margin: 10px 0 0; font-size: 17px; line-height: 1.5">One good way to do each thing: content as blocks, the look as theme settings, an accessibility check before publishing, and core updates you merge in with git.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" style="background: #9898FF; padding: 104px 0 112px">
+<div class="mp-wrap">
+<p class="mp-label" style="margin: 0 0 10px; color: #120C1F">Batteries included</p>
+<h2 class="mp-serif mp-h2" style="margin: 0 0 18px; font-size: 80px; line-height: 1; color: #120C1F">Everything in one orbit</h2>
+<p style="margin: 0 0 48px; font-size: 19px; line-height: 1.55; max-width: 620px">What a small organization runs on, built in and working together. Turn on what you need under Settings: nothing to install, no plugins to keep up to date.</p>
+<div class="mp-cards">
+<a href="#compose" class="mp-card" style="background: #C83C1F; color: #FFFFFF; text-decoration: none"><p class="mp-label" style="margin: 0; font-size: 12px">Editing</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Compose with Claude</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Pages, events, forms and campaigns built from your documents and photos.</p></a>
+<div class="mp-card" style="background: #C5E975"><p class="mp-label" style="margin: 0; font-size: 12px">Editing</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Visual editor</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Edit on the page. Templates, patterns, autosave and revisions.</p></div>
+<div class="mp-card" style="background: #FEA903"><p class="mp-label" style="margin: 0; font-size: 12px">Editing</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Media library</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Focal points per screen size, AVIF and WebP, alt text written for you.</p></div>
+<div class="mp-card" style="background: #2F5BD6; color: #FFFFFF"><p class="mp-label" style="margin: 0; font-size: 12px">Forms</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Forms and payments</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Conditional fields, Stripe or Square, designed notification emails.</p></div>
+<div class="mp-card" style="background: #FDF152"><p class="mp-label" style="margin: 0; font-size: 12px">Events</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Events calendar</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Recurring events, venues, month and day views, calendar feeds.</p></div>
+<div class="mp-card" style="background: #FF542F"><p class="mp-label" style="margin: 0; font-size: 12px">Events</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Tickets</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Paid or free, with waitlists, check-in, refunds and reminder emails.</p></div>
+<div class="mp-card" style="background: #F5D8EF"><p class="mp-label" style="margin: 0; font-size: 12px">People</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Members</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Levels, sign-ups, members-only pages and member prices.</p></div>
+<div class="mp-card" style="background: #C5E975"><p class="mp-label" style="margin: 0; font-size: 12px">People</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Mailing lists</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Campaigns, segments and a weekly digest of what's new.</p></div>
+<div class="mp-card" style="background: #FEA903"><p class="mp-label" style="margin: 0; font-size: 12px">Giving</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Donations</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">One-time and monthly gifts, receipts, fundraising goals with a progress bar.</p></div>
+<div class="mp-card" style="background: #FFA5FF"><p class="mp-label" style="margin: 0; font-size: 12px">Selling</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Shop</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Products with options and stock, a cart, member prices and members-only products.</p></div>
+<div class="mp-card" style="background: #2F5BD6; color: #FFFFFF"><p class="mp-label" style="margin: 0; font-size: 12px">Selling</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Shipping and tax</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Your own zones and rates, pickup locations, tax rates or Stripe Tax.</p></div>
+<div class="mp-card" style="background: #FDF152"><p class="mp-label" style="margin: 0; font-size: 12px">Insight</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Stats without cookies</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Views, visitors, clicks and campaigns. No banner needed.</p></div>
+<div class="mp-card" style="background: #C5E975"><p class="mp-label" style="margin: 0; font-size: 12px">Insight</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Search and SEO</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Live site search, search titles and share images, written for you.</p></div>
+<div class="mp-card" style="background: #FEA903"><p class="mp-label" style="margin: 0; font-size: 12px">Care</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Accessibility check</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Problems flagged in the editor, and optionally held before publishing.</p></div>
+<div class="mp-card" style="background: #F5D8EF"><p class="mp-label" style="margin: 0; font-size: 12px">Care</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Popups and consent</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Dialogs and bars from your own blocks, and a cookie banner that holds cookie-based tracking until people agree.</p></div>
+<div class="mp-card" style="background: #FDF152"><p class="mp-label" style="margin: 0; font-size: 12px">Care</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Redirects</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Moved pages redirect themselves. Missing addresses are logged.</p></div>
+<div class="mp-card" style="background: #2F5BD6; color: #FFFFFF"><p class="mp-label" style="margin: 0; font-size: 12px">Care</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Sync and backups</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Copy content between copies. Daily snapshots, and restore.</p></div>
 </div>
 </div>
 </section>
@@ -167,22 +211,19 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 <!-- COMPOSE -->
 <section id="compose" style="background: #C83C1F; color: #FFFFFF; padding: 104px 0 112px">
 <div class="mp-wrap">
-<p class="mp-label" style="margin: 0 0 40px; color: #F5D8EF">Compose with Claude</p>
-
-<div style="display: flex; flex-wrap: wrap; gap: 24px 48px; align-items: flex-end; padding-bottom: 30px; border-bottom: 1px solid #120C1F">
-<h2 class="mp-serif mp-step" style="flex: 1 1 460px; margin: 0; font-size: 76px; line-height: 1; color: #FFFFFF">Add your materials</h2>
-<p style="flex: 1 1 320px; margin: 0; font-size: 18px; line-height: 1.55">PDFs, Word files, text, photos and video from your library, YouTube and Vimeo links, and web pages.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 32px 56px; align-items: flex-end; justify-content: space-between">
+<div style="flex: 1 1 560px; min-width: 0">
+<p class="mp-label" style="margin: 0 0 18px; color: #F5D8EF">Feature spotlight: Compose with Claude</p>
+<h2 class="mp-serif mp-h2" style="margin: 0; font-size: 76px; line-height: 1; color: #FFFFFF">Hand it the flyer. Get the page.</h2>
+<p style="margin: 22px 0 0; font-size: 19px; line-height: 1.55; max-width: 640px">Add PDFs, photos, video and links, and say what you need: a page, an event, a form or a campaign. Compose builds it from ordinary blocks in your house style, so every part is still yours to edit, and your hand edits are kept.</p>
 </div>
-<div style="display: flex; flex-wrap: wrap; gap: 24px 48px; align-items: flex-end; padding: 40px 0 30px; border-bottom: 1px solid #120C1F">
-<h2 class="mp-serif mp-step" style="flex: 1 1 460px; margin: 0; font-size: 76px; line-height: 1; color: #FFFFFF">Say what you need</h2>
-<p style="flex: 1 1 320px; margin: 0; font-size: 18px; line-height: 1.55">A new page, an event, a form, a campaign. Select a block and ask for a change to just that part.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<a href="/features/compose/" class="mp-pill" style="background: #FFFFFF; color: #120C1F">How Compose works</a>
+<a href="/editors/writing-with-claude/" class="mp-pill" style="border: 2px solid #FFFFFF; color: #FFFFFF">Writing with Claude, for editors</a>
 </div>
-<div style="display: flex; flex-wrap: wrap; gap: 24px 48px; align-items: flex-end; padding: 40px 0 30px; border-bottom: 1px solid #120C1F">
-<h2 class="mp-serif mp-step" style="flex: 1 1 460px; margin: 0; font-size: 76px; line-height: 1; color: #FFFFFF">Edit it like any page</h2>
-<p style="flex: 1 1 320px; margin: 0; font-size: 18px; line-height: 1.55">Everything it builds is ordinary blocks. Your hand edits are kept, and the accessibility check runs before you publish.</p>
 </div>
 
-<div role="img" aria-label="The Moonpuck editor: a page on the canvas with the Compose panel open beside it" style="margin-top: 72px; background: #1B2A6B; border: 3px solid #120C1F; border-radius: 18px; overflow: hidden; color: #F7F0F5">
+<div role="img" aria-label="The Moonpuck editor: a page on the canvas with the Compose panel open beside it" style="margin-top: 56px; background: #1B2A6B; border: 3px solid #120C1F; border-radius: 18px; overflow: hidden; color: #F7F0F5">
 <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 2px solid #120C1F">
 <div style="display: flex; align-items: center; gap: 12px; font-size: 13px"><span style="font-weight: 600">Spring Fair</span><span style="background: #2C3C85; padding: 3px 10px; border-radius: 999px; font-size: 12px">Draft</span></div>
 <div style="display: flex; gap: 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px"><span style="padding: 7px 14px; background: #2C3C85; border-radius: 999px">Preview</span><span style="padding: 7px 14px; background: #F5D8EF; color: #120C1F; border-radius: 999px">Publish</span></div>
@@ -218,33 +259,6 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 <div style="margin-top: auto; background: #2C3C85; border-radius: 12px; padding: 10px 12px; font-size: 13px; color: #DCD8FF">Make the cards show prices…</div>
 </div>
 </div>
-</div>
-</div>
-</section>
-
-<!-- FEATURES -->
-<section id="features" style="background: #9898FF; padding: 104px 0 112px">
-<div class="mp-wrap">
-<p class="mp-label" style="margin: 0 0 10px; color: #120C1F">What's on board</p>
-<h2 class="mp-serif mp-h2" style="margin: 0 0 18px; font-size: 80px; line-height: 1; color: #120C1F">Everything in one orbit</h2>
-<p style="margin: 0 0 48px; font-size: 19px; line-height: 1.55; max-width: 620px">What a small organization runs on. Turn on what you need under Settings: nothing to install, no plugins to keep up to date.</p>
-<div class="mp-cards">
-<div class="mp-card" style="background: #C5E975"><p class="mp-label" style="margin: 0; font-size: 12px">Editing</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Visual editor</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Edit on the page. Templates, patterns, autosave and revisions.</p></div>
-<div class="mp-card" style="background: #FEA903"><p class="mp-label" style="margin: 0; font-size: 12px">Editing</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Media library</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Focal points per screen size, AVIF and WebP, alt text written for you.</p></div>
-<div class="mp-card" style="background: #2F5BD6; color: #FFFFFF"><p class="mp-label" style="margin: 0; font-size: 12px">Forms</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Forms and payments</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Conditional fields, Stripe or Square, designed notification emails.</p></div>
-<div class="mp-card" style="background: #FDF152"><p class="mp-label" style="margin: 0; font-size: 12px">Events</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Events calendar</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Recurring events, venues, month and day views, calendar feeds.</p></div>
-<div class="mp-card" style="background: #FF542F"><p class="mp-label" style="margin: 0; font-size: 12px">Events</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Tickets</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Paid or free, with waitlists, check-in, refunds and reminder emails.</p></div>
-<div class="mp-card" style="background: #F5D8EF"><p class="mp-label" style="margin: 0; font-size: 12px">People</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Members</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Levels, sign-ups, members-only pages and member prices.</p></div>
-<div class="mp-card" style="background: #C5E975"><p class="mp-label" style="margin: 0; font-size: 12px">People</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Mailing lists</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Campaigns, segments and a weekly digest of what's new.</p></div>
-<div class="mp-card" style="background: #FEA903"><p class="mp-label" style="margin: 0; font-size: 12px">Giving</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Donations</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">One-time and monthly gifts, receipts, fundraising goals with a progress bar.</p></div>
-<div class="mp-card" style="background: #FFA5FF"><p class="mp-label" style="margin: 0; font-size: 12px">Selling</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Shop</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Products with options and stock, a cart, member prices and members-only products.</p></div>
-<div class="mp-card" style="background: #2F5BD6; color: #FFFFFF"><p class="mp-label" style="margin: 0; font-size: 12px">Selling</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Shipping and tax</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Your own zones and rates, pickup locations, tax rates or Stripe Tax.</p></div>
-<div class="mp-card" style="background: #FDF152"><p class="mp-label" style="margin: 0; font-size: 12px">Insight</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Stats without cookies</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Views, visitors, clicks and campaigns. No banner needed.</p></div>
-<div class="mp-card" style="background: #C5E975"><p class="mp-label" style="margin: 0; font-size: 12px">Insight</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Search and SEO</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Live site search, search titles and share images, written for you.</p></div>
-<div class="mp-card" style="background: #FEA903"><p class="mp-label" style="margin: 0; font-size: 12px">Care</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Accessibility check</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Problems flagged in the editor, and optionally held before publishing.</p></div>
-<div class="mp-card" style="background: #F5D8EF"><p class="mp-label" style="margin: 0; font-size: 12px">Care</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Popups and consent</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Dialogs and bars from your own blocks, and a cookie banner that holds cookie-based tracking until people agree.</p></div>
-<div class="mp-card" style="background: #FDF152"><p class="mp-label" style="margin: 0; font-size: 12px">Care</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Redirects</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Moved pages redirect themselves. Missing addresses are logged.</p></div>
-<div class="mp-card" style="background: #2F5BD6; color: #FFFFFF"><p class="mp-label" style="margin: 0; font-size: 12px">Care</p><h3 class="mp-serif" style="margin: 8px 0 8px; font-size: 32px; line-height: 1.05">Sync and backups</h3><p style="margin: 0; font-size: 15px; line-height: 1.5">Copy content between copies. Daily snapshots, and restore.</p></div>
 </div>
 </div>
 </section>
