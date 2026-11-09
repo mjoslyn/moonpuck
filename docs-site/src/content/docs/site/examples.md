@@ -15,8 +15,8 @@ An **Opening hours** block: a heading and a list of days and times, edited in th
 ### 1. Its fields
 
 The fields the panel shows, kept beside the site's other block fields (`lib/fields.ts`). `FieldDef`
-types are the ones content types use: `text`, `textarea`, `url`, `email`, `number`, `bool`, `image`,
-`select`, `repeater`, `entries` and `entry`.
+types are the ones content types use, each described with what it stores under
+[Field types](../configuration/#field-types).
 
 ```ts
 // lib/fields.ts
