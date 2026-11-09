@@ -5,6 +5,8 @@ sidebar:
   order: 2
 ---
 
+Worked examples of a block, a block that loads data, a template and a pattern: [Examples](../examples/).
+
 ## render.ts
 
 `src/site/render.ts` calls `defineRender` (types in `src/lib/site/extend.ts`):

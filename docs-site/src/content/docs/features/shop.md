@@ -1,15 +1,15 @@
 ---
-title: Shop (preview)
+title: Shop
 description: Products with options, variants and stock, a cart kept in the browser, the server's quote, checkout and orders.
 sidebar:
   order: 12
 ---
 
-The shop is optional and is being built in phases. Phase 1: products, options and variants, stock, the
-shop's blocks and the cart. Phase 2 so far: checkout settings, shipping, pickup, tax, member pricing,
-checkout and orders, the Orders screen, discounts, the order emails in the email builder, Shop > Stats, and orders, stock and discounts in sync and backups.
-Phase 3: the Stock screen, low-stock alerts, digital downloads, and Shippo for live carrier rates, labels
-and tracking.
+The shop is optional: products, options and variants, stock, the shop's blocks and the cart; checkout
+settings, shipping, pickup, tax and member pricing; checkout and orders, the Orders screen, discounts,
+the order emails in the email builder and Shop > Stats; the Stock screen, low-stock alerts and digital
+downloads; Shippo for live carrier rates, labels and tracking; and orders, stock and discounts in sync and
+backups.
 
 Turn it on under **Settings > Shop** (admins). It brings the `product` type under Content, product pages,
 the shop at `/shop/`, product categories, the cart at `/cart/` and the shop blocks.

@@ -1,8 +1,7 @@
 # Shop plan
 
-The shop is built in phases on the preview branch (`claude/dazzling-euler-p0tfxa`) and isn't merged to
-`main` or the sites until the owner says so. Phase 1 is done (commit `288083f`; CORE.md, Shop). This
-file is the plan for the rest, with the decisions already made.
+The shop was built in phases (CORE.md, Shop), all of them done and in `main`. This file keeps the plan
+and the decisions made along the way.
 
 ## Decisions
 

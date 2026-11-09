@@ -1312,12 +1312,13 @@ never subscribes anyone again); the settings are, with the others. Migration `*_
   clicks and Mailgun's events for the address, keeps the hash, an earlier bounce or complaint staying its
   reason, adds them to Mailgun's unsubscribes) and Export as CSV (formulas guarded).
 
-## Shop (preview)
+## Shop
 
 An optional feature, on under Settings > Shop (`settings.site.shop`: `enabled`, `currency`, `weightUnit`;
-`shopSettings`, `shopOn`, `src/lib/shop/config.ts`), built in phases: phase 1 has
-products, options, variants, stock and the cart; phase 2, checkout (payments, manual shipping rates and
-pickup, tax, orders, the Orders screen, discounts, order emails, stats, and orders and stock in sync and backups), and phase 3 (the Stock screen, low-stock alerts, digital downloads, and carrier rates, labels and tracking) are built. Off, nothing is deleted: the admin hides the core's product type and
+`shopSettings`, `shopOn`, `src/lib/shop/config.ts`): products, options, variants and stock, the cart,
+checkout (payments, manual shipping rates and pickup, carrier rates, labels and tracking, tax), orders,
+discounts, order emails, digital downloads, the Stock screen and low-stock alerts, stats, and orders and
+stock in sync and backups. Off, nothing is deleted: the admin hides the core's product type and
 product categories (`showsType`, `showsTaxonomy`, `src/lib/features.ts`), the site serves none of them
 (`resolve`, the loader's `off` types), the shop's blocks render nothing (`SHOP_BLOCKS`) and its endpoints
 answer 404.

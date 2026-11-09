@@ -98,10 +98,6 @@ Concise and factual: what changed, why, and any measurements; no editorial frami
   deploy: Images' trim, the cache purge, SMTP over sockets, and a real site's move (its own tables,
   row sizes against D1's 2 MB).
 - Core tests that run on the example site's content (several e2e scripts assume a site's content).
-- The shop (CORE.md, Shop; the full plan and its decisions: `docs/shop-plan.md`): phase 2, checkout (payments
-  through `src/lib/payments`, manual shipping rates and pickup, tax, discounts, orders with stock holds,
-  refunds with a restock choice, order emails, stats, orders and stock in sync and backups), is built; phase 3 (the Stock
-  screen, low-stock alerts, digital downloads, Shippo rates, labels and tracking) is built and checked
-  against Shippo's test API; its tracking webhook still to check on a deployed copy. Stripe is checked against
-  its test API (connecting, checkout, cancel and expiry, Stripe Tax, refunds from the order page and the
-  dashboard, its events' shapes); webhook delivery from Stripe itself still to check on a deployed copy.
+- The shop (CORE.md, Shop; its plan and decisions: `docs/shop-plan.md`) is checked against Shippo's and
+  Stripe's test APIs; still to check on a deployed copy: Shippo's tracking webhook and webhook delivery
+  from Stripe itself.
