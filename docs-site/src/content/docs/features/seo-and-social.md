@@ -73,7 +73,7 @@ site's name and tagline. **Make share cards** under Settings > Social turns them
   is a hash of what the card shows and the design's version, so an edited title or image gives a new
   address, which social networks fetch again. An older stamp is sent on (302) to the current one.
 - **Drawing**: Satori lays the design out as SVG and resvg draws the PNG, both WebAssembly modules in the
-  Worker (about 1.2 MB compressed; a Worker over 3 MB needs Workers Paid). The first request draws it
+  Worker (about 3.3 MB of its 64 MiB; drawing takes about 100 ms of CPU, which needs Workers Paid). The first request draws it
   (a few hundred milliseconds), keeps it in the store (`share-cards/`, deleting the page's earlier
   cards) and answers with a year's caching at the CDN.
 - **Design**: the core's (`coreCard`, Inter) in the site's colors, or the site's own: `shareCard` in its

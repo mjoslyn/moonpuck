@@ -266,7 +266,9 @@ stamp on to the current one (302), and otherwise answers with the card kept in t
 keeps it and deletes that page's earlier ones after the answer; cached a year at the CDN. Drawing:
 Satori (pinned at 0.32, the last release without harfbuzzjs, which reads `import.meta.url` and fails in
 workerd) lays the design out as SVG with text as paths, and resvg draws it; both run as CompiledWasm
-modules (`*.wasm` imports), about 1.2 MB compressed, so a Worker with them is past Workers Free's 3 MB.
+modules (`*.wasm` imports), about 3.3 MB of the Worker's size (Workers allow 64 MiB uncompressed on every
+plan; there is no compressed limit). Drawing a card takes about 100 ms of CPU, past Workers Free's 10 ms
+a request, as is rendering most pages: the core runs on Workers Paid (`limits.cpu_ms`).
 The photo is the image's large size as a JPEG or PNG data URL (other formats are left out). The design
 is the core's (`coreCard`: Inter 400 and 700, `src/lib/share-card/fonts/`, OFL) in `DEFAULT_CARD_COLORS`,
 or a site's `shareCard` in its `render.ts` (`ShareCardDesign`): `render` (the view to an element tree,
