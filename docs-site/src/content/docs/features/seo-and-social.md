@@ -38,8 +38,9 @@ description becomes the term's name. A term page uses:
 - **Search title** (and `<title>`): the term's, else the taxonomy's, else the term's name.
 - **Meta description**: the term's SEO description, else its description, else the taxonomy's, else the
   site's tagline.
-- **Share image**: the term's, else its featured image, else the taxonomy's featured image, else the
-  site's default.
+- **Share image**: the term's, else the taxonomy's; without either, the term's share card (its name,
+  taxonomy and featured image, else the taxonomy's), or with share cards off its featured image, else
+  the taxonomy's featured image, else the site's default.
 - **noindex**: if either the term or its taxonomy sets it. See
 [Taxonomies and tags](../../content/taxonomies/#term-details).
 
@@ -57,8 +58,28 @@ image and noindex.
 ## Meta tags
 
 `src/render/meta.ts` writes the head tags: description, canonical, robots, Open Graph and Twitter
-card. They fall back to the excerpt, the featured image and the site's default share image. The home
-page also gets Organization structured data, with the social profiles as `sameAs`.
+card. They fall back to the excerpt, the share card (below), the featured image and the site's default
+share image. The home page also gets Organization structured data, with the social profiles as `sameAs`.
+
+## Share cards
+
+A page, term page or listing whose SEO settings have no share image is shared with a share card
+(`src/lib/share-card/`): a 1200 by 630 PNG with its title, what it is (its type, or its taxonomy) and its
+featured image, else the default share image, with the site's name and icon; the home page's shows the
+site's name and tagline. **Make share cards** under Settings > Social turns them off
+(`settings.site.share_cards: false`). Drafts, members-only entries and Not found pages get none.
+
+- **Address**: `/share-card/<entry|term|listing>/<id or type>.png?v=<stamp>`, in `og:image`. The stamp
+  is a hash of what the card shows and the design's version, so an edited title or image gives a new
+  address, which social networks fetch again. An older stamp is sent on (302) to the current one.
+- **Drawing**: Satori lays the design out as SVG and resvg draws the PNG, both WebAssembly modules in the
+  Worker (about 1.2 MB compressed; a Worker over 3 MB needs Workers Paid). The first request draws it
+  (a few hundred milliseconds), keeps it in the store (`share-cards/`, deleting the page's earlier
+  cards) and answers with a year's caching at the CDN.
+- **Design**: the core's (`coreCard`, Inter) in the site's colors, or the site's own: `shareCard` in its
+  `render.ts` gives `render` (an element tree for Satori, written with `h`), `fonts` (WOFF or TTF files
+  imported as `.bin` modules, loaded inside the function), `colors` for the core's design, and
+  `version`, changed with the design so every card is made again.
 
 ## Social profiles
 

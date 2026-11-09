@@ -1249,8 +1249,9 @@ settings**. What's there depends on the kind of content.
     characters. Empty, it uses the page's excerpt.
   - **Compose**: Claude writes both from the page as it is now. Edit the suggestion as you like.
   - Under them, a preview of how the page may look in search results.
-  - **Share image**: the picture shown when the page is shared on social media. Empty, the featured
-    image is used, then the site's default. **Remove share image** clears it.
+  - **Share image**: the picture shown when the page is shared on social media. Empty, the site makes
+    a share card from the page's title and featured image (see
+    [Share cards](/admins/settings/#share-cards)). **Remove share image** clears it.
   - **Hide from search engines and AI answer engines** asks Google and the like not to list the page,
     and the tools behind ChatGPT, Claude, Perplexity and Google's AI answers not to read it. Use it for
     pages only your members or partners need, for example.

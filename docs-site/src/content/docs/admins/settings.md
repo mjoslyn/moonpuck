@@ -35,7 +35,7 @@ An item can also open a larger drop-down panel: add **Links** under a **Links he
 | **General** | The site's name, tagline, which page is the home page, and which page people see when an address doesn't exist. |
 | **Types** | The kinds of content the site has, which layout (template) each uses, and which kinds can be marked featured (see [Kinds of content and taxonomies](/admins/content-types/)). Usually set up once. |
 | **Search** | Which kinds of content the site search covers. |
-| **Social** | Your social media profiles (shown as icons) and the picture used when a page without its own image is shared. |
+| **Social** | Your social media profiles (shown as icons), share cards (see [Share cards](#share-cards)) and the picture used when a page without its own image is shared. |
 | **Popups** | Popups over the site's pages and the cookie consent banner (see [Popups and cookie consent](/admins/popups-and-cookies/)). |
 | **Stats** | Whether Stats recognises returning visitors with a cookie (see [The Stats cookie](/admins/popups-and-cookies/#the-stats-cookie)). |
 | **Code snippets** | Code to put on every page: paste a tag from an analytics, chat or advertising service, or a site verification tag, into **Header**, **Body start** or **Footer**, as the service's instructions say. Paste only code from a service you trust. Tick **Only after visitors accept cookies** for tracking tags. |
@@ -47,6 +47,20 @@ An item can also open a larger drop-down panel: add **Links** under a **Links he
 | **Redirects** | Send visitors from an old address to a new one (see [Redirects and missing pages](/admins/redirects/)). |
 | **Email log** | Keep a record of the emails the site sends (see [Email log and backups](/admins/email-log-and-backups/)). |
 | **Sync** and **Backups** | Copying content between copies of the site, and backups. Usually left to whoever set up the site. |
+
+## Share cards
+
+When a page is shared on Facebook, LinkedIn, X, Slack or in a text message, the site sends a picture
+with the link. A page whose SEO settings have no **Share image** gets a share card: a picture made from
+the page's title, what kind of page it is and its featured image, with the site's name and icon.
+
+- **Make share cards** (Settings > Social): on unless you untick it. Off, pages without a share image
+  use their featured image, then the default share image.
+- **Default share image**: the photo on the cards of pages without a featured image.
+
+A card is made the first time someone shares the page, and made again when its title or featured
+image changes. A page with its own **Share image** always uses that. Drafts and members-only pages
+don't get a card.
 
 ## The home page
 

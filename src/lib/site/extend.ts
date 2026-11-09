@@ -6,6 +6,7 @@ import type { PuckItem } from '../puck/types';
 import type { QueryArgs } from '../data';
 import type { Renderer, RenderCtx } from '../../render/env';
 import type { FieldDef } from './types';
+import type { ShareCardDesign } from '../share-card/design';
 
 /** Where a block appears in the editor's block list. */
 export type BlockCategory = 'text' | 'media' | 'layout' | 'dynamic' | 'card' | 'sections' | 'site' | 'advanced';
@@ -56,6 +57,8 @@ export interface SiteRender {
   head?: (ctx: RenderCtx) => string;
   /** The page's footer scripts, given those the blocks added (ctx.scripts). Default: ctx.scripts as is. */
   pageScripts?: (ctx: RenderCtx) => Promise<string[]>;
+  /** Share cards for pages without a share image of their own (src/lib/share-card): the site's design. */
+  shareCard?: ShareCardDesign;
   /** Where an old URL of the site's now lives (a 301), or null: e.g. a previous site's URLs. */
   redirect?: (url: URL) => string | null;
 }

@@ -226,7 +226,7 @@ disallows the page, or a term page hidden the same way, for the AI crawlers in `
 **Leave out of this site's search** (`nosearch`, entries
 only: `entry_search` never matches them, so `/search/` and the live results leave them out). `src/render/meta.ts` writes the head
 tags: description, canonical, robots, Open Graph and Twitter card, falling back to the excerpt, the
-featured image and the site's default share image; the home page also gets Organization data with the
+share card (below), the featured image and the site's default share image; the home page also gets Organization data with the
 social profiles as `sameAs`. Compose includes `seo` in every `build_page` and writes it (marked
 `generated`) on each build until someone edits it by hand. The entry settings' SEO section
 (`src/puck/SeoForm.tsx`) shows lengths and a search result preview, and **Compose** asks Claude
@@ -237,7 +237,8 @@ forced tool call, which Claude Sonnet 5.5, Opus 5.5 and Fable 5.1 refuse; a refu
 reported as such (`quickAnswer`).
 Term pages (`termSeo`): the search title is the term's, else its taxonomy's (with `{term}` filled in),
 also used for the `<title>`; the description the term's SEO description, else its description, else
-the taxonomy's; the share image the term's, else its featured image, else the taxonomy's; noindex
+the taxonomy's; the share image the term's SEO's, else its taxonomy's, else its share card (else, with
+cards off, its featured image, else the taxonomy's); noindex
 from either. A type's listing page has its own featured image and SEO (Settings > Types,
 `settings.site.listing_meta`, `listingSeo`): the title (over the calendar's own) and description on
 the listing's address only, not on views under it (calendar months and days) or searches in it; the
@@ -246,9 +247,32 @@ shows its image. Compose (`/api/admin/meta-compose`) writes the title and descri
 what it lists.
 
 Settings > Social keeps the site's profiles (`settings.site.social`: network and URL;
-`src/lib/social/links.ts`) and the default share image (`share_image`). The `social-links` block
+`src/lib/social/links.ts`), the default share image (`share_image`) and **Make share cards**
+(`share_cards`, on unless false). The `social-links` block
 (Layout) shows the profiles as icons (`src/lib/social/icons.ts`, Simple Icons paths, CC0), optionally
 with names.
+
+**Share cards** (`src/lib/share-card/`): a page, term page or listing with no share image in its SEO
+settings (a term: its own or its taxonomy's) is shared with a card, a 1200 by 630 PNG of its title,
+what it is (the type's singular name, or the taxonomy's name; none for pages) and its featured image
+(else the default share image), with the site's name and icon; the home page's shows the name and the
+tagline. Not for drafts, members-only entries (`entryCard`) or Not found pages. `og:image` is
+`/share-card/<entry|term|listing>/<id or type>.png?v=<stamp>` (`cardPath`; `cardStamp`, an FNV-1a hash
+of what the card shows, the core's design version and the site's `shareCard.version`), so an edit gives
+a new address that networks fetch again. The route (`src/pages/share-card/[...path].ts`) loads the page
+as anyone sees it (published, the features' types on, term pages and listings on), sends an older
+stamp on to the current one (302), and otherwise answers with the card kept in the store
+(`share-cards/<kind>/<key>-<stamp>.png`) or draws it (`renderCard`, `src/lib/share-card/render.ts`),
+keeps it and deletes that page's earlier ones after the answer; cached a year at the CDN. Drawing:
+Satori (pinned at 0.32, the last release without harfbuzzjs, which reads `import.meta.url` and fails in
+workerd) lays the design out as SVG with text as paths, and resvg draws it; both run as CompiledWasm
+modules (`*.wasm` imports), about 1.2 MB compressed, so a Worker with them is past Workers Free's 3 MB.
+The photo is the image's large size as a JPEG or PNG data URL (other formats are left out). The design
+is the core's (`coreCard`: Inter 400 and 700, `src/lib/share-card/fonts/`, OFL) in `DEFAULT_CARD_COLORS`,
+or a site's `shareCard` in its `render.ts` (`ShareCardDesign`): `render` (the view to an element tree,
+written with `h`; Satori's CSS subset, `display: flex` on anything with several children), `fonts`
+(WOFF, TTF or OTF; Satori reads no WOFF2; imported as `.bin` Data modules inside the function, so tests
+and the editor never load them), `colors` for the core's design, and `version`.
 
 ## Types in Settings
 

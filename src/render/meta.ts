@@ -1,8 +1,9 @@
 // <head> tags for search engines and social cards: description, canonical URL, robots, Open Graph
 // and Twitter card tags, and on the home page Organization data with the site's social profiles.
-// Entries use their SEO settings (fields.seo) and fall back to their excerpt and featured image, then
-// to the site's tagline and default share image (Settings). Term pages use the term's SEO, then its
-// taxonomy's; type listing pages their own (src/lib/page-meta.ts).
+// Entries use their SEO settings (fields.seo) and fall back to their excerpt, then to the site's tagline.
+// Term pages use the term's SEO, then its taxonomy's; type listing pages their own (src/lib/page-meta.ts).
+// The share image is the one set in the SEO settings, else the page's share card (its title and featured
+// image, src/lib/share-card; Settings > Social), else its featured image, then the default share image.
 import type { RenderCtx } from './env';
 import { esc } from './html';
 import { permalink } from '../lib/permalink';
@@ -12,6 +13,8 @@ import { socialLinks } from '../lib/social/links';
 import { site as config } from '../lib/site';
 import { listingSeo, termSeo } from '../lib/page-meta';
 import { ARCHIVE_PATHS } from '../lib/site';
+import { cardPath, cardsOn, entryCard, listingCard, termCard, termHasShareImage } from '../lib/share-card/card';
+import { CARD_HEIGHT, CARD_WIDTH } from '../lib/share-card/design';
 
 const attr = (s: string) => esc(s).replace(/"/g, '&quot;');
 
@@ -28,7 +31,9 @@ export async function headMeta(ctx: RenderCtx, docTitle: string): Promise<string
   const path = queried.notFound ? queried.url.pathname : entry ? (queried.isFront ? '/' : permalink(entry)) : queried.kind === 'search' ? '/search/' : queried.url.pathname;
   const url = origin + path;
 
-  const imageId = [seo.image, entry?.featured_media_id, siteSettings.share_image].map(Number).find((n) => n > 0);
+  // The share card, for a page without a share image set in its SEO settings.
+  const card = !cardsOn(siteSettings) || queried.notFound ? null : entry ? (Number(seoOf(entry.fields).image) > 0 ? null : entryCard(entry, siteSettings)) : term ? (termHasShareImage(term, siteSettings) ? null : termCard(term, siteSettings)) : listing ? listingCard(listing, siteSettings) : null;
+  const imageId = card ? undefined : [seo.image, entry?.featured_media_id, siteSettings.share_image].map(Number).find((n) => n > 0);
   if (imageId) await loader.loadMedia([imageId]);
   const media = imageId ? loader.mediaById(imageId) : undefined;
   const image = media ? downsize(media, 'large') : undefined;
@@ -47,12 +52,19 @@ export async function headMeta(ctx: RenderCtx, docTitle: string): Promise<string
     `<meta property="og:url" content="${attr(url)}" />`,
   );
   if (description) tags.push(`<meta property="og:description" content="${attr(description)}" />`);
-  if (image && media) {
+  if (card) {
+    tags.push(
+      `<meta property="og:image" content="${attr(origin + cardPath(card))}" />`,
+      `<meta property="og:image:width" content="${CARD_WIDTH}" />`,
+      `<meta property="og:image:height" content="${CARD_HEIGHT}" />`,
+      `<meta property="og:image:alt" content="${attr(card.isFront ? card.siteName : card.title)}" />`,
+    );
+  } else if (image && media) {
     tags.push(`<meta property="og:image" content="${attr(origin + mediaUrl(image.path))}" />`);
     if (image.width && image.height) tags.push(`<meta property="og:image:width" content="${image.width}" />`, `<meta property="og:image:height" content="${image.height}" />`);
     if (media.alt) tags.push(`<meta property="og:image:alt" content="${attr(media.alt)}" />`);
   }
-  tags.push(`<meta name="twitter:card" content="${image ? 'summary_large_image' : 'summary'}" />`);
+  tags.push(`<meta name="twitter:card" content="${card || image ? 'summary_large_image' : 'summary'}" />`);
 
   if (queried.isFront) {
     const sameAs = socialLinks(siteSettings).filter((l) => /^https?:/i.test(l.url)).map((l) => l.url);

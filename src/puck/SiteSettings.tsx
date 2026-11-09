@@ -47,7 +47,7 @@ import { ADMIN_THEME_DEFAULTS, ADMIN_THEME_FIELDS, adminThemeVars, contrast, typ
 interface Props {
   /** The section the address names. */
   section: string;
-  site: { name?: string; description?: string; front_page_id?: number | null; not_found_page_id?: number | null; timezone?: string; search_types?: string[]; social?: { network: string; url: string }[]; share_image?: number; share_image_url?: string; templates?: TemplateMap; taxonomy_templates?: Record<string, string>; taxonomy_pages_off?: string[]; taxonomy_meta?: Record<string, TaxonomyMeta>; listing_meta?: Record<string, TaxonomyMeta>; listings_off?: string[]; featured_types?: string[]; icons?: Record<string, string>; icon_media_id?: number | null; icon_preview?: string; admin_theme?: AdminTheme; tickets?: TicketSettings; members?: Partial<MemberSettings>; mailing?: MailingSettings; events?: { enabled?: boolean }; shop?: Partial<ShopSettings>; donations?: Record<string, any>; a11y?: { block_publish?: boolean }; snippets?: CodeSnippets; popups?: Popup[]; stats?: StatsSettings; mail_log?: { enabled?: boolean; days?: number } };
+  site: { name?: string; description?: string; front_page_id?: number | null; not_found_page_id?: number | null; timezone?: string; search_types?: string[]; social?: { network: string; url: string }[]; share_image?: number; share_image_url?: string; share_cards?: boolean; templates?: TemplateMap; taxonomy_templates?: Record<string, string>; taxonomy_pages_off?: string[]; taxonomy_meta?: Record<string, TaxonomyMeta>; listing_meta?: Record<string, TaxonomyMeta>; listings_off?: string[]; featured_types?: string[]; icons?: Record<string, string>; icon_media_id?: number | null; icon_preview?: string; admin_theme?: AdminTheme; tickets?: TicketSettings; members?: Partial<MemberSettings>; mailing?: MailingSettings; events?: { enabled?: boolean }; shop?: Partial<ShopSettings>; donations?: Record<string, any>; a11y?: { block_publish?: boolean }; snippets?: CodeSnippets; popups?: Popup[]; stats?: StatsSettings; mail_log?: { enabled?: boolean; days?: number } };
   options: Record<string, any>;
   pages: { id: number; title: string }[];
   templates: TemplateInfo[];
@@ -231,7 +231,12 @@ export default function SiteSettings({ section, site: initialSite, options: init
           </button>
         )}
         <MediaPicker title="Default share image" url={site.share_image_url} mediaId={site.share_image} onSelect={(m) => setSite({ ...site, share_image: m.id ?? m.mediaId ?? undefined, share_image_url: m.url })} />
-        <p className="-mt-2 mb-3 text-xs text-admin-muted">Shown when a page without its own image is shared.</p>
+        <p className="-mt-2 mb-3 text-xs text-admin-muted">Shown when a page without its own image is shared{site.share_cards === false ? '' : ", and the photo on share cards for pages without a featured image"}.</p>
+        <label className="mb-1 flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={site.share_cards !== false} onChange={(e) => setSite({ ...site, share_cards: e.target.checked })} />
+          Make share cards
+        </label>
+        <p className="mb-3 text-xs text-admin-muted">A page without a share image of its own (in its SEO settings) is shared with a card made from its title, what it is and its featured image.</p>
         {!!site.share_image && (
           <button type="button" className="mb-3 block text-xs text-[#b3261e]" onClick={() => setSite({ ...site, share_image: undefined, share_image_url: undefined })}>
             Remove default share image
