@@ -2,7 +2,7 @@
 title: Examples
 description: Worked examples of a site's own block (with its settings panel and a prepare hook), a template and a pattern.
 sidebar:
-  order: 4
+  order: 5
 ---
 
 These examples are written for a site's `src/site/`. Paths are relative to it unless they start with
@@ -120,7 +120,7 @@ The stored block looks like this:
 
 A **Latest post** block shows the newest post's title and date. What it needs is loaded before the
 page renders, in `prepare`, and put on `ctx.data` under a key with the block's id; the renderer reads
-it from there.
+it from there. Everything the Loader offers is in [Querying data](../querying/).
 
 ```ts
 // render/c/latest.ts

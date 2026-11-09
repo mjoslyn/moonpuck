@@ -2,7 +2,7 @@
 title: Styling
 description: The site's theme (Settings > Theme or code), role colors, dark bands and Compose's house style.
 sidebar:
-  order: 3
+  order: 4
 ---
 
 ## Where the look comes from

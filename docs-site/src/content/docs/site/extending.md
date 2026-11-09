@@ -6,6 +6,7 @@ sidebar:
 ---
 
 Worked examples of a block, a block that loads data, a template and a pattern: [Examples](../examples/).
+Reading entries, terms and media for a block: [Querying data](../querying/).
 
 ## render.ts
 
