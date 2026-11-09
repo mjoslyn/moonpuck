@@ -2009,7 +2009,7 @@ Square's testing panel, whose Test Payment pays the order) and reports the confi
 payment (that needs the provider's test keys and network access to it).
 `scripts/auth-e2e.ts` runs accounts without a browser: admin sign-in, an invitation from its email to a
 password, password links (spent once used), a member's sign-in, password link and account page, a
-sign-up's confirmation link, and and an older bcrypt password.
+sign-up's confirmation link, and an older bcrypt password.
 `scripts/mailing-e2e.ts` runs Mailing without Mailgun (emails read from the local mail catcher,
 `LOCAL_MAIL_URL`): sign-up and confirmation, preferences, unsubscribing (one-click from another site),
 a campaign with its variables, footer and tracked links, clicks as a person and a machine, signed and
