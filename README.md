@@ -1,32 +1,49 @@
 # moonpuck
 
-A CMS for small business and organisation sites: Astro rendering on a
-Cloudflare Worker, content in D1 and files in R2, the Puck visual editor, and Compose, which writes pages with Claude from
-the documents, images and links an editor adds.
+An opinionated, batteries-included CMS for small businesses and organisations, built on Cloudflare:
+Astro rendering on a Worker, content in D1, files in R2, the Puck visual editor, and Compose, which
+writes pages with Claude from the documents, images and links an editor adds. Everything a small
+organisation runs on is in the box and turned on under Settings: nothing to install, no plugins to keep
+up to date.
 
 The core is everything outside `src/site/`. `src/site/` is an example site called Example Town, with
-its own content types, taxonomies, card designs, colors and theme. A real site is a copy of this
+its own content types, taxonomies, card designs and starting theme. A real site is a copy of this
 repository that replaces `src/site/` and keeps this one as its `upstream`. `CORE.md` documents the
-code; `docs-site/` is the project's website, https://moonpuck.com/: its home page and the same
-documentation as a site.
+code; `docs-site/` is the project's website, https://moonpuck.com/: its home page, the developer docs
+and the Editor and Admin guides.
 
 What you get:
 
-- Page editor with drafts, preview, revisions, patterns and an accessibility check
-- Content types and fields from one config file; tags and categories; collections (grids, lists,
-  sliders, load more)
-- Events (optional, Settings > Events) with recurrence, a calendar (list, month, day) and `.ics` feeds
-- Media library with focal points, standard crops and AVIF/WebP copies
-- Form builder with conditional logic, email notifications and payments (Stripe or Square)
-- Event tickets and free registrations: ticket types with prices, capacities and sales windows,
-  a waitlist, an attendee list with check-in and refunds, and confirmation, reminder and follow-up
-  emails
-- Members: levels, sign-ups, members-only pages and blocks, and member ticket prices
-- Mailing (optional, through Mailgun): lists with confirmed sign-ups, campaigns and a weekly digest
-  built in the email builder, one-click unsubscribe, and opens and clicks with mail scanners' clicks
-  told apart from people's
-- Compose: pages and edits written by Claude from your materials
-- Roles: editor and admin, with invitations; what each may read and change is checked on the server
+- **Editing:** a visual page editor with drafts, autosave, preview, revisions, templates, patterns
+  (copied or linked), copy and paste of styles, and an accessibility check that can hold a publish
+- **Content:** types, fields and taxonomies from one config file, and more made by admins under
+  Settings; tags; collections (grids, lists, sliders, load more); filters, maps and site search
+- **Look:** the theme as settings (Settings > Theme): palette, the colors each role uses, dark bands,
+  buttons, fonts from a built-in library, text sizes, spacing, widths and a logo; the admin screens
+  match it or take their own colors
+- **Media:** a library with focal points per crop and screen size, AVIF and WebP copies, documents,
+  video, and alt text written by Claude
+- **Compose:** pages, edits, forms and campaigns written by Claude from your materials
+- **Forms:** conditional logic, payments (Stripe or Square), and notification emails built in the
+  email builder
+- **Events** (optional): recurrence, a calendar (list, month, day) and `.ics` feeds
+- **Tickets** (with Events): paid or free, ticket types with capacities and sales windows, one ticket
+  for several events, a waitlist, check-in, refunds, and confirmation, reminder and follow-up emails
+- **Members** (optional): levels, sign-ups, members-only pages and blocks, member prices on tickets and
+  in the shop
+- **Mailing lists** (optional, through Mailgun): confirmed sign-ups, campaigns and a weekly digest,
+  segments, one-click unsubscribe, and opens and clicks with mail scanners told apart from people
+- **Shop** (optional): products with options, variants, sales and stock, a cart and checkout, shipping
+  zones, pickup, carrier rates and labels (Shippo), tax or Stripe Tax, discounts, downloads, order
+  emails and stats
+- **Donations** (optional): one-time and monthly gifts, covering the fees, fundraising goals with a
+  progress bar, receipts and totals
+- **Site upkeep:** SEO settings and share cards, redirects and a log of missing addresses, cookie-free
+  stats, popups and a cookie consent banner, code snippets, an email log, sync between copies, daily
+  snapshots and restores
+- **Accounts:** editors and admins with invitations; what each may read and change is checked on the
+  server. Service keys (Claude, Stripe, Square, Mailgun, Shippo) are pasted in under Settings >
+  Connections, kept encrypted, and their webhooks set up for you
 
 ## Requirements
 
@@ -34,8 +51,9 @@ What you get:
 - Optional: a local mail catcher to see the site's email (Mailpit, through Docker or Homebrew)
 - For hosting: a Cloudflare account (Workers paid plan: the jobs queue and CPU time)
 - Optional: an Anthropic API key (Compose), a domain onboarded for Cloudflare Email Service (or an SMTP
-  account) for the site's email (form notifications, tickets, account emails), and a Stripe or Square
-  account (paid forms and tickets)
+  account) for the site's email (form notifications, tickets, orders, account emails), a Stripe or
+  Square account (paid forms, tickets, the shop and donations; monthly gifts need Stripe), a Mailgun
+  account (mailing lists) and a Shippo account (carrier rates and labels)
 
 Wrangler (Cloudflare's CLI) is a dev dependency, so `npx wrangler` needs no install.
 
@@ -96,9 +114,15 @@ Wrangler (Cloudflare's CLI) is a dev dependency, so `npx wrangler` needs no inst
 
 ### Optional features
 
+Most features are off until an admin turns them on under Settings > Features. The services they use
+are connected under Settings > Connections: paste a key and the site checks it, keeps it encrypted
+and, on the deployed site, sets up the service's webhook. Keys can also be set as environment
+variables (`.env.example`), which win over saved ones.
+
+- **Theme.** Settings > Theme starts from the site's code (`theme` in `src/site/render.ts`) and a theme
+  saved there replaces it: colors, fonts, sizes, spacing, widths, the logo, and the admin screens' look.
 - **Compose.** Connect Claude under Settings > Connections, or set `ANTHROPIC_API_KEY` (and optionally
-  `ANTHROPIC_MODEL`, default claude-sonnet-5-5) and restart the dev server. Stripe, Square and Mailgun
-  connect the same way on the deployed site, which sets up their webhooks.
+  `ANTHROPIC_MODEL`, default claude-sonnet-5-5) and restart the dev server.
 - **Email** (form notifications, ticket emails, account emails and mailing-list confirmations; not
   campaigns, which go through Mailgun). Deployed, mail goes through Cloudflare Email Service: add
   `"send_email": [{ "name": "EMAIL" }]` to `wrangler.jsonc`, onboard the sender's domain under Email
@@ -122,23 +146,25 @@ Wrangler (Cloudflare's CLI) is a dev dependency, so `npx wrangler` needs no inst
     category: { label: 'Kind of event' },
   },
   ```
-- **Tickets.** With Events on, add ticket types in an event's settings (under Tickets); the Event
-  details block shows the form, or place a Tickets block on any page or template. Free tickets
-  need nothing else. For paid ones, set one provider's keys:
+- **Tickets.** With Events on, make a ticket under People > Tickets (New ticket), give it ticket types
+  and attach the events it is for; or pick or make one in an event's settings. The Event details block
+  shows its form, or place a Tickets block on any page or template. Free tickets need nothing else.
+  For paid ones, connect Stripe or Square under Settings > Connections, or set one provider's keys:
   - Stripe: `STRIPE_SECRET_KEY` (`sk_test_...` to test) and `STRIPE_WEBHOOK_SECRET`.
   - Square: `SQUARE_ACCESS_TOKEN`, `SQUARE_LOCATION_ID`, `SQUARE_ENVIRONMENT=sandbox` to test,
     `SQUARE_WEBHOOK_SIGNATURE_KEY` and `SQUARE_WEBHOOK_URL`.
 
-  With both set, choose one under Settings > Tickets, which also has the currency, how long an
+  With both connected, choose one under Settings > Tickets, which also has the currency, how long an
   unpaid order holds its tickets, and the emails. Ticket emails need email set up (see Email above); their links use
   `SITE_URL` (default the request's address), and the copy of each order goes to `TICKETS_NOTIFY_EMAIL`
   (default `FORMS_ADMIN_EMAIL`, then `adminEmail`). Orders and the waitlist are at `/admin/tickets/`.
-  The same keys take payments on forms (a form's Payment tab).
+  The same keys take payments on forms (a form's Payment tab), in the shop and for donations.
 - **Members.** Turn it on under Settings > Members (admins): membership levels, how people join
   (admins add them, sign up and wait for approval, or sign up and join at once) and the message
   shown to visitors who can't see something. Then:
   - make a page members only in its settings (Members), or wrap blocks in a **Members only** block;
-  - give ticket types member prices or make them members only (an event's Tickets settings);
+  - give ticket types member prices or make them members only (a ticket's settings), and products
+    member prices (a product's Shop settings);
   - manage members at `/admin/members/`. Members sign in, sign up and reset their password at
     `/account/`; to design that page, make a page with that address and put the **Member account**
     block on it.
@@ -153,6 +179,20 @@ Wrangler (Cloudflare's CLI) is a dev dependency, so `npx wrangler` needs no inst
   `MAIL_LINK_SECRET` for the signed links in emails. Locally, without Mailgun, campaigns go to the mail
   catcher one address at a time. With Members on, member sign-up and the account page offer the lists
   chosen under Settings > Mailing Lists.
+
+- **Shop.** Turn it on under Settings > Shop (admins), with the currency and weight unit; that adds
+  products under Content, the shop at `/shop/`, product categories, the cart at `/cart/` and the shop
+  blocks, with starter templates. Connect Stripe or Square for payments. Settings > Shop also has the
+  checkout: shipping zones and rates, pickup locations, tax (your rates, or Stripe Tax), how long an
+  unpaid order holds its stock, order statuses, the order emails and, with Shippo connected, live
+  carrier rates and labels. Orders, discounts, stock and stats are under Shop in the admin bar; the
+  shop's copy of each order goes to `SHOP_NOTIFY_EMAIL` (default `FORMS_ADMIN_EMAIL`, then
+  `adminEmail`).
+- **Donations.** Turn them on under Settings > Donations (admins): the currency, preset amounts, the
+  minimum, monthly gifts (Stripe only), covering the fees, fundraising goals, receipt details and the
+  emails. Put a **Donate** block on a page (or link to `/donate/`), and a **Donation progress** block for
+  a goal. Gifts and monthly donors are at `/admin/donations/`; the organization's copy of each gift goes
+  to `DONATIONS_NOTIFY_EMAIL` (default `FORMS_ADMIN_EMAIL`, then `adminEmail`).
 
 ## Make it your site
 
@@ -217,9 +257,13 @@ follow the config. `CORE.md` describes each option.
      build command `npm run build`, deploy command `npm run deploy:remote`, which applies new
      migrations before deploying. Give the build's API token D1 Edit (My Profile > API Tokens); the
      token Cloudflare makes for builds doesn't have it.
-   - Taking payments (forms or tickets): add the payment provider's webhook. One endpoint serves both:
+   - Taking payments (forms, tickets, the shop, donations): connecting Stripe or Square under
+     Settings > Connections on the deployed site makes its webhook. By hand, one endpoint per provider
+     serves them all:
      - Stripe: `https://<your-domain>/api/payments/stripe`, with the `checkout.session.*`,
-       `charge.refunded` and `charge.refund.updated` events.
+       `charge.refunded`, `charge.refund.updated`, `refund.updated`, `refund.failed`, `invoice.paid`,
+       `invoice.payment_failed`, `customer.subscription.updated` and `customer.subscription.deleted`
+       events.
      - Square: `https://<your-domain>/api/payments/square`, with `payment.created`,
        `payment.updated`, `refund.created` and `refund.updated`; set `SQUARE_WEBHOOK_URL` to that
        exact address.
@@ -228,16 +272,18 @@ follow the config. `CORE.md` describes each option.
      `news.<your-domain>`, separate from the domain your other mail uses) and add its SPF, DKIM and
      tracking CNAME records; publish a DMARC record (`p=none` at first, `quarantine` once reports are
      clean). Turn on open tracking for that domain; leave click and unsubscribe tracking off (the site
-     does both). Add a webhook for delivered, opened, permanent and temporary failure, spam complaint
-     and unsubscribed events to `https://<your-domain>/api/mailgun/webhook`, and set its signing key as
+     does both). Connecting Mailgun under Settings > Connections adds the webhook; by hand, add one for
+     delivered, opened, permanent failure, spam complaint and unsubscribed events to
+     `https://<your-domain>/api/mailgun/webhook`, and set its signing key as
      `MAILGUN_WEBHOOK_SIGNING_KEY`. Set `MAILGUN_TEST_MODE=true` to try it without delivering anything.
      Before the first real campaign, send tests to Gmail, Outlook and Yahoo addresses and check the
      unsubscribe link Gmail shows next to the sender.
 
    The Worker does the background work itself: its jobs queue runs Compose turns, backup restores and
-   campaigns' sending runs, and its Cron Triggers run ticket reminders and follow-ups (hourly),
-   snapshots (daily), and Mailing's scheduled campaigns and digests (every 5 minutes) and upkeep
-   (nightly).
+   campaigns' sending runs, and its Cron Triggers run Mailing's scheduled campaigns and digests (every
+   5 minutes) and upkeep (nightly), snapshots (daily), and hourly: ticket reminders, follow-ups and
+   waitlists, the shop's expired holds and parcels' tracking, donations' unpaid checkouts, and pruning
+   the stats and the email log.
 5. **Invite editors** from `/admin/users/`.
 
 ## Updating the core
@@ -275,8 +321,11 @@ commit the fix on its own and `git cherry-pick` it into the core repository.
 
 ```
 npm run check                                   # typecheck
-npm test                                        # unit tests
+npm run build                                   # parses the .astro pages, which the typecheck doesn't
+npm test                                        # unit tests, with D1's limits checked on every statement
+npx tsx scripts/checks/formatting.ts            # autop and texturize
 npx tsx scripts/checks/recurrence.ts            # recurrence rules and DST
+npx tsx scripts/checks/private-address.ts       # private addresses refused for Compose's links
 npx tsx scripts/checks/mailing.ts               # mailing emails, signed links, click verdicts, digest times
 npx tsx --env-file=.env scripts/publishing-e2e.ts   # drafts, preview, publish (needs LOCAL_ADMIN_* in .env)
 ```
