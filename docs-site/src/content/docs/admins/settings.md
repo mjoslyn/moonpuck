@@ -35,7 +35,7 @@ An item can also open a larger drop-down panel: add **Links** under a **Links he
 | **General** | The site's name, tagline, which page is the home page, and which page people see when an address doesn't exist. |
 | **Types** | The kinds of content the site has, which layout (template) each uses, and which kinds can be marked featured (see [Kinds of content and taxonomies](/admins/content-types/)). Usually set up once. |
 | **Search** | Which kinds of content the site search covers. |
-| **Theme** | The site's colours, fonts, text sizes, spacing, widths and logo (see [The site's theme](#the-sites-theme)). |
+| **Theme** | The site's colours, fonts, text sizes, spacing, widths and logo, and the look of these admin screens (see [The site's theme](#the-sites-theme)). |
 | **Social** | Your social media profiles (shown as icons), share cards (see [Share cards](#share-cards)) and the picture used when a page without its own image is shared. |
 | **Popups** | Popups over the site's pages and the cookie consent banner (see [Popups and cookie consent](/admins/popups-and-cookies/)). |
 | **Stats** | Whether Stats recognises returning visitors with a cookie (see [The Stats cookie](/admins/popups-and-cookies/#the-stats-cookie)). |
@@ -44,7 +44,6 @@ An item can also open a larger drop-down panel: add **Links** under a **Links he
 | **Shop** | The shop on or off, its currency and the unit weights are in and its checkout (see [Setting up the shop](/admins/shop/)). |
 | **Connections** | Connecting Claude, card payments (Stripe or Square) and Mailgun (see [Connections](/admins/connections/)). |
 | **Accessibility** | Whether publishing waits for the [accessibility check](/editors/accessibility/). |
-| **Appearance** | The colours and logo of these admin screens. |
 | **Redirects** | Send visitors from an old address to a new one (see [Redirects and missing pages](/admins/redirects/)). |
 | **Email log** | Keep a record of the emails the site sends (see [Email log and backups](/admins/email-log-and-backups/)). |
 | **Sync** and **Backups** | Copying content between copies of the site, and backups. Usually left to whoever set up the site. |
@@ -107,6 +106,16 @@ accent, headings, links and buttons. Leave one at **Unchanged** to keep it as it
 
 **Go back to the site's starting theme** throws away the changes made here and uses the theme the site
 was built with. Click **Save settings** to keep that.
+
+**Admin screens** sets how these admin screens and the page editor look, for everyone who signs in:
+
+- **Match the site**: on, they take the site's accent colour, its dark background colour for the menu bar,
+  and its logo. Untick it to choose their own.
+- **Logo**: shown in the menu bar in place of the site name, up to 32px tall. Choose one that reads on
+  the menu bar's colour.
+- **Show the site name beside it**: the name next to the logo (on phones only the logo shows).
+- **Accent**, **Text**, **Menu bar** and **Background**: each a colour, or **Default**. The screen
+  warns when text on a colour would be hard to read.
 
 ## Share cards
 

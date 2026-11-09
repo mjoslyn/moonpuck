@@ -1,10 +1,16 @@
-// The admin's colors and logo (Settings > Appearance, settings.site.admin_theme). Each is a role token from
+// The admin's colors and logo (Settings > Theme, Admin screens; settings.site.admin_theme). Unless the admin
+// gives the admin screens their own (`own`), they match the site's theme: its accent, its dark colour as the
+// menu bar and its logo (`matchedAdminTheme`, `effectiveAdminTheme`). Each is a role token from
 // src/styles/tailwind.css (--color-admin-*); the admin pages write the chosen ones, and the colors made
 // from them, after the stylesheet (AdminTheme.astro), and the settings screen sets them on the page as
 // they are picked.
 import type { Db } from './db/query';
+import { resolveColor, type Theme } from './theme/theme';
+import { siteTheme } from './theme/site';
 
 export interface AdminTheme {
+  /** The admin screens have their own colours and logo; without it they match the site's theme. */
+  own?: boolean;
   accent?: string;
   ink?: string;
   bar?: string;
@@ -31,7 +37,7 @@ const HEX = /^#[0-9a-f]{6}$/;
 /** The known values of a stored or posted theme (colors as #rrggbb); undefined when none are set. */
 export function adminThemeFrom(v: unknown): AdminTheme | undefined {
   if (!v || typeof v !== 'object') return undefined;
-  const out: AdminTheme = {};
+  const out: AdminTheme = (v as AdminTheme).own ? { own: true } : {};
   for (const f of ADMIN_THEME_FIELDS) {
     const c = String((v as Record<string, unknown>)[f.key] ?? '').toLowerCase();
     if (HEX.test(c) && c !== f.default) out[f.key] = c;
@@ -43,6 +49,30 @@ export function adminThemeFrom(v: unknown): AdminTheme | undefined {
   }
   return Object.keys(out).length ? out : undefined;
 }
+
+/** A colour as #rrggbb, when it is a hex colour (#rgb or #rrggbb). */
+const hex6 = (c: string | undefined) => {
+  const v = (c ?? '').trim().toLowerCase();
+  if (/^#[0-9a-f]{6}$/.test(v)) return v;
+  if (/^#[0-9a-f]{3}$/.test(v)) return `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}`;
+  return undefined;
+};
+
+/** The admin's look taken from the site's theme: its accent (the button fill, else the accent) while white
+ *  text reads on it, its dark colour as the menu bar, and its logo. */
+export function matchedAdminTheme(theme: Theme): AdminTheme {
+  const out: AdminTheme = {};
+  const accent = hex6(resolveColor(theme, theme.roles['accent-fill'] ?? theme.roles.accent));
+  if (accent && contrast(accent, '#ffffff') >= 4.5) out.accent = accent;
+  const bar = hex6(resolveColor(theme, theme.roles.dark));
+  if (bar) out.bar = bar;
+  if (theme.logo && theme.logo_url) Object.assign(out, { logo: theme.logo, logo_url: theme.logo_url });
+  return out;
+}
+
+/** The admin's look for a site's settings: its own when an admin set one, else matched to the site's theme. */
+export const effectiveAdminTheme = (site: Record<string, any> | null | undefined): AdminTheme | undefined =>
+  adminThemeFrom(site?.admin_theme) ?? adminThemeFrom(matchedAdminTheme(siteTheme(site)));
 
 /** WCAG relative luminance of #rrggbb. */
 function luminance(hex: string): number {
@@ -101,10 +131,10 @@ export function adminThemeCss(theme: AdminTheme | undefined): string {
 
 let cached: { at: number; theme: AdminTheme | undefined } | null = null;
 
-/** The saved theme, read at most once a minute per server instance (at once after a save: `force`). */
+/** The admin's look (its own, else matched to the site's theme), read at most once a minute per server instance (at once after a save: `force`). */
 export async function loadAdminTheme(db: Db, force = false): Promise<AdminTheme | undefined> {
   if (!force && cached && Date.now() - cached.at < 60_000) return cached.theme;
   const { data } = await db.from('settings').select('value').eq('key', 'site').maybeSingle();
-  cached = { at: Date.now(), theme: adminThemeFrom(data?.value?.admin_theme) };
+  cached = { at: Date.now(), theme: effectiveAdminTheme(data?.value) };
   return cached.theme;
 }

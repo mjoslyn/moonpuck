@@ -11,8 +11,10 @@ describe('settings sections', () => {
 
   it('forwards links from before sections had addresses', () => {
     expect(sectionOf('/admin/settings/', '#connections')).toBe('connections');
-    expect(sectionOf('/admin/settings/', '#admin')).toBe('appearance');
-    expect(sectionOf('/admin/settings/admin/')).toBe('appearance');
+    expect(sectionOf('/admin/settings/', '#admin')).toBe('theme');
+    expect(sectionOf('/admin/settings/admin/')).toBe('theme');
+    expect(sectionOf('/admin/settings/appearance/')).toBe('theme');
+    expect(sectionOf('/admin/settings/', '#appearance')).toBe('theme');
     expect(sectionOf('/admin/settings/', '#nothing')).toBe('');
   });
 

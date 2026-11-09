@@ -1767,20 +1767,24 @@ builder's and campaign editor's Compose dialogs, or the editor's panel, whose co
 **Settings** (admins; `src/puck/SiteSettings.tsx`, page `src/pages/admin/settings/[...section].astro`): a side
 menu of sections in groups (`SETTINGS_GROUPS`, `src/lib/admin/settings-sections.ts`): Site (General, Menu, Theme,
 Social, Search, Types, the site's own options, Popups, Stats, Code snippets), Features (Events, Tickets, Members, Mailing Lists, Shop, Donations,
-marked On or Off), Services (Connections), Admin (Accessibility, Appearance) and Upkeep (Redirects, Email log, Sync,
+marked On or Off), Services (Connections), Admin (Accessibility) and Upkeep (Redirects, Email log, Sync,
 Backups); a Section dropdown on phones. Each section has its own address, `/admin/settings/<section>/`
 (General `/admin/settings/`; `sectionOf`, `settingsPath`); the screen moves between them in place, so
-unsaved changes carry over, and an old `#<section>` link (and `admin`, now `appearance`) forwards to it.
+unsaved changes carry over, and an old `#<section>` link (and `admin` and `appearance`, now `theme`) forwards to it.
 One **Save settings**, beside the section's title while there are unsaved changes, saves every section's
 form; Connections, Redirects, Sync and Backups save as they go (`SAVES_AS_IT_GOES`).
 
 Every admin page (`src/layouts/AdminTheme.astro`) stops the scroll wheel changing a focused number field, which
 would otherwise set it (from empty, to its minimum) as the page scrolls.
 
-Admin colors and logo (Settings > Appearance, `settings.site.admin_theme`, `src/lib/admin-theme.ts`): accent,
+Admin colors and logo (Settings > Theme, Admin screens; `settings.site.admin_theme`, `src/lib/admin-theme.ts`):
+**Match the site** (on while `admin_theme` is empty) takes the site theme's accent (its button fill, else
+its accent, while white text reads on it), its dark colour as the menu bar and its logo
+(`matchedAdminTheme`, `effectiveAdminTheme`, which `loadAdminTheme` returns); unticked, the admin's own
+(`own: true`, starting from the matched look): accent,
 text, menu bar and background, and a logo for the menu bar in place of the site name (or beside it,
 `logo_name`; a media id, whose URL the settings API makes from the media row), previewed as they are
-picked. Admin styles use only the role tokens
+picked. A look saved before matching existed counts as its own. Admin styles use only the role tokens
 `--color-admin-*` (`src/styles/tailwind.css`; Tailwind colors like `text-admin-muted`), never hex
 values; `src/layouts/AdminTheme.astro` writes the saved colors and the shades made from them (darker
 accent, soft background, the bar's text) on every admin page, and Puck's blue scale is made from the

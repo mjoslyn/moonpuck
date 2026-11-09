@@ -36,10 +36,7 @@ export const SETTINGS_GROUPS: { label: string; sections: SettingsSection[] }[] =
   { label: 'Services', sections: [{ id: 'connections', label: 'Connections' }] },
   {
     label: 'Admin',
-    sections: [
-      { id: 'accessibility', label: 'Accessibility' },
-      { id: 'appearance', label: 'Appearance' },
-    ],
+    sections: [{ id: 'accessibility', label: 'Accessibility' }],
   },
   {
     label: 'Upkeep',
@@ -57,8 +54,8 @@ export const SETTINGS_SECTIONS = SETTINGS_GROUPS.flatMap((g) => g.sections);
 /** Sections that save as they go (their own buttons), with no use for Save settings. */
 export const SAVES_AS_IT_GOES = new Set(['connections', 'redirects', 'sync', 'backups']);
 
-/** Old names of sections (the Admin tab is Appearance now). */
-const RENAMED: Record<string, string> = { admin: 'appearance' };
+/** Old names of sections (the admin's colors and logo are under Theme now). */
+const RENAMED: Record<string, string> = { admin: 'theme', appearance: 'theme' };
 
 export const settingsPath = (id: string) => (id === 'general' ? '/admin/settings/' : `/admin/settings/${id}/`);
 

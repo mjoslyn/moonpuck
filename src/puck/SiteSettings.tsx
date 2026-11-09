@@ -44,7 +44,8 @@ import PopupsSettings from '../admin/PopupsSettings';
 import ThemeSettings from '../admin/ThemeSettings';
 import type { Theme } from '../lib/theme/theme';
 import type { TaxonomyMeta } from '../lib/page-meta';
-import { ADMIN_THEME_DEFAULTS, ADMIN_THEME_FIELDS, adminThemeVars, contrast, type AdminTheme } from '../lib/admin-theme';
+import { ADMIN_THEME_DEFAULTS, ADMIN_THEME_FIELDS, adminThemeFrom, adminThemeVars, contrast, effectiveAdminTheme, matchedAdminTheme, type AdminTheme } from '../lib/admin-theme';
+import { siteTheme } from '../lib/theme/site';
 
 interface Props {
   /** The section the address names. */
@@ -100,16 +101,18 @@ export default function SiteSettings({ section, site: initialSite, options: init
   useEffect(() => {
     if (dirty && status.startsWith('Saved')) setStatus('');
   }, [dirty]);
-  // The admin colors as they are picked, on this page (the saved ones load with every admin page).
+  // The admin colors as they are picked (its own, or the site theme's), on this page (the saved ones load
+  // with every admin page).
+  const adminLook = effectiveAdminTheme(site);
   useEffect(() => {
-    const vars = { ...ADMIN_THEME_DEFAULTS, ...adminThemeVars(site.admin_theme) };
+    const vars = { ...ADMIN_THEME_DEFAULTS, ...adminThemeVars(adminLook) };
     for (const [k, v] of Object.entries(vars)) document.documentElement.style.setProperty(k, v);
-  }, [site.admin_theme]);
+  }, [JSON.stringify(adminLook)]);
   // The logo as it is picked, in the menu bar (as Admin.astro renders it).
   useEffect(() => {
     const brand = document.getElementById('admin-brand');
     if (!brand) return;
-    const t = site.admin_theme;
+    const t = adminLook;
     const parts: HTMLElement[] = [];
     if (t?.logo_url) {
       const img = document.createElement('img');
@@ -123,7 +126,7 @@ export default function SiteSettings({ section, site: initialSite, options: init
       parts.push(name);
     }
     brand.replaceChildren(...parts);
-  }, [site.admin_theme?.logo_url, site.admin_theme?.logo_name]);
+  }, [adminLook?.logo_url, adminLook?.logo_name]);
   const save = async () => {
     // Types whose pages would lose their own content with the template chosen for them.
     const lacking = Object.entries(site.templates ?? {})
@@ -191,7 +194,12 @@ export default function SiteSettings({ section, site: initialSite, options: init
     {
       id: 'theme',
       label: 'Theme',
-      panel: <ThemeSettings value={site.theme} onChange={(t) => setSite((s) => ({ ...s, theme: t }))} />,
+      panel: (
+        <>
+          <ThemeSettings value={site.theme} onChange={(t) => setSite((s) => ({ ...s, theme: t }))} />
+          <AdminScreens site={site} onChange={(t) => setSite((s) => ({ ...s, admin_theme: t }))} />
+        </>
+      ),
     },
     {
       id: 'social',
@@ -407,11 +415,6 @@ export default function SiteSettings({ section, site: initialSite, options: init
           </p>
         </>
       ),
-    },
-    {
-      id: 'appearance',
-      label: 'Appearance',
-      panel: <AdminThemePanel value={site.admin_theme ?? {}} onChange={(t) => setSite((s) => ({ ...s, admin_theme: Object.keys(t).length ? t : undefined }))} />,
     },
     // Mounted only while shown: it reads (and decrypts) the saved keys as it opens.
     { id: 'connections', label: 'Connections', panel: tab === 'connections' ? <Connections /> : null },
@@ -769,12 +772,33 @@ function TaxonomyTemplatesPanel({ features, value, off, templates, meta, onChang
   );
 }
 
+/** Settings > Theme, Admin screens: matched to the site's theme, or the admin screens' own logo and colors. */
+function AdminScreens({ site, onChange }: { site: Record<string, any>; onChange: (t: AdminTheme | undefined) => void }) {
+  const own = !!adminThemeFrom(site.admin_theme);
+  return (
+    <FieldGroup title="Admin screens">
+      <Toggle
+        title="Match the site"
+        value={!own}
+        // Giving the admin its own look starts from the site's, so nothing jumps.
+        onChange={(match) => onChange(match ? undefined : { own: true, ...matchedAdminTheme(siteTheme(site)) })}
+      />
+      <p className="mb-3 text-xs text-admin-muted">
+        {own
+          ? 'These admin screens and the page editor have their own logo and colors, for everyone who signs in.'
+          : "These admin screens and the page editor take the site's accent, its dark background color for the menu bar, and its logo. Untick to choose their own."}
+      </p>
+      {own && <AdminThemePanel value={site.admin_theme ?? { own: true }} onChange={(t) => onChange({ ...t, own: true })} />}
+    </FieldGroup>
+  );
+}
+
 /** The admin's logo, and its colors: one picker each, with a warning when text on it would be hard to read. */
 function AdminThemePanel({ value, onChange }: { value: AdminTheme; onChange: (t: AdminTheme) => void }) {
-  const { logo: _logo, logo_url: _url, logo_name: _name, ...colors } = value;
+  const { logo: _logo, logo_url: _url, logo_name: _name, own: _own, ...colors } = value;
   return (
     <>
-      <p className="mb-3 text-xs text-admin-muted">The logo and colors of these admin screens and the page editor, for everyone who signs in. They change here as you pick them; Save keeps them.</p>
+      <p className="mb-3 text-xs text-admin-muted">They change here as you pick them; Save keeps them.</p>
       <MediaPicker title="Logo" fit="contain" url={value.logo_url} mediaId={value.logo} onSelect={(m) => onChange({ ...value, logo: m.id ?? m.mediaId ?? undefined, logo_url: m.url })} />
       <p className="-mt-2 mb-3 text-xs text-admin-muted">In the menu bar, in place of the site name, up to 32px tall. Choose one that reads on the menu bar's color.</p>
       {!!value.logo && (
