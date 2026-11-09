@@ -107,7 +107,7 @@ export const EMAIL_DEFAULTS: Required<Omit<EmailRoot, 'preheader'>> = {
 };
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
-/** A colour as written in a style attribute (hex, rgb(), or a name); anything else is dropped. */
+/** A color as written in a style attribute (hex, rgb(), or a name); anything else is dropped. */
 const color = (v: unknown, fallback: string) => (typeof v === 'string' && /^(#[0-9a-f]{3,8}|rgba?\([\d.,\s%]+\)|[a-z]+)$/i.test(v.trim()) ? v.trim() : fallback);
 const num = (v: unknown, fallback: number, min: number, max: number) => {
   const n = Number(v);

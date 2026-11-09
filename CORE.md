@@ -88,21 +88,21 @@ between eyebrow and heading, `bodySize`/`bodyWeight`/`bodyLineHeight`, `bandPadd
 
 A site's look is settings (Settings > Theme, admins; `settings.site.theme`, `src/lib/theme/theme.ts`,
 `src/admin/ThemeSettings.tsx`), so a site needs no code for it: the palette (`colors`: slug, name,
-colour, `dark` for a dark background, `onDark` its shade inside dark bands, `hidden` out of the editor's
-choices), the role colours (`roles`), what dark bands re-map (`bands`: text, muted, accent, on-accent,
+color, `dark` for a dark background, `onDark` its shade inside dark bands, `hidden` out of the editor's
+choices), the role colors (`roles`), what dark bands re-map (`bands`: text, muted, accent, on-accent,
 accent-fill, headings, links, buttons), the buttons (`buttons`), fonts (`fonts.heading`, `fonts.body`: a
 library font or a CSS stack), text sizes and spacing (`fontSizes`, `spacing`, each slug, name and CSS
 length), widths (`layout.content`, `layout.wide`) and a logo (`logo`, a media id, its `logo_url` made by
-the settings API from the media row). Colour values are palette slugs or colour codes. The theme in use
+the settings API from the media row). Color values are palette slugs or color codes. The theme in use
 (`siteTheme`, `src/lib/theme/site.ts`) is the saved one, else the site's `theme.default` in `render.ts`
-(`codeTheme`), else `DEFAULT_THEME`; `cleanTheme` keeps only known shapes, colours and lengths (`isColor`,
+(`codeTheme`), else `DEFAULT_THEME`; `cleanTheme` keeps only known shapes, colors and lengths (`isColor`,
 `isLength`: units and calc/clamp/min/max only), so nothing saved can break out of the style.
 
 `themeCss` writes it as custom properties: on `:root` the palette (`--color-<slug>`), roles, `--font-display`
 and `--font-body`, `--text-*`, `--space-*`, `--content-size`, `--wide-size`, the overlays in the dark
-role's colour and the buttons; inside dark bands (`darkSelectors`: sections whose style sets a `dark`
-colour as background, `.c-cover:not(.is-light)`, `.c-hero` and the site's `theme.darkSelectors`) each
-colour's `onDark`, the roles using those colours again (custom properties inherit their value) and the
+role's color and the buttons; inside dark bands (`darkSelectors`: sections whose style sets a `dark`
+color as background, `.c-cover:not(.is-light)`, `.c-hero` and the site's `theme.darkSelectors`) each
+color's `onDark`, the roles using those colors again (custom properties inherit their value) and the
 `bands` values. `renderRequest` puts it in the head after the stylesheet (`siteThemeHead`: `<style
 id="site-theme">`, unlayered, so it wins over `tokens.css`) with `@font-face` rules and preloads for its
 fonts; the editor's canvas and the form builder's preview add the same CSS. The fonts (`FONT_LIBRARY`,
@@ -110,8 +110,8 @@ fonts; the editor's canvas and the form builder's preview add the same CSS. The 
 Merriweather, Playfair Display, Source Serif 4, Anton, Oswald, and the device's own) are latin and
 latin-ext WOFF2 in `public/assets/fonts/library/` (OFL), each face only on pages whose theme uses it.
 Admin pages hand the theme to the browser as `window.__siteTheme`, from which `PRESETS`
-(`themePresets`) gives the editor its colour, size, font and spacing choices and Compose's targeted edits
-the colour names (`componentGuide`). The Site title block's **Show the logo instead** (`attrs.logo`)
+(`themePresets`) gives the editor its color, size, font and spacing choices and Compose's targeted edits
+the color names (`componentGuide`). The Site title block's **Show the logo instead** (`attrs.logo`)
 shows the theme's logo.
 
 ## Data model
@@ -134,7 +134,7 @@ children } }`, rendered by `src/render/c/`: content blocks (`section`, `columns`
 `event-details`), `form`, and structure (`part`, `pattern`, `reusable`). A site's blocks come from its
 `render.ts`. `hero` is a full-bleed image with eyebrow, title, text and two buttons, under an overlay
 that keeps the text readable (`overlay`: none, light, medium by default, strong; `overlayFrom`: darkest at
-the bottom by default, the left, or even; `is-shade-*` classes). `cover`'s overlay is a colour and
+the bottom by default, the left, or even; `is-shade-*` classes). `cover`'s overlay is a color and
 opacity, even or (`overlayStyle`) a gradient from the bottom or the left. **Focal points per screen
 size** (Hero, Cover, and Image when it is cropped; `src/puck/FocalPoints.tsx`): `attrs.focal`,
 `focalTablet` and `focalPhone`, each falling back to the image's own from the media library (its point
@@ -535,7 +535,7 @@ term fires a cancelable `c-search:term` on the form.
   menu from Settings > Menu (`settings.options.menu_items`, fields in `src/lib/navigation.ts`): links,
   and panels with a sidebar (heading, links, intro, View all) and cards (entries picked, or the latest
   of a type; upcoming for events); a search button opening the search form; a menu button on small
-  screens. Top-level links take the colour of where the block sits; the header part is the box panels
+  screens. Top-level links take the color of where the block sits; the header part is the box panels
   span. **Site title** (`site-title`): the site's icon and name from Settings, with optional text
   before the name, or the theme's logo (`attrs.logo`).
 
@@ -791,17 +791,17 @@ logic, US phone formatting and character counters; everything is validated on th
 decided once (`hiddenFields`): a field hidden by logic counts as empty in other fields' rules, all the
 way down the chain, for validation, the stored entry and the total, and `forms.js` does the same. Place
 forms
-with the `form` block. Fields are white with black text by default and labels take the colour around
+with the `form` block. Fields are white with black text by default and labels take the color around
 them; the Form, Subscribe and Newsletter blocks' **Form style** (`attrs.formStyle`,
 `src/render/forms/style.ts`, `src/puck/FormStyle.tsx`) sets the form's background, border and text
-(a background or border puts it in a padded box, `has-form-box`; its text colours headings and small
+(a background or border puts it in a padded box, `has-form-box`; its text colors headings and small
 print too, `--heading-color`, `--form-muted`), field background, text, border, placeholder and focus
-colours, field height, text size and border width (from fixed lists: `FIELD_SIZES`, `TEXT_SIZES`,
-`BORDER_WIDTHS`), checkbox and radio colour, labels, button colours, and field and button corners, as
+colors, field height, text size and border width (from fixed lists: `FIELD_SIZES`, `TEXT_SIZES`,
+`BORDER_WIDTHS`), checkbox and radio color, labels, button colors, and field and button corners, as
 custom properties `forms.css` reads (`--form-input-bg`, `--form-input-text`, `--form-border`,
 `--form-border-width`, `--form-input-pad`, `--form-input-size`, `--form-placeholder`, `--form-focus`,
 `--form-check`, `--form-label`, `--form-radius`, `--form-button-radius`, `--button-bg`,
-`--button-color`; palette colours, hex values and a few keywords only). Submissions POST back to the page (`src/lib/forms/submit.ts`: validation that
+`--button-color`; palette colors, hex values and a few keywords only). Submissions POST back to the page (`src/lib/forms/submit.ts`: validation that
 skips fields hidden by conditional logic, honeypot, limits (an answer is cut at 10,000 characters, a
 form takes 20 submissions a minute, then answers 429), storage, notifications to the form's addresses or
 `FORMS_ADMIN_EMAIL` / the config's `adminEmail`). A notification's email is built in the email builder
@@ -1779,7 +1779,7 @@ would otherwise set it (from empty, to its minimum) as the page scrolls.
 
 Admin colors and logo (Settings > Theme, Admin screens; `settings.site.admin_theme`, `src/lib/admin-theme.ts`):
 **Match the site** (on while `admin_theme` is empty) takes the site theme's accent (its button fill, else
-its accent, while white text reads on it), its dark colour as the menu bar and its logo
+its accent, while white text reads on it), its dark color as the menu bar and its logo
 (`matchedAdminTheme`, `effectiveAdminTheme`, which `loadAdminTheme` returns); unticked, the admin's own
 (`own: true`, starting from the matched look): accent,
 text, menu bar and background, and a logo for the menu bar in place of the site name (or beside it,

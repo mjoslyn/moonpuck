@@ -37,13 +37,13 @@ export function StyleCopy({ type, label, value, onChange }: { type: string; labe
   const paste = () => {
     if (!copied) return;
     onChange(pasteStyle(type, value, copied));
-    setStatus(copied.type === type ? `Pasted the styles from a ${copied.label.toLowerCase()}.` : `Pasted the colours, spacing, type and borders from a ${copied.label.toLowerCase()}.`);
+    setStatus(copied.type === type ? `Pasted the styles from a ${copied.label.toLowerCase()}.` : `Pasted the colors, spacing, type and borders from a ${copied.label.toLowerCase()}.`);
   };
   const button = 'rounded border border-admin-ink/15 bg-white px-2 py-1 text-xs hover:border-admin-accent hover:text-admin-accent disabled:opacity-40 disabled:hover:border-admin-ink/15 disabled:hover:text-current';
   return (
     <div className="mt-4 border-t border-admin-ink/10 pt-3">
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className={button} onClick={copy} title="Copy this block's colours, spacing, type, borders and layout">
+        <button type="button" className={button} onClick={copy} title="Copy this block's colors, spacing, type, borders and layout">
           Copy styles
         </button>
         <button type="button" className={button} disabled={!copied} onClick={paste} title={copied ? `Paste the styles copied from a ${copied.label.toLowerCase()}` : 'Copy a block\'s styles first'}>

@@ -7,7 +7,7 @@ sidebar:
 
 ## Where the look comes from
 
-A site's colours, fonts, text sizes, spacing, widths and logo are its **theme**. The theme in use is,
+A site's colors, fonts, text sizes, spacing, widths and logo are its **theme**. The theme in use is,
 in order:
 
 1. The one an admin saved under **Settings > Theme** (`settings.site.theme`).
@@ -16,7 +16,7 @@ in order:
 
 The core writes it on every page as `<style id="site-theme">` after the compiled stylesheet, with
 `@font-face` rules and preloads for its fonts (served from `/assets/fonts/library/`, `src/lib/theme/fonts.ts`).
-The editor's colour, size, font and spacing choices come from it too (`themePresets`).
+The editor's color, size, font and spacing choices come from it too (`themePresets`).
 
 - `src/site/styles/tokens.css`: tokens the theme doesn't cover (most sites need none).
 - `src/site/styles/theme.css`: the site's own styles.
@@ -54,9 +54,9 @@ export default defineRender({
 });
 ```
 
-- `colors`: the palette, as `--color-<slug>`. `dark` marks a dark background; `onDark` is the colour
+- `colors`: the palette, as `--color-<slug>`. `dark` marks a dark background; `onDark` is the color
   used in its place inside dark bands; `hidden` leaves it out of the editor's choices.
-- `roles`, `bands`, `buttons`: palette slugs or colour codes (see below).
+- `roles`, `bands`, `buttons`: palette slugs or color codes (see below).
 - `fonts`: a library font id (`inter`, `work-sans`, `dm-sans`, `montserrat`, `source-sans-3`,
   `fraunces`, `lora`, `merriweather`, `playfair-display`, `source-serif-4`, `anton`, `oswald`,
   `system-sans`, `system-serif`), or a CSS font stack for fonts the site serves itself.
@@ -78,8 +78,8 @@ The core's styles never use palette names, only **role tokens**, which the theme
 | `--color-accent-fill` | The accent as a background under text: the Hero's first button, button and search hovers, today in the calendar (optional; falls back to the accent) |
 | `--color-surface`, `-surface-alt`, `-surface-soft` | Light backgrounds |
 
-Inside dark bands (sections on a `dark` colour, covers, heroes and `darkSelectors`), the theme writes
-each colour's `onDark` shade, the roles using those colours again, and the `bands` values (text,
+Inside dark bands (sections on a `dark` color, covers, heroes and `darkSelectors`), the theme writes
+each color's `onDark` shade, the roles using those colors again, and the `bands` values (text,
 muted, accent, on-accent, headings, links and buttons), so accent text keeps 4.5:1 contrast. A lighter
 accent can be too light under white text: set the `accent-fill` role to a deep enough accent, so filled
 buttons keep 4.5:1 there too.

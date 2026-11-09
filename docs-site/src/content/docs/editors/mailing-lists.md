@@ -32,7 +32,7 @@ Click **People** in the top bar, then **Mailing Lists**. The screen has five tab
 | **Lists** | The mailing lists and how many people are on each. | Read only. |
 | **Segments** | Saved rules that pick some of the people on a list. | Make, change and delete segments (see below for the limits). |
 
-A coloured line under the title can say:
+A colored line under the title can say:
 
 - **Sending is paused:** with the reason. Nothing goes out, digests included, until an admin resumes it.
 - **Add the postal address under Settings > Mailing Lists**: every email must carry the organisation's
@@ -106,7 +106,7 @@ emails, with **Visual**, **Plain text** and **Preview** tabs and, at the top rig
 changes are kept with the campaign: click **Done**, then **Save**.
 
 With no block selected, the right side shows the email's own settings. The first, **Preview text (after
-the subject in the inbox)**, is the short line many mail apps show after the subject. Then the colours,
+the subject in the inbox)**, is the short line many mail apps show after the subject. Then the colors,
 **Font** and **Width (px)**.
 
 The blocks for mailing emails:
@@ -120,7 +120,7 @@ The blocks for mailing emails:
 | **Subscriber** | The reader's **Name**, **First name**, **Last name** or **Email address** (choose under **Shows**), or one of the site's subscriber fields. |
 | **Entries** | Your site's latest posts (or other content), filled in when the email is sent. See below. |
 | **Events** | Your next upcoming events, or events you pick (only when your site uses Events). |
-| **Section** | A coloured box to group other blocks. |
+| **Section** | A colored box to group other blocks. |
 | **Two columns** | Two blocks side by side. On phones they stack. |
 | **Divider** | A thin line. |
 | **Spacer** | Empty space of a height you choose. |
@@ -210,7 +210,7 @@ campaigns** and **New weekly digests**: new ones then start from that template.
 
 Claude writes the campaign's name, subject, preview text and email: a heading, a few short sections of
 text, each with a button if it needs one, and, when you ask for them, an Entries block of your latest
-posts and an Events block of upcoming events. The email keeps its colours and font. It replaces the
+posts and an Events block of upcoming events. The email keeps its colors and font. It replaces the
 email's blocks, but a plain text of your own stays as it is. Claude doesn't write the unsubscribe line or
 postal address: the footer has them.
 
@@ -446,7 +446,7 @@ A sign-up form for one or more lists. Its settings:
   pick them out with a segment later.
 - **Ask for first and last name**: adds **First name** and **Last name** boxes, both optional.
 - **Also ask (optional for visitors)**: tick any of the site's subscriber fields to ask for them too.
-- **Form style**: the form's colours and shapes, as for the Form block (see
+- **Form style**: the form's colors and shapes, as for the Form block (see
   [Form style](/editors/page-editor/#form-style)).
 - **Layout**: **Stacked**, or **In a row** (the fields and button side by side).
 
@@ -455,7 +455,7 @@ receive?" (the first is ticked). With one, there is nothing to tick.
 
 ### The Newsletter signup block
 
-A compact sign-up for one list, for a coloured band or the footer: a heading, a line of text, then an
+A compact sign-up for one list, for a colored band or the footer: a heading, a line of text, then an
 email box and a button in a row. Its settings:
 
 - **List**: empty for the first public list.

@@ -103,7 +103,7 @@ Click **Edit content**. The banner's content opens in the page editor in a new t
 1. Change the heading and text to describe the cookies your site uses, in plain words.
 2. Point the **Privacy policy** link at your own privacy page: select the text, click the link, and
    change its address (or use **Find**). Make that page first if the site has none.
-3. Change the buttons if you like: their words, colours, size and corners are ordinary button settings.
+3. Change the buttons if you like: their words, colors, size and corners are ordinary button settings.
    Keep their links: **Accept** must link to `#accept-cookies` and **Reject** to `#reject-cookies`.
 4. Click **Save & apply**.
 

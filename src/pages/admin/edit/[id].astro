@@ -15,7 +15,7 @@ const { data: row } = await Astro.locals.db.from('entries').select('type, title'
 if (!row) return Astro.redirect('/admin/');
 const record = RECORD_TYPES.has(row.type);
 const singular = typeLabel(row.type);
-// The site's theme as it is now, for the editor's colour and size choices (src/lib/theme/theme.ts, PRESETS).
+// The site's theme as it is now, for the editor's color and size choices (src/lib/theme/theme.ts, PRESETS).
 const siteThemeNow = siteTheme((await (Astro.locals.db ?? themeDb()).from('settings').select('value').eq('key', 'site').maybeSingle()).data?.value);
 ---
 {record ? (

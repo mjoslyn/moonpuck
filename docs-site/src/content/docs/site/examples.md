@@ -95,13 +95,13 @@ export default defineEditor({
 });
 ```
 
-The block also takes the shared style settings (colours, spacing, width) every block has, which
+The block also takes the shared style settings (colors, spacing, width) every block has, which
 editors set in its panel below these fields.
 
 ### 5. Its styles
 
 Styles go in `styles/theme.css` and use the role tokens, so the block follows Settings > Theme and
-re-colours itself in dark bands:
+re-colors itself in dark bands:
 
 ```css
 .site-hours dl { display: grid; gap: var(--space-20); margin: 0; }
@@ -221,9 +221,9 @@ const callToAction = [
 await ensureTemplate('pattern', 'call-to-action', 'Call to action', callToAction);
 ```
 
-A section whose background is one of the theme's dark colours (here `night`, ticked **Dark background**
-under Settings > Theme) takes the theme's dark-band colours, so the heading, text and button need no
-colours of their own.
+A section whose background is one of the theme's dark colors (here `night`, ticked **Dark background**
+under Settings > Theme) takes the theme's dark-band colors, so the heading, text and button need no
+colors of their own.
 
 Inserted, a pattern's blocks are copied into the page. To make every page that uses it follow later
 changes to its layout, save it as a linked pattern: its document's root has `linked: true`

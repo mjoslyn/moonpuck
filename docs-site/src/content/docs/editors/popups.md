@@ -45,7 +45,7 @@ The banner's content is the part called "Cookie consent". It has:
 - a line about the site's cookies, with a link to the privacy policy;
 - an **Accept** button and a **Reject** button.
 
-You can change all the words, and the buttons' colours, size and corners. Keep the buttons' links:
+You can change all the words, and the buttons' colors, size and corners. Keep the buttons' links:
 **Accept** must link to `#accept-cookies` and **Reject** to `#reject-cookies`. If the **Accept** link
 goes, the site adds its own plain **Accept** and **Reject** buttons, so the banner still works.
 

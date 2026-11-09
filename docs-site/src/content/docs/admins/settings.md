@@ -35,7 +35,7 @@ An item can also open a larger drop-down panel: add **Links** under a **Links he
 | **General** | The site's name, tagline, which page is the home page, and which page people see when an address doesn't exist. |
 | **Types** | The kinds of content the site has, which layout (template) each uses, and which kinds can be marked featured (see [Kinds of content and taxonomies](/admins/content-types/)). Usually set up once. |
 | **Search** | Which kinds of content the site search covers. |
-| **Theme** | The site's colours, fonts, text sizes, spacing, widths and logo, and the look of these admin screens (see [The site's theme](#the-sites-theme)). |
+| **Theme** | The site's colors, fonts, text sizes, spacing, widths and logo, and the look of these admin screens (see [The site's theme](#the-sites-theme)). |
 | **Social** | Your social media profiles (shown as icons), share cards (see [Share cards](#share-cards)) and the picture used when a page without its own image is shared. |
 | **Popups** | Popups over the site's pages and the cookie consent banner (see [Popups and cookie consent](/admins/popups-and-cookies/)). |
 | **Stats** | Whether Stats recognises returning visitors with a cookie (see [The Stats cookie](/admins/popups-and-cookies/#the-stats-cookie)). |
@@ -54,28 +54,28 @@ An item can also open a larger drop-down panel: add **Links** under a **Links he
 on a light background and on a dark band as you change things. Click **Save settings** to put the
 changes on the site.
 
-**Colours** are the site's palette. Each colour has:
+**Colors** are the site's palette. Each color has:
 
-- **Colour**: pick it, or type a code such as `#1a1a2e`.
+- **Color**: pick it, or type a code such as `#1a1a2e`.
 - **Name**: what editors see when they choose it.
-- **Dark background**: tick it for dark colours. A section with this background gets light text and
+- **Dark background**: tick it for dark colors. A section with this background gets light text and
   the lighter shades below.
-- **Not in the editor's choices**: hide it from the colour choices in the page editor. Blocks already
+- **Not in the editor's choices**: hide it from the color choices in the page editor. Blocks already
   using it keep it.
-- **On dark backgrounds**: the colour to use in its place inside dark sections, such as a lighter blue,
+- **On dark backgrounds**: the color to use in its place inside dark sections, such as a lighter blue,
   so text in it stays readable.
 
-**Add colour** adds one. A colour that something else in the theme uses can't be removed until that
+**Add color** adds one. A color that something else in the theme uses can't be removed until that
 is changed.
 
-**What each colour is for**, each one of the palette's colours or a colour code:
+**What each color is for**, each one of the palette's colors or a color code:
 
 - **Text**: body text.
 - **Muted text**: dates, captions and other quiet text.
 - **Accent (links, highlights)** and **Accent on hover**: links, eyebrows and buttons.
 - **Button fill**: the accent when it is a button's background (optional).
 - **Dark background** and **Text on dark backgrounds**: dark bands, and the text on them.
-- **Text on the accent**: words on an accent-coloured button.
+- **Text on the accent**: words on an accent-colored button.
 - **Page background**, **Alternate background** and **Soft background**: light backgrounds.
 
 **On dark backgrounds** sets what changes inside dark sections, covers and heroes: text, muted text,
@@ -109,13 +109,13 @@ was built with. Click **Save settings** to keep that.
 
 **Admin screens** sets how these admin screens and the page editor look, for everyone who signs in:
 
-- **Match the site**: on, they take the site's accent colour, its dark background colour for the menu bar,
+- **Match the site**: on, they take the site's accent color, its dark background color for the menu bar,
   and its logo. Untick it to choose their own.
 - **Menu bar logo**: shown in the menu bar in place of the site name, up to 32px tall. Choose one that reads on
-  the menu bar's colour.
+  the menu bar's color.
 - **Show the site name beside it**: the name next to the logo (on phones only the logo shows).
-- **Accent**, **Text**, **Menu bar** and **Background**: each a colour, or **Default**. The screen
-  warns when text on a colour would be hard to read.
+- **Accent**, **Text**, **Menu bar** and **Background**: each a color, or **Default**. The screen
+  warns when text on a color would be hard to read.
 
 ## Share cards
 

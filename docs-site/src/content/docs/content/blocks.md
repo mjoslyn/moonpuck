@@ -35,7 +35,7 @@ type renders its children.
 - **`hero`**: a full-bleed image with eyebrow, title, text and two buttons. Its overlay keeps the text
   readable: **Overlay** (`overlay`: none, light, medium by default, strong) and **Darkest at**
   (`overlayFrom`: bottom by default, left, or all over).
-- **`cover`**'s overlay is a colour and opacity, **Even** or a gradient **From bottom** or **From left**
+- **`cover`**'s overlay is a color and opacity, **Even** or a gradient **From bottom** or **From left**
   (`overlayStyle`), clearing towards the other side.
 - **Focal points per screen size** (Hero, Cover, and Image when it is cropped): Desktop, Tablet and
   Phone (`focal`, `focalTablet`, `focalPhone`, set by clicking the image in the block's settings,

@@ -1,5 +1,5 @@
-// Settings > Theme: the site's look as settings (src/lib/theme/theme.ts): its palette, the colours that
-// play the core's roles, the colours inside dark bands, buttons, fonts, text sizes, spacing, the content
+// Settings > Theme: the site's look as settings (src/lib/theme/theme.ts): its palette, the colors that
+// play the core's roles, the colors inside dark bands, buttons, fonts, text sizes, spacing, the content
 // widths and a logo. Saved with Save settings; until then the site keeps the theme it has (the one saved,
 // else the site's code's, else the core's).
 import { useMemo, useState, type ReactNode } from 'react';
@@ -10,7 +10,7 @@ import { MediaPicker, inputClass } from '../puck/fields';
 
 const small = 'rounded-sm border border-admin-ink/20 bg-white px-2 py-0.5 text-xs hover:border-admin-ink/50 disabled:opacity-30';
 
-/** A colour setting: one of the palette's colours, a colour of its own, or (when `none` is given) nothing. */
+/** A color setting: one of the palette's colors, a color of its own, or (when `none` is given) nothing. */
 function ColorRef({ label, value, colors, none, onChange }: { label: string; value: string | undefined; colors: ThemeColor[]; none?: string; onChange: (v: string | undefined) => void }) {
   const inPalette = !!value && colors.some((c) => c.slug === value);
   const custom = !!value && !inPalette;
@@ -26,9 +26,9 @@ function ColorRef({ label, value, colors, none, onChange }: { label: string; val
             {c.name}
           </option>
         ))}
-        <option value="#custom">A colour of its own…</option>
+        <option value="#custom">A color of its own…</option>
       </select>
-      {custom && <input aria-label={`${label}: colour`} className={`${inputClass} w-28`} value={value} onChange={(e) => onChange(e.target.value)} />}
+      {custom && <input aria-label={`${label}: color`} className={`${inputClass} w-28`} value={value} onChange={(e) => onChange(e.target.value)} />}
     </label>
   );
 }
@@ -72,7 +72,7 @@ export default function ThemeSettings({ value, onChange }: { value: Theme | unde
     next.splice(i + by, 0, c);
     put({ colors: next });
   };
-  // A colour still named somewhere can't go: the roles, bands, buttons and shades would point at nothing.
+  // A color still named somewhere can't go: the roles, bands, buttons and shades would point at nothing.
   const usedBy = (slug: string) =>
     [...Object.values(theme.roles), ...Object.values(theme.bands), ...Object.values(theme.buttons), ...colors.map((c) => c.onDark)].includes(slug);
   const add = () => {
@@ -89,7 +89,7 @@ export default function ThemeSettings({ value, onChange }: { value: Theme | unde
   return (
     <div>
       <p className="mb-4 text-sm text-admin-muted">
-        The site's colours, fonts and sizes. Pages, the editor and Compose use them; content names a colour by its name, so changing a colour here changes it everywhere.{' '}
+        The site's colors, fonts and sizes. Pages, the editor and Compose use them; content names a color by its name, so changing a color here changes it everywhere.{' '}
         {value ? (
           <button type="button" className="text-admin-accent hover:underline" onClick={() => onChange(undefined)}>
             Go back to the site's starting theme
@@ -123,14 +123,14 @@ export default function ThemeSettings({ value, onChange }: { value: Theme | unde
         </div>
       </div>
 
-      <Group title="Colours" hint="The palette. Content and the editor's colour choices use these names. Mark the dark ones: a section on a dark colour takes the colours set for dark backgrounds below.">
+      <Group title="Colors" hint="The palette. Content and the editor's color choices use these names. Mark the dark ones: a section on a dark color takes the colors set for dark backgrounds below.">
         {colors.map((col, i) => (
           <div key={col.slug} className="mb-2 rounded-sm border border-admin-ink/10 bg-white p-2">
             <div className="flex flex-wrap items-center gap-2">
-              <input type="color" aria-label={`${col.name}: pick a colour`} value={/^#[0-9a-f]{6}$/i.test(col.color) ? col.color : '#000000'} onChange={(e) => setColor(i, { color: e.target.value })} className="h-8 w-10 cursor-pointer border-0 bg-transparent p-0" />
+              <input type="color" aria-label={`${col.name}: pick a color`} value={/^#[0-9a-f]{6}$/i.test(col.color) ? col.color : '#000000'} onChange={(e) => setColor(i, { color: e.target.value })} className="h-8 w-10 cursor-pointer border-0 bg-transparent p-0" />
               <input aria-label={`${col.name}: name`} className={`${inputClass} w-40`} value={col.name} onChange={(e) => setColor(i, { name: e.target.value })} />
-              <input aria-label={`${col.name}: colour`} className={`${inputClass} w-28`} value={col.color} onChange={(e) => setColor(i, { color: e.target.value })} />
-              {!isColor(col.color) && <span className="text-xs text-[#b3261e]">Not a colour</span>}
+              <input aria-label={`${col.name}: color`} className={`${inputClass} w-28`} value={col.color} onChange={(e) => setColor(i, { color: e.target.value })} />
+              {!isColor(col.color) && <span className="text-xs text-[#b3261e]">Not a color</span>}
               <code className="text-xs text-admin-muted">--color-{col.slug}</code>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-4 text-xs">
@@ -151,14 +151,14 @@ export default function ThemeSettings({ value, onChange }: { value: Theme | unde
                         {x.name}
                       </option>
                     ))}
-                  <option value="#custom">A colour of its own…</option>
+                  <option value="#custom">A color of its own…</option>
                 </select>
                 {col.onDark && !colors.some((x) => x.slug === col.onDark) && <input aria-label={`${col.name} on dark backgrounds`} className="w-24 rounded-sm border border-admin-ink/20 px-1 py-0.5" value={col.onDark} onChange={(e) => setColor(i, { onDark: e.target.value })} />}
               </label>
               <span className="ml-auto flex gap-1">
                 <button type="button" className={small} disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Move ${col.name} up`}>↑</button>
                 <button type="button" className={small} disabled={i === colors.length - 1} onClick={() => move(i, 1)} aria-label={`Move ${col.name} down`}>↓</button>
-                <button type="button" className={`${small} text-[#b3261e]`} disabled={usedBy(col.slug) || colors.length === 1} title={usedBy(col.slug) ? 'Used by a role, a dark-band colour, a button or a shade' : undefined} onClick={() => put({ colors: colors.filter((_, k) => k !== i) })}>
+                <button type="button" className={`${small} text-[#b3261e]`} disabled={usedBy(col.slug) || colors.length === 1} title={usedBy(col.slug) ? 'Used by a role, a dark-band color, a button or a shade' : undefined} onClick={() => put({ colors: colors.filter((_, k) => k !== i) })}>
                   Remove
                 </button>
               </span>
@@ -166,20 +166,20 @@ export default function ThemeSettings({ value, onChange }: { value: Theme | unde
           </div>
         ))}
         <div className="flex gap-2">
-          <input aria-label="New colour's name" className={`${inputClass} w-48`} placeholder="New colour's name" value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), add())} />
+          <input aria-label="New color's name" className={`${inputClass} w-48`} placeholder="New color's name" value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), add())} />
           <button type="button" className={small} onClick={add} disabled={!newName.trim()}>
-            Add colour
+            Add color
           </button>
         </div>
       </Group>
 
-      <Group title="What each colour is for" hint="The site's styles use these roles: text, links and buttons follow them.">
+      <Group title="What each color is for" hint="The site's styles use these roles: text, links and buttons follow them.">
         {ROLES.map(([k, label]) => (
           <ColorRef key={k} label={label} value={theme.roles[k]} colors={colors} none="Not set" onChange={(v) => put({ roles: { ...theme.roles, [k]: v } })} />
         ))}
       </Group>
 
-      <Group title="On dark backgrounds" hint="Inside sections on a dark colour, and on covers and heroes. Unchanged: as elsewhere (with each colour's dark-background shade, set above).">
+      <Group title="On dark backgrounds" hint="Inside sections on a dark color, and on covers and heroes. Unchanged: as elsewhere (with each color's dark-background shade, set above).">
         {BANDS.map(([k, label]) => (
           <ColorRef key={k} label={label} value={theme.bands[k]} colors={colors} none="Unchanged" onChange={(v) => put({ bands: { ...theme.bands, [k]: v } })} />
         ))}

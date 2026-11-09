@@ -5,7 +5,7 @@
 
 type Attrs = Record<string, unknown>;
 
-/** Style settings every block has the same way: colours, spacing, type, borders, width, classes, form style. */
+/** Style settings every block has the same way: colors, spacing, type, borders, width, classes, form style. */
 export const SHARED_STYLE = ['style', 'width', 'className', 'formStyle'] as const;
 
 /** Look settings that mean the same within one block type. */

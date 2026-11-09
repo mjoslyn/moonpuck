@@ -26,7 +26,7 @@ away.
 
 ### Problems and warnings
 
-Each item in the list has a coloured label:
+Each item in the list has a colored label:
 
 - **Problem**: something that needs fixing, such as a link with no words or text too faint against its
   background.
@@ -69,8 +69,8 @@ the page, so try each size.
 | **Link goes nowhere (#).** (Warning) | A link or button still has the placeholder address `#`. A new **Button** starts with it. | Set the button's **Link** with **Find** (see [Links](/editors/page-editor/#links)), or delete the button. |
 | **Button has no text or label.** (Problem) | A button (in a form, a slider, a menu) has no words or label. | Give the button words. If it comes from your site's design, tell whoever looks after the site. |
 | **Embedded frame has no title.** (Problem) | Something embedded from another site (a video, a map, a booking widget) has no title, so a screen reader can't say what it is. | In the **Embed** block's **Embed HTML**, add `title="..."` to the `<iframe>`, for example `title="Map of the town centre"`. YouTube and Vimeo links added to a **Video gallery** get a title by themselves. |
-| **Text contrast 3.12:1 (needs 4.5:1): #888888 on #ffffff.** (Problem) | The text colour is too close to the colour behind it. The numbers say how far apart they are and how far apart they need to be. Normal text needs 4.5:1; large text (about 24 pixels, or 19 pixels in bold) needs 3:1. | Pick a darker text colour on a light background, or a lighter one on a dark background. Changing the background works too. Each block's colour pair is listed once. |
-| **Text over an image: its contrast can't be measured. Check by eye that it stays readable on every part of the image (a darker overlay or a text shadow helps), then mark it as checked.** (Problem) | Text sits on a picture (a **Hero**, a **Cover**, a gallery caption over the picture). The check can't tell how readable it is, because the picture's colours vary. | See [Text over images](#text-over-images). |
+| **Text contrast 3.12:1 (needs 4.5:1): #888888 on #ffffff.** (Problem) | The text color is too close to the color behind it. The numbers say how far apart they are and how far apart they need to be. Normal text needs 4.5:1; large text (about 24 pixels, or 19 pixels in bold) needs 3:1. | Pick a darker text color on a light background, or a lighter one on a dark background. Changing the background works too. Each block's color pair is listed once. |
+| **Text over an image: its contrast can't be measured. Check by eye that it stays readable on every part of the image (a darker overlay or a text shadow helps), then mark it as checked.** (Problem) | Text sits on a picture (a **Hero**, a **Cover**, a gallery caption over the picture). The check can't tell how readable it is, because the picture's colors vary. | See [Text over images](#text-over-images). |
 
 ## Text over images
 
@@ -135,14 +135,14 @@ image](/editors/images-and-files/#pictures).
 The **Hero** block's picture is treated as decoration, so anything visitors need to know belongs in the
 hero's title or text.
 
-## Headings, links and colours
+## Headings, links and colors
 
 - **Headings**: one **H1** per page (usually the title), then **H2**, **H3** in order. Use heading blocks
   for headings, not bold paragraphs, and don't choose a level for its size.
 - **Link words**: the words should make sense on their own. "Download the 2026 timetable (PDF)" is better
   than "Click here". A new **Hero** starts with a **Learn more** button: change it to say where it goes.
-- **Colours**: keep to your site's colour combinations, which are made to be readable. When you pick
-  your own, check the A11y list for contrast problems. Never rely on colour alone to show something
+- **Colors**: keep to your site's color combinations, which are made to be readable. When you pick
+  your own, check the A11y list for contrast problems. Never rely on color alone to show something
   (such as "the dates in red are full").
 - **Videos**: keep **Show controls** on, so people can pause a video, especially one set to play by
   itself.

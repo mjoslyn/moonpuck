@@ -1,7 +1,7 @@
 /* Forms (src/render/forms/form.ts). Fields are white with black text unless a block's form style
    (src/render/forms/style.ts) sets them: --form-input-bg, --form-input-text, --form-border,
    --form-border-width, --form-input-pad, --form-input-size, --form-placeholder, --form-focus,
-   --form-check, --form-label, --form-radius, --form-button-radius; its button colours are the
+   --form-check, --form-label, --form-radius, --form-button-radius; its button colors are the
    button's --button-bg and --button-color. */
 .c-form {
   --form-error: #b42318;

@@ -35,7 +35,7 @@ register(
       const row = (env.ctx.data.get('forms') as FormRow[] | undefined)?.find((f) => f.id === Number(b.attrs.formId));
       if (!row) return env.ctx.editor ? '<p style="padding:1rem;border:1px dashed #ccc">Choose a form in the block settings.</p>' : '';
       const html = embedForm(env, row, { title: !!b.attrs.showTitle, description: !!b.attrs.showDescription });
-      // The block's form style (colours, corners) as custom properties on a wrapper.
+      // The block's form style (colors, corners) as custom properties on a wrapper.
       const decls = formStyleDecls(b.attrs.formStyle);
       return decls.length ? `<div ${attrs(['c-form-style', formStyleClass(b.attrs.formStyle)], decls)}>${html}</div>` : html;
     },

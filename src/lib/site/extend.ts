@@ -59,7 +59,7 @@ export interface SiteRender {
   /** The page's footer scripts, given those the blocks added (ctx.scripts). Default: ctx.scripts as is. */
   pageScripts?: (ctx: RenderCtx) => Promise<string[]>;
   /** The site's look before anyone saves one under Settings > Theme (`default`), and its own classes
-   * whose backgrounds are dark, which take the theme's dark-band colours (`darkSelectors`). */
+   * whose backgrounds are dark, which take the theme's dark-band colors (`darkSelectors`). */
   theme?: { default?: Theme; darkSelectors?: string[] };
   /** Share cards for pages without a share image of their own (src/lib/share-card): the site's design. */
   shareCard?: ShareCardDesign;

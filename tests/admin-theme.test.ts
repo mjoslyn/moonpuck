@@ -15,7 +15,7 @@ const theme = cleanTheme({
 })!;
 
 describe('admin screens', () => {
-  it("take the site's accent, dark colour and logo", () => {
+  it("take the site's accent, dark color and logo", () => {
     expect(matchedAdminTheme(theme)).toEqual({ accent: '#1f5fa8', bar: '#0d0f12', logo: 7, logo_url: '/media/logo.png' });
   });
 

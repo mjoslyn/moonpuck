@@ -32,7 +32,7 @@ export interface Style {
   width?: string;
   aspectRatio?: string;
   shadow?: string;
-  /** Colour of links inside the block (and on hover). */
+  /** Color of links inside the block (and on hover). */
   linkColor?: string;
   linkHover?: string;
   headingColor?: string;
@@ -42,7 +42,7 @@ export type Decl = [string, string];
 
 const SIDES = ['top', 'right', 'bottom', 'left'] as const;
 
-/** Inline declarations for a style. Selector-scoped colours become inherited custom properties. */
+/** Inline declarations for a style. Selector-scoped colors become inherited custom properties. */
 export function styleDecls(s: Style | undefined): Decl[] {
   if (!s) return [];
   const d: Decl[] = [];

@@ -1,5 +1,5 @@
 // The admin's colors and logo (Settings > Theme, Admin screens; settings.site.admin_theme). Unless the admin
-// gives the admin screens their own (`own`), they match the site's theme: its accent, its dark colour as the
+// gives the admin screens their own (`own`), they match the site's theme: its accent, its dark color as the
 // menu bar and its logo (`matchedAdminTheme`, `effectiveAdminTheme`). Each is a role token from
 // src/styles/tailwind.css (--color-admin-*); the admin pages write the chosen ones, and the colors made
 // from them, after the stylesheet (AdminTheme.astro), and the settings screen sets them on the page as
@@ -9,7 +9,7 @@ import { resolveColor, type Theme } from './theme/theme';
 import { siteTheme } from './theme/site';
 
 export interface AdminTheme {
-  /** The admin screens have their own colours and logo; without it they match the site's theme. */
+  /** The admin screens have their own colors and logo; without it they match the site's theme. */
   own?: boolean;
   accent?: string;
   ink?: string;
@@ -50,7 +50,7 @@ export function adminThemeFrom(v: unknown): AdminTheme | undefined {
   return Object.keys(out).length ? out : undefined;
 }
 
-/** A colour as #rrggbb, when it is a hex colour (#rgb or #rrggbb). */
+/** A color as #rrggbb, when it is a hex color (#rgb or #rrggbb). */
 const hex6 = (c: string | undefined) => {
   const v = (c ?? '').trim().toLowerCase();
   if (/^#[0-9a-f]{6}$/.test(v)) return v;
@@ -59,7 +59,7 @@ const hex6 = (c: string | undefined) => {
 };
 
 /** The admin's look taken from the site's theme: its accent (the button fill, else the accent) while white
- *  text reads on it, its dark colour as the menu bar, and its logo. */
+ *  text reads on it, its dark color as the menu bar, and its logo. */
 export function matchedAdminTheme(theme: Theme): AdminTheme {
   const out: AdminTheme = {};
   const accent = hex6(resolveColor(theme, theme.roles['accent-fill'] ?? theme.roles.accent));

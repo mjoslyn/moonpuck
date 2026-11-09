@@ -1,5 +1,5 @@
 // A gallery's look and its slider's options (src/render/c/content.ts galleryOf): classes and custom
-// properties from known values only, colours checked, the autoplay interval kept to 2-20 seconds.
+// properties from known values only, colors checked, the autoplay interval kept to 2-20 seconds.
 import { describe, expect, it } from 'vitest';
 import { gallery, videoGallery } from '../src/render/c/content';
 
@@ -22,7 +22,7 @@ describe('gallery style', () => {
     expect(odd).not.toMatch(/has-(radius|captions|hover)/);
   });
 
-  it('styles a slider: arrows, their place and colours, dots, peek and the interval', () => {
+  it('styles a slider: arrows, their place and colors, dots, peek and the interval', () => {
     const html = render({ display: 'slider', arrows: 'square', arrowPosition: 'below', arrowBg: 'var(--color-accent)', arrowColor: '#fff', dots: true, peek: true, autoplay: true, interval: 60 });
     expect(html).toContain('is-slider is-cropped has-arrows-square has-arrows-below has-dots has-peek');
     expect(html).toContain('--gallery-arrow-bg:var(--color-accent)');
@@ -32,7 +32,7 @@ describe('gallery style', () => {
     expect(render({ display: 'slider', autoplay: true })).toContain('data-autoplay="5"');
   });
 
-  it('leaves out arrows set to none, and colours that are not colours', () => {
+  it('leaves out arrows set to none, and colors that are not colors', () => {
     const html = render({ display: 'slider', arrows: 'none', arrowPosition: 'outside', arrowBg: 'red;background:url(x)' });
     expect(html).not.toContain('c-gallery__prev');
     expect(html).not.toContain('has-arrows-outside');

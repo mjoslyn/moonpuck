@@ -333,8 +333,8 @@ A slider also has **Slider** settings:
 
 - **Arrows**: **Round**, **Square**, **Plain (no background)** or **None**.
 - **Arrows' place**: **Over the items**, **Either side** or **Below**.
-- **Arrows' background (and the current dot)**: one of the site's colours.
-- **Arrows' colour**: one of the site's colours.
+- **Arrows' background (and the current dot)**: one of the site's colors.
+- **Arrows' color**: one of the site's colors.
 - **Dots**: a dot for each stop, to jump to it.
 - **Show part of the next item**, so visitors can see there is more.
 - **Advance automatically**, and how many **Seconds per item** (2 to 20). It pauses while someone hovers

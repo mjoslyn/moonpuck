@@ -1,5 +1,5 @@
 // Left rail: accessibility check of the page as rendered in the canvas (what visitors get): alt text,
-// headings, link and button names, embedded frames and colour contrast (WCAG AA). Each problem selects
+// headings, link and button names, embedded frames and color contrast (WCAG AA). Each problem selects
 // its block; problems in the template (header, footer) are listed without one. Automated checks find
 // common problems only, so the panel says so. Problems a person has to judge (warnings, and text over
 // an image, whose contrast can't be measured) can be marked as checked: the marks are kept in the
@@ -69,7 +69,7 @@ function nameOf(el: Element): string {
   return alt || el.getAttribute('title')?.trim() || '';
 }
 
-// Colour contrast -----------------------------------------------------------------------------
+// Color contrast -----------------------------------------------------------------------------
 
 type RGBA = [number, number, number, number];
 const parse = (c: string): RGBA | null => {
@@ -124,7 +124,7 @@ function overImage(el: Element, scope: Element): Element | null {
 /** Where an image comes from, for telling whether it changed. */
 const imageSource = (m: Element | null | undefined) => (m ? (m as HTMLImageElement).currentSrc || m.getAttribute('src') || '' : '').split('?')[0];
 
-/** What is behind an element: a solid colour, or an image (with the see-through colour layers over it). */
+/** What is behind an element: a solid color, or an image (with the see-through color layers over it). */
 type Behind = { color: RGBA } | { image: string; layers: RGBA[] };
 
 function backgroundOf(el: Element): Behind {
@@ -132,7 +132,7 @@ function backgroundOf(el: Element): Behind {
   for (let n: Element | null = el; n; n = n.parentElement) {
     const s = n.ownerDocument.defaultView!.getComputedStyle(n);
     const c = parse(s.backgroundColor);
-    // An opaque colour hides whatever is further back, image or not.
+    // An opaque color hides whatever is further back, image or not.
     if (c && c[3] >= 1) return { color: layers.reduceRight<RGBA>((under, top) => over(top, under), c) };
     if (s.backgroundImage !== 'none') return { image: s.backgroundImage, layers };
     if (n.matches('.c-cover, .c-hero')) return { image: imageSource(n.querySelector('img, video')), layers };
@@ -186,7 +186,7 @@ function check(doc: Document): Issue[] {
 
   for (const f of all('iframe')) if (!f.getAttribute('title')?.trim()) add('error', 'Embeds', 'Embedded frame has no title.', f, f.getAttribute('src') ?? undefined);
 
-  // Contrast: elements with their own text, once per block and colour pair.
+  // Contrast: elements with their own text, once per block and color pair.
   const seen = new Set<string>();
   for (const el of all('body *')) {
     const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent!.trim());

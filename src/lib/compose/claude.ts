@@ -56,7 +56,7 @@ export interface ConverseRequest {
   tags: string[];
   /** The entry's own fields as they are now. */
   currentFields?: string;
-  /** The site's palette names (its theme's colours the editor offers). */
+  /** The site's palette names (its theme's colors the editor offers). */
   colors?: string[];
   /** Working on a template, part or pattern (shared by pages) rather than one page's content. */
   layout?: Layout;

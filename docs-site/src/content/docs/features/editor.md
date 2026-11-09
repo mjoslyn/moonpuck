@@ -29,7 +29,7 @@ sign-in asks them to wait; password links go out at most 3 an hour per address.
 
 **Settings > Theme**, **Admin screens**, sets the admin's colors for everyone who signs in. With **Match the
 site** on (the default) they follow the site's theme: its accent (its button fill, else its accent, while white
-text reads on it), its dark colour as the menu bar and its logo (`matchedAdminTheme`). Unticked, the admin
+text reads on it), its dark color as the menu bar and its logo (`matchedAdminTheme`). Unticked, the admin
 has its own: accent, text, menu bar and
 background (`settings.site.admin_theme`, `src/lib/admin-theme.ts`), and a logo for the menu bar. The
 logo replaces the site name there, or sits beside it with **Show the site name beside it** (on phones

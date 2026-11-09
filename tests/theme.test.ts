@@ -37,7 +37,7 @@ describe('cleanTheme', () => {
     expect(t.layout.content).toBeUndefined();
   });
 
-  it('is undefined for nothing or a theme without colours', () => {
+  it('is undefined for nothing or a theme without colors', () => {
     expect(cleanTheme(undefined)).toBeUndefined();
     expect(cleanTheme({ colors: [] })).toBeUndefined();
   });
@@ -59,7 +59,7 @@ describe('themeCss', () => {
     expect(css).toContain('rgba(13, 15, 18, 0.85)');
   });
 
-  it('re-maps dark bands: shades, the roles using them again, the band colours, on its dark colours and the site selectors', () => {
+  it('re-maps dark bands: shades, the roles using them again, the band colors, on its dark colors and the site selectors', () => {
     const css = themeCss(theme(), ['.sb-band']);
     const band = css.split('\n').find((l) => l.includes('.c-hero'))!;
     expect(band).toContain("[style*='background-color:var(--color-ink)']");
@@ -82,7 +82,7 @@ describe('themeCss', () => {
 });
 
 describe('themePresets', () => {
-  it("offers the theme's colours but those left out of the editor's choices", () => {
+  it("offers the theme's colors but those left out of the editor's choices", () => {
     const p = themePresets(theme());
     expect(p.colors.map((c) => c.slug)).toEqual(['ink', 'blue', 'sky']);
     expect(p.fontSizes).toEqual([{ slug: 'small', name: 'Small', size: '0.8rem' }]);

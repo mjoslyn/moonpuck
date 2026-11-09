@@ -127,7 +127,7 @@ export function Group({ title, children, open = true }: { title: string; childre
   );
 }
 
-/** Palette swatches plus a free CSS colour. */
+/** Palette swatches plus a free CSS color. */
 export function Color({ title, value, onChange }: { title: string; value: string | undefined; onChange: (v: string | undefined) => void }) {
   const custom = value && !COLORS.some((c) => c.value === value) ? value : '';
   return (
@@ -172,7 +172,7 @@ const setIn = (a: Attrs, key: string, patch: Record<string, unknown>): Attrs => 
 
 type StyleParts = { colors?: boolean; background?: boolean; spacing?: boolean; typography?: boolean; border?: boolean; width?: boolean };
 
-/** Colour, spacing, typography, border and width controls shared by the blocks. */
+/** Color, spacing, typography, border and width controls shared by the blocks. */
 export function StyleControls({ a, set, parts = {} }: { a: Attrs; set: SetFn; parts?: StyleParts }) {
   const s = a.style ?? {};
   const st = (patch: Record<string, unknown>) => set(setIn(a, 'style', patch));
@@ -791,7 +791,7 @@ function GalleryPanel({ a, set, video }: { a: Attrs; set: SetFn; video?: boolean
             <>
               <Select title="Arrows' place" value={a.arrowPosition ?? ''} options={[['', 'Over the items'], ['outside', 'Either side'], ['below', 'Below']]} onChange={(v) => set({ arrowPosition: v || undefined })} />
               {a.arrows !== 'plain' && <Color title="Arrows' background (and the current dot)" value={a.arrowBg} onChange={(v) => set({ arrowBg: v })} />}
-              <Color title="Arrows' colour" value={a.arrowColor} onChange={(v) => set({ arrowColor: v })} />
+              <Color title="Arrows' color" value={a.arrowColor} onChange={(v) => set({ arrowColor: v })} />
             </>
           )}
           <Toggle title="Dots" value={a.dots} onChange={(v) => set({ dots: v || undefined })} />

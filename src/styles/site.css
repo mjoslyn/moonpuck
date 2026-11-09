@@ -1,5 +1,5 @@
 /* Public site stylesheet: base element styles, layout primitives and the content components
-   rendered by src/render/c/. Token values (colours, type, spacing, widths) come from the site
+   rendered by src/render/c/. Token values (colors, type, spacing, widths) come from the site
    (src/site/styles/tokens.css); the names are the vocabulary content and components use. Tailwind supplies tokens and utilities (no preflight: content
    that still carries legacy markup relies on browser defaults). Base and component rules are
    unlayered and load after the legacy stylesheets, so they compete by specificity, not layer order. */
@@ -479,7 +479,7 @@ img.is-right {
   padding-left: 2em;
 }
 
-/* Cover: a background image or colour with an overlay and centred content. */
+/* Cover: a background image or color with an overlay and centred content. */
 .c-cover {
   position: relative;
   display: flex;
@@ -932,7 +932,7 @@ a.c-cover {
   }
 }
 
-/* Slider look: part of the next item showing, arrows' shape, colours and place, dots. */
+/* Slider look: part of the next item showing, arrows' shape, colors and place, dots. */
 .c-gallery.has-peek .c-gallery__track > :is(.c-image, .c-embed, .c-video) {
   flex-basis: calc((100% - var(--gallery-gap, 0.5em) * var(--gallery-cols, 3)) / (var(--gallery-cols, 3) + 0.35));
 }

@@ -20,9 +20,9 @@ afterEach(() => applyTypeSettings({}));
 
 describe('taxonomy settings', () => {
   it('names a taxonomy from its label and cleans its address', () => {
-    expect(taxonomyName('Colours & Finishes')).toBe('colours_finishes');
+    expect(taxonomyName('Colors & Finishes')).toBe('colors_finishes');
     expect(taxonomyName('2024 Seasons')).toBe('seasons');
-    expect(cleanBase(' /Shop/Colours! ')).toBe('shop/colours');
+    expect(cleanBase(' /Shop/Colors! ')).toBe('shop/colors');
   });
 
   it('keeps known names and types only, never a name the site uses', () => {

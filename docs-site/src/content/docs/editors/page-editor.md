@@ -143,9 +143,9 @@ the **Columns** settings.
 Most blocks share the same style settings, near the end of their panel. Groups can be folded away by
 clicking their heading. Which groups a block has depends on the block.
 
-The site's colours, text sizes, fonts and spacing sizes offered here are the site's theme, which an
+The site's colors, text sizes, fonts and spacing sizes offered here are the site's theme, which an
 admin sets under **Settings**, **Theme** (see [The site's theme](/admins/settings/#the-sites-theme)).
-A colour an admin left out of the choices doesn't show here, but blocks already using it keep it.
+A color an admin left out of the choices doesn't show here, but blocks already using it keep it.
 
 - **Width**: **Default**, **Wide** or **Full width**. Inside a section that keeps its content to a
   reading width, **Wide** lets the block spread wider and **Full width** takes it from edge to edge.
@@ -153,8 +153,8 @@ A colour an admin left out of the choices doesn't show here, but blocks already 
   - **Text**.
   - **Background**.
   - **Links**.
-  - For each: click one of the site's colours, the **/** circle to go back to the default, or type a
-    colour code (such as `#1a1a2e`) in the box.
+  - For each: click one of the site's colors, the **/** circle to go back to the default, or type a
+    color code (such as `#1a1a2e`) in the box.
 - **Text** (for blocks with words):
   - **Size**: one of the site's text sizes.
   - **Font**: the site's display font or its body font.
@@ -210,7 +210,7 @@ To make one block look like another:
 3. Select the other block and click **Paste styles** (the button names the kind of block you copied
    from).
 
-Its colours, spacing, text style, borders and width change to match; its words and pictures stay as
+Its colors, spacing, text style, borders and width change to match; its words and pictures stay as
 they are. Between two blocks of the same kind (two sections, say) the layout comes too: alignment, gaps,
 height, overlay, size, columns and display.
 
@@ -317,7 +317,7 @@ Its settings:
 
 - **Marker**: **Bullets**, **Numbers**, **Icon** or **None**.
 - **Icon**: with **Icon**, the icon to use.
-- **Icon color**: its colour.
+- **Icon color**: its color.
 - **Items**: each item's text, with **Up**, **Down** and **Remove**; with icons, **Icon for this item** gives one item a different icon.
 - **Add item**: adds one.
 - **Paste several**: takes a list, one item per line; **Add lines** adds them all.
@@ -490,7 +490,7 @@ Its settings:
 
 #### Section
 
-A band across the page that holds other blocks, with a background colour and spacing.
+A band across the page that holds other blocks, with a background color and spacing.
 
 ![The Section block on a page](../../../assets/guide/blocks/section.png)
 

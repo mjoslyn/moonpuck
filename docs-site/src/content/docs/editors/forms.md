@@ -265,8 +265,8 @@ it on the right. With no block selected, the right side shows the email's own se
 - **Preview text (after the subject in the inbox)**.
 - **Page background**.
 - **Email background**.
-- **Text colour**.
-- **Link and button colour**.
+- **Text color**.
+- **Link and button color**.
 - **Font**.
 - **Width (px)**.
 
@@ -282,7 +282,7 @@ Buttons above the canvas show the email at
 | **Form field** | One answer (with or without its label), or **All fields (a table)**. |
 | **Payment** | What was paid for, the total, and optionally the status, provider, payment ID and date. Shows nothing for a form that doesn't take payment. |
 | **Events** | Your next upcoming events, or events you pick (only when your site uses Events). |
-| **Section** | A coloured box to group other blocks, with padding and rounded corners. |
+| **Section** | A colored box to group other blocks, with padding and rounded corners. |
 | **Two columns** | Two blocks side by side. On phones they stack. |
 | **Divider** | A thin line. |
 | **Spacer** | Empty space of a height you choose. |
@@ -359,7 +359,7 @@ The same form can be on several pages. Changes you save in the form builder show
 
 ### Changing the form's look
 
-By default fields are white with black text, and labels take the colour of the section around them.
+By default fields are white with black text, and labels take the color of the section around them.
 Open **Form style** in the Form block's settings to change:
 
 - **Form background (default none)**: puts the form in a box with some space around it.

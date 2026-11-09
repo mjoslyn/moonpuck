@@ -103,7 +103,7 @@ export const buttons: Renderer = (b, env, inner) => {
 export const button: Renderer = (b) => {
   const a = b.attrs;
   const s = a.style ?? {};
-  // Typography sits on the wrapper (inherited by the link); colours, borders and padding on the link.
+  // Typography sits on the wrapper (inherited by the link); colors, borders and padding on the link.
   const outer: Decl[] = [];
   const typo = ['fontSize', 'fontWeight', 'letterSpacing', 'textTransform', 'fontStyle', 'fontFamily', 'lineHeight', 'textDecoration'] as const;
   const inner: Record<string, any> = { ...s };
@@ -158,7 +158,7 @@ export const quote: Renderer = (b, env, inner) => {
 
 export const separator: Renderer = (b) => {
   const a = b.attrs;
-  // The line colour is the background for solid separators and the text colour for dots.
+  // The line color is the background for solid separators and the text color for dots.
   const s = { ...(a.style ?? {}) };
   const extra: Decl[] = [];
   if (s.color && a.variant !== 'dots') extra.push(['background-color', s.color], ['border-color', s.color]);
@@ -237,7 +237,7 @@ export const cover: Renderer = (b, env, inner) => {
   const m = src?.mediaId ? env.ctx.loader.media.get(Number(src.mediaId)) : undefined;
   const points = src ? screenFocal(a, m, [16 / 9, 3 / 4, 3 / 4]) : [];
   const img = src ? imageTag(env, src, { className: 'c-cover__image', style: points.length ? 'object-position:var(--focal-at)' : undefined }).replace(/\swidth="\d+"|\sheight="\d+"/g, '').replace(/<img\b/, '<img data-cms-img="cover"') : '';
-  // Overlay: a solid colour, or (overlayStyle) a gradient from it, darkest at the bottom or the left
+  // Overlay: a solid color, or (overlayStyle) a gradient from it, darkest at the bottom or the left
   // (where the text usually is), clearing towards the other side.
   const shade = a.overlayStyle === 'bottom' || a.overlayStyle === 'left' ? a.overlayStyle : null;
   const dim = a.dim ?? (src ? (shade ? 80 : 50) : 100);
@@ -266,7 +266,7 @@ function featuredImage(env: Env): Record<string, any> | null {
 
 /** Gallery corner radii (`radius`). */
 export const GALLERY_RADII: Record<string, string> = { small: '4px', medium: '8px', large: '16px' };
-/** A colour a gallery's settings take: a palette token, a hex value or a plain rgb()/hsl(). */
+/** A color a gallery's settings take: a palette token, a hex value or a plain rgb()/hsl(). */
 const galleryColor = (v: unknown) =>
   typeof v === 'string' && /^(var\(--color-[a-z0-9-]+\)|#[0-9a-f]{3,8}|(rgb|hsl)a?\([0-9.,%\s/]+\))$/i.test(v.trim()) ? v.trim() : undefined;
 

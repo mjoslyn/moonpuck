@@ -31,7 +31,7 @@ export const EDIT_SCHEMA = {
 } as const;
 
 /** How the components are described to Claude (it also sees the real data of the selected block). */
-/** How components are written, with the site's palette names (its theme's colours, Settings > Theme). */
+/** How components are written, with the site's palette names (its theme's colors, Settings > Theme). */
 export const componentGuide = (colors: string[]) => `Component data: {"type", "props": {"id", "attrs", "children"?}}. Containers (section, columns, column, buttons, quote, cover, gallery, video-gallery, media-text, collection) hold blocks in "children"; gallery holds image blocks and video-gallery embed/video blocks, both with "display" ("grid", "masonry", "slider"), "columns" and "gap"; a gallery may set "ratio" (e.g. "3/2", images cropped to it; not with masonry) and, as a slider, "autoplay": true.
 A hero is one block with no children: attrs {"material" (an image id) or "mediaId"/"src", "eyebrow", "title", "text" (plain text, no HTML), "primaryLabel", "primaryHref", "secondaryLabel", "secondaryHref", "height": "screen"|"large"|"medium", "level": 1|2}.
 A list is one block: attrs {"items": [{"content": inline HTML, "icon"?}], "marker": "bullet"|"number"|"icon"|"none", "icon" (check, check-circle, arrow-right, chevron, dot, dash, plus, star, heart, map-pin, clock, calendar, phone, mail, info, snowflake, sun, mountain, leaf), "iconColor", "itemGap", "style"}.

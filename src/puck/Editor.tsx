@@ -1244,7 +1244,7 @@ function CanvasStyles({ document: doc, ctx, children }: { document?: Document; c
     style.textContent = '.cms-editor-note{padding:1rem;border:1px dashed #b87333;color:#64748b;font:13px system-ui}.c-media-text__content[data-puck-dropzone]{height:auto}.cms-area{position:relative}.cms-area__label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#64748b;font:13px system-ui;z-index:1}.cms-source-outline{position:fixed;z-index:9998;pointer-events:none;outline:2px dashed #b87333;outline-offset:-2px}.cms-source-link{position:fixed;z-index:9999;padding:4px 10px;border-radius:4px;background:#0f0f1c;color:#fff;font:500 12px/1.4 system-ui;text-decoration:none;white-space:nowrap}.cms-source-link:hover,.cms-source-link:focus-visible{background:#b87333}';
     add(style);
     link(siteCss);
-    // The site's theme (Settings > Theme): its colours, fonts and sizes, as on the site.
+    // The site's theme (Settings > Theme): its colors, fonts and sizes, as on the site.
     const theme = doc.createElement('style');
     theme.textContent = siteThemeCss(first.settings?.site ?? { theme: (window as any).__siteTheme });
     add(theme);

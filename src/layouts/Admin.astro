@@ -26,7 +26,7 @@ const isAdmin = user?.role === 'admin';
 const theme = await loadAdminTheme(Astro.locals.db ?? siteDb());
 // Members, Tickets, Mailing and the Shop while they are on (Settings > Members, Events, Mailing, Shop).
 const siteSettings = (await (Astro.locals.db ?? siteDb()).from('settings').select('value').eq('key', 'site').maybeSingle()).data?.value;
-// The site's theme as it is now, for the editor's colour and size choices (src/lib/theme/theme.ts, PRESETS).
+// The site's theme as it is now, for the editor's color and size choices (src/lib/theme/theme.ts, PRESETS).
 const siteThemeNow = siteTheme(siteSettings);
 const membersOn = isAdmin && memberSettings(siteSettings).enabled;
 const ticketsOn = eventsOn(siteSettings);

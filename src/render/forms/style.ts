@@ -1,4 +1,4 @@
-// A form's own colours and corners (the Form, Subscribe and Newsletter blocks' `attrs.formStyle`), as the
+// A form's own colors and corners (the Form, Subscribe and Newsletter blocks' `attrs.formStyle`), as the
 // CSS custom properties src/styles/forms.css reads: fields default to white with black text and the
 // site's border, labels to the text around them, buttons to the site's button. A background or border
 // of the form's own puts it in a box with room round it (`has-form-box`). Safe in the browser.
@@ -83,12 +83,12 @@ const PROPS: [keyof FormStyle, string][] = [
   ['check', '--form-check'],
 ];
 
-// A palette colour (var(--color-…)), a hex colour or a few keywords; sizes, widths and corners from the lists above.
+// A palette color (var(--color-…)), a hex color or a few keywords; sizes, widths and corners from the lists above.
 const COLOR = /^(?:var\(--color-[a-z0-9-]+\)|#[0-9a-f]{3,8}|white|black|transparent)$/i;
 const RADIUS = new Set(FORM_RADII.map(([v]) => v).filter(Boolean));
 const WIDTHS = new Set(BORDER_WIDTHS.map(([v]) => v).filter(Boolean));
 
-/** The style's custom properties (and the box's background, border and text colour), leaving out anything that isn't a colour (or corner) we allow. */
+/** The style's custom properties (and the box's background, border and text color), leaving out anything that isn't a color (or corner) we allow. */
 export function formStyleDecls(s: unknown): [string, string][] {
   if (!s || typeof s !== 'object') return [];
   const v = s as Record<string, unknown>;
@@ -102,7 +102,7 @@ export function formStyleDecls(s: unknown): [string, string][] {
     if (k === 'radius' || k === 'buttonRadius') return RADIUS.has(x) ? [[prop, x]] : [];
     if (!COLOR.test(x)) return [];
     if (k === 'border') return [[prop, `1px solid ${x}`]];
-    // The form's text colours its headings and small print too.
+    // The form's text colors its headings and small print too.
     if (k === 'text') return [[prop, x], ['--heading-color', x], ['--form-muted', x]];
     return [[prop, x]];
   });

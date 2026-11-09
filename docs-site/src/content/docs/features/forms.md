@@ -31,7 +31,7 @@ for what the form is for, then writes the parts ticked (`POST /api/admin/forms/c
   Until the page is published, the form shows the message.
 - **Notification emails**: usually one to the site and one to the visitor (when the form has an email
   field), each a heading, text, optionally every answer, and a button. A rewritten email keeps the
-  addresses, reply-to and sender of the one it replaces, and its colours.
+  addresses, reply-to and sender of the one it replaces, and its colors.
 
 Claude's `{key}` tags become the form's merge tags (`{Email:f2}`, `{Name:f1.first}`); tags for fields
 that don't exist are dropped. The answer fills the builder for review: nothing is saved until **Save**
@@ -43,13 +43,13 @@ The markup comes from `src/render/forms/form.ts`, styled by `src/styles/forms.cs
 `public/assets/js/forms.js` runs conditional logic, US phone formatting and character counters in
 the browser. Everything is validated again on the server.
 
-Fields are white with black text by default, and labels take the colour of the text around them. The
+Fields are white with black text by default, and labels take the color of the text around them. The
 Form block's **Form style** settings (also on the Subscribe and Newsletter blocks) set the form's own
-background, border and text colour (a background or border puts the form in a box with room round it),
-the fields (background, text, border and placeholder colours, the colour round the field being typed
-in, height, text size and border width), the colour of checkboxes and radio buttons, the labels, the
-button's colours, and the corners of the fields and of the button (square, slightly rounded, rounded
-or pill), each colour from the site's palette or a hex colour.
+background, border and text color (a background or border puts the form in a box with room round it),
+the fields (background, text, border and placeholder colors, the color round the field being typed
+in, height, text size and border width), the color of checkboxes and radio buttons, the labels, the
+button's colors, and the corners of the fields and of the button (square, slightly rounded, rounded
+or pill), each color from the site's palette or a hex color.
 
 ## Submissions
 
@@ -80,7 +80,7 @@ editor like the page editor with blocks made for email:
 | Two columns | Blocks side by side, stacked on phones |
 | Divider, Spacer | A line, or space |
 
-The email's settings (the page) set its background, text and link colours, font, width and the
+The email's settings (the page) set its background, text and link colors, font, width and the
 preview text inbox lists show after the subject.
 
 What the builder shows is what is sent: email-safe HTML laid out with tables and inline styles, 600px

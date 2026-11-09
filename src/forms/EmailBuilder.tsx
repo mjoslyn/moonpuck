@@ -137,8 +137,8 @@ function emailConfig(kit: EmailKit, events: boolean): Config {
         preheader: { type: 'text', label: 'Preview text (after the subject in the inbox)' },
         background: color('Page background', EMAIL_DEFAULTS.background),
         contentBackground: color('Email background', EMAIL_DEFAULTS.contentBackground),
-        textColor: color('Text colour', EMAIL_DEFAULTS.textColor),
-        linkColor: color('Link and button colour', EMAIL_DEFAULTS.linkColor),
+        textColor: color('Text color', EMAIL_DEFAULTS.textColor),
+        linkColor: color('Link and button color', EMAIL_DEFAULTS.linkColor),
         fontFamily: {
           type: 'select',
           label: 'Font',
@@ -165,7 +165,7 @@ function emailConfig(kit: EmailKit, events: boolean): Config {
     components: {
       Heading: {
         label: 'Heading',
-        fields: { text: { type: 'text', label: 'Text (field tags allowed)' }, level: { type: 'select', label: 'Size', options: [{ label: 'Large', value: 1 }, { label: 'Medium', value: 2 }, { label: 'Small', value: 3 }] }, align: alignField, color: color('Colour', EMAIL_DEFAULTS.textColor) },
+        fields: { text: { type: 'text', label: 'Text (field tags allowed)' }, level: { type: 'select', label: 'Size', options: [{ label: 'Large', value: 1 }, { label: 'Medium', value: 2 }, { label: 'Small', value: 3 }] }, align: alignField, color: color('Color', EMAIL_DEFAULTS.textColor) },
         defaultProps: { text: 'Heading', level: 2, align: 'left' },
         render: leaf('Heading'),
       },
@@ -174,14 +174,14 @@ function emailConfig(kit: EmailKit, events: boolean): Config {
         fields: {
           html: { type: 'custom', label: 'Text', render: ({ value, onChange }: any) => <RichMessage label="Text" value={value} tags={kit.tags} onChange={onChange} /> },
           align: alignField,
-          color: color('Colour', EMAIL_DEFAULTS.textColor),
+          color: color('Color', EMAIL_DEFAULTS.textColor),
         },
         defaultProps: { html: '<p>Write something here.</p>', align: 'left' },
         render: leaf('Text'),
       },
       Button: {
         label: 'Button',
-        fields: { label: { type: 'text', label: 'Label' }, url: { type: 'text', label: 'Link (https://, mailto:, a /path, or a field tag)' }, align: alignField, background: color('Button colour', EMAIL_DEFAULTS.linkColor), color: color('Label colour', '#ffffff') },
+        fields: { label: { type: 'text', label: 'Label' }, url: { type: 'text', label: 'Link (https://, mailto:, a /path, or a field tag)' }, align: alignField, background: color('Button color', EMAIL_DEFAULTS.linkColor), color: color('Label color', '#ffffff') },
         defaultProps: { label: 'Open', url: '', align: 'left' },
         render: leaf('Button'),
       },
@@ -244,7 +244,7 @@ function emailConfig(kit: EmailKit, events: boolean): Config {
         defaultProps: { heading: 'Latest news', query: { count: 3 }, showImage: true, showExcerpt: true, linkLabel: 'Read more', empty: '' },
         render: (props: any) => <EntriesLeaf {...props} />,
       },
-      Divider: { label: 'Divider', fields: { color: color('Colour', '#e5e1dc') }, defaultProps: {}, render: leaf('Divider') },
+      Divider: { label: 'Divider', fields: { color: color('Color', '#e5e1dc') }, defaultProps: {}, render: leaf('Divider') },
       Spacer: { label: 'Spacer', fields: { height: { type: 'number', label: 'Height (px)', min: 4, max: 200 } }, defaultProps: { height: 24 }, render: leaf('Spacer') },
       Section: {
         label: 'Section',

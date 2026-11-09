@@ -95,7 +95,7 @@ a box says **Not published yet**, with **Show the problems**, **Publish anyway**
 **Preview** opens the page in a new tab, exactly as it will look once published. It includes everything
 in the editor, even changes that haven't saved yet.
 
-A coloured bar across the top of the preview says what you are looking at, for example **Preview of
+A colored bar across the top of the preview says what you are looking at, for example **Preview of
 unsaved changes: the live page is unchanged until you publish**, or **…: this page is not published**.
 Click **Back to the editor** in the bar to return (or just close the tab). Nobody else can see a preview,
 and search engines never list it.
@@ -152,7 +152,7 @@ saved, how it was saved (**Autosaved**, **Draft saved**, **Published**, **Unpubl
 and the page's title then.
 
 - **Checkpoints** are the versions saved with a button: **Save draft**, **Publish**, **Publish
-  changes**, **Unpublish** or **Save & apply**. They are marked **Checkpoint** and have a coloured line beside them.
+  changes**, **Unpublish** or **Save & apply**. They are marked **Checkpoint** and have a colored line beside them.
 - **Automatic saves** between them are kept as one version for each stretch of up to ten minutes of one
   person's editing, so the list doesn't fill up with a version every few seconds. When a stretch lasted a
   while, it says when the edits began, for example **(edits since 3:05 PM)**.

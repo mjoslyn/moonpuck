@@ -1,6 +1,6 @@
 // The Form, Subscribe and Newsletter blocks' Form style settings (`attrs.formStyle`, read by
 // src/render/forms/style.ts): the form's background, border and text; field background, text, border,
-// placeholder, focus colour, height, text size and border width; checkboxes; labels; button colours;
+// placeholder, focus color, height, text size and border width; checkboxes; labels; button colors;
 // field and button corners. Empty settings keep the defaults: white fields with black text, no box
 // round the form.
 import { Color, Group } from './panels';
