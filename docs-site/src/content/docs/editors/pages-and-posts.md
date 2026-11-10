@@ -1,6 +1,6 @@
 ---
 title: Pages and posts
-description: "Adding, finding, copying, deleting and organising your site's content, with categories, tags and other taxonomies."
+description: "Adding, finding, copying, deleting and organizing your site's content, with categories, tags and other taxonomies."
 sidebar:
   order: 1
 ---
@@ -90,8 +90,8 @@ To start from one of your templates or patterns, use **Make a page** in **Conten
 
 ## Page addresses
 
-Each page has an address, shown at the top of the editor beside its title (for example `/about-us/`;
-the home page shows `/`). It is kept in the **Slug** box in the page's settings, on the right of the
+Each page has an address, shown at the top of the editor beside its title (for example `/about-us/`,
+or `/` for the home page). It is kept in the **Slug** box in the page's settings, on the right of the
 editor.
 
 - **On a new page, the address follows the title** as you type it: "About us" gives `about-us`.
@@ -101,15 +101,15 @@ editor.
 - **Only small letters, numbers and hyphens.** Anything else you type in **Slug** becomes a hyphen, and
   capitals become small letters.
 - **Two pages can't share an address.** Some kinds of content share one set of addresses (on many
-  sites, pages and posts both live at `/<address>/`). If you give a page an address another one already
-  has, it isn't saved, and the top of the editor says why, for example **The address “events” is used by
+  sites, pages and posts both live at `/<address>/`). If you give a page an address that another page already
+  has, the editor doesn't save it. The top of the editor says why, for example **The address “events” is used by
   the page “Events”. Choose another.** Change the **Slug** and save again.
 
 ### Changing the address of a published page
 
 Change the **Slug** and publish the change (**Publish changes**). Until then the page stays at its old
-address. Once it is live, the old address keeps working and sends visitors to the new one: a redirect
-is added for you. Admins can see and change redirects under **Settings**, **Redirects** (see
+address. Once it is live, the old address keeps working and sends visitors to the new one. The site
+adds a redirect for you. Admins can see and change redirects under **Settings**, **Redirects** (see
 [Redirects and missing pages](/admins/redirects/)).
 
 ## Making a copy
@@ -120,11 +120,11 @@ row in the list, and at the top of the editor.
 
 The copy:
 
-- is titled like the original with "(copy)" at the end, and has its own address;
-- is a draft, so nobody sees it until you publish it;
+- is titled like the original with "(copy)" at the end, and has its own address
+- is a draft, so nobody sees it until you publish it
 - has the original's content, excerpt, featured image, template, tags, categories and other settings
-  (and an event's dates);
-- starts from the original's latest saved version, including changes that aren't published yet;
+  (and an event's dates)
+- starts from the original's latest saved version, including changes that aren't published yet
 - has no history: earlier versions stay with the original.
 
 If you click **Duplicate** in the editor while you have changes that aren't saved yet, a box warns you
@@ -140,7 +140,7 @@ A copy of an event doesn't sell tickets until you choose its ticket (see
 1. Tick the box beside each one in the list (or the box in the heading row for all of them). The number
    ticked shows beside the buttons, for example **3 selected**.
 2. Pick an action from **Bulk actions**.
-3. Click **Apply**. (It can't be clicked until something is ticked and an action is chosen.)
+3. Click **Apply**. (You can't click it until you tick something and choose an action.)
 
 A line at the top of the list then says what happened, and what was skipped and why.
 
@@ -159,23 +159,23 @@ In the **Trash** tab, the actions are **Restore (as drafts)** and **Delete perma
 
 **Publish** leaves some pages alone and names them in the message at the top:
 
-- a page with no title (give it a title first);
-- a page whose address another page already has (change its **Slug** first);
-- when your site checks accessibility before publishing (an admin turns this on), every page with a
-  page of its own: publish those from the editor, where the check runs first (see
+- a page with no title (give it a title first)
+- a page whose address another page already has (change its **Slug** first)
+- every item with a page of its own, when your site checks accessibility before publishing (an admin
+  turns this on). Publish those from the editor, where the check runs first (see
   [Accessibility](/editors/accessibility/#when-publishing-waits-for-the-check)).
 
 **Move to trash** skips the home page.
 
 :::caution
-**Publish** in the list only publishes drafts. It doesn't put the **Unpublished changes** of a page that
-is already published live: open the page and click **Publish changes** for that.
+**Publish** in the list only publishes drafts. It doesn't make the **Unpublished changes** of a published
+page live. For that, open the page and click **Publish changes**.
 :::
 
-Adding or removing a term changes published pages straight away, and also their unpublished changes
-for tags. The message says how many pages it changed, and how many already had it (or didn't have it).
-If someone has one of those pages open in the editor at the time, they are asked before their next save
-overwrites the change (see
+Adding or removing a term changes published pages straight away. For tags, it also changes their
+unpublished changes. The message says how many pages it changed, and how many already had the term (or
+didn't have it). If someone has one of those pages open in the editor at the time, the editor asks them
+before their next save overwrites the change (see
 [When two people edit the same page](/editors/saving-and-publishing/#when-two-people-edit-the-same-page)).
 
 ## Deleting
@@ -188,8 +188,8 @@ The page comes off your site but isn't gone. To bring it back, open the **Trash*
 ready.
 
 To remove something for good, open the **Trash** tab, tick it, choose **Delete permanently** and click
-**Apply**. A box asks you to confirm, because this can't be undone. Only things already in the trash can
-be deleted permanently.
+**Apply**. A box asks you to confirm, because this can't be undone. You can delete only things that are
+already in the trash.
 
 :::caution
 The home page can't be moved to the trash. To use a different home page, ask an admin to change
@@ -199,8 +199,8 @@ it under **Settings** (see [The home page](/admins/settings/#the-home-page)).
 ## Categories and tags
 
 Categories, tags and any other ways your site sorts content are called **taxonomies**. Each category
-or tag is a **term**. They group related content, so visitors can find everything on one subject:
-many sites show a page for each one, listing everything filed under it.
+or tag is a **term**. They group related content, so visitors can find everything on one subject.
+Many sites show a page for each term that lists everything filed under it.
 
 - **Categories** can sit under each other (Events, then Concerts under it).
 - **Tags** are a flat list of keywords, and every kind of content can have them.
@@ -213,8 +213,7 @@ taxonomy that kind of content uses.
 **Categories** (and other taxonomies like them) are a list of tick boxes, with terms that sit under
 others indented beneath them. Tick each one that applies. The ones ticked are listed above the boxes.
 When there are more than 12, a **Find** box above them (**Find categories**, for example) narrows
-the list as you type. If the taxonomy has
-no terms yet, it says **None yet: add them under Content > Taxonomies.**
+the list as you type. If the taxonomy has no terms yet, it says **None yet: add them under Content > Taxonomies.**
 
 **Tags** are a single box:
 
@@ -251,8 +250,8 @@ have pages) and how many entries use it (**Used on**, or **Not used**). At the e
   new one.
 - **Details**: opens a box for the term's description, picture and search settings (see below).
 - **View**: opens the term's page on your site, listing everything filed under it.
-- **Delete**: asks to confirm, then deletes the term. It is taken off every page that had it (the box
-  says how many), and the terms under it move up a level. Your pages themselves stay.
+- **Delete**: asks to confirm, then deletes the term. The site takes it off every page that had it (the
+  box says how many), and the terms under it move up a level. Your pages themselves stay.
 
 Two terms of one taxonomy can't have the same address: saving one says **Another term already uses the
 address "…"**.
@@ -264,8 +263,8 @@ example in a list of categories to filter by.
 
 Each term has a handle (six dots) to the left of its name. Drag it:
 
-- onto the top or bottom edge of another term, to put it just above or below that term;
-- onto the middle of another term, to put it underneath that one;
+- onto the top or bottom edge of another term, to put it just above or below that term
+- onto the middle of another term, to put it underneath that one
 - onto **Drop here to move to the top level**, which appears above the list while you drag.
 
 A line or an outline shows where it will land. A term can't go under itself or under one of its own
@@ -279,8 +278,8 @@ click **Move**. Press Escape to close the menu.
 
 Click **Details** on a term's row. The box has:
 
-- **Description**: a few sentences about the term, shown on its page and used as its description in
-  search results when its SEO has none.
+- **Description**: a few sentences about the term. Its page shows them, and search results use them as
+  its description when its SEO has none.
 - **Featured image**: a picture shown on its page and when the page is shared.
 - **Fields**: any extra details your site keeps for these terms.
 - **SEO**: how its page appears in Google, as for a page (see
@@ -288,7 +287,7 @@ Click **Details** on a term's row. The box has:
 
 **Compose** at the top fills these in for you from the term's name and what is filed under it. Type
 anything Claude should know in the box above (it is optional), then click **Compose**. Check what it
-wrote. Nothing is saved until you click **Save**; **Cancel** closes the box without saving.
+wrote. Nothing is saved until you click **Save**. **Cancel** closes the box without saving.
 
 ### The template a term's page uses
 
@@ -306,9 +305,9 @@ Admins can add taxonomies of their own and choose which kinds of content use the
 When an admin has turned on **Featured** for a kind of content ([see how](/admins/content-types/#featured-content)),
 each one has a **Featured** switch in its settings, under **Details**. Then:
 
-- in the list of that content, a star (★) marks the featured ones;
-- tick **Featured only** and click **Filter** to see just those;
-- tick several and choose **Mark featured** or **Unmark featured** from **Bulk actions**;
+- in the list of that content, a star (★) marks the featured ones
+- tick **Featured only** and click **Filter** to see just those
+- tick several and choose **Mark featured** or **Unmark featured** from **Bulk actions**
 - a Collection block can show featured content only (see
   [Using the page editor](/editors/page-editor/#every-block)).
 
@@ -318,7 +317,7 @@ unpublished changes too.
 ## Members-only pages
 
 When your site has members (an admin turns this on, see [Turning features on](/admins/features/#members)),
-a page's settings have a **Members** section. Turn on **Members only** and, if your site has several
-levels, tick the levels that may see it (none ticked means every member). Everyone else sees its title,
-excerpt and featured image with a sign-in link, and it is left out of lists and search for them. Like
+a page's settings have a **Members** section. Turn on **Members only**. If your site has several levels,
+tick the levels that may see it (none ticked means every member). Everyone else sees its title, excerpt
+and featured image with a sign-in link, and lists and search leave it out for them. Like
 other settings, it takes effect when you publish.

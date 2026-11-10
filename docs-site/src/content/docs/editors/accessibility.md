@@ -35,16 +35,16 @@ Each item in the list has a colored label:
   checked](#marking-something-as-checked)).
 
 Next to the label is the kind of check (**Image**, **Headings**, **Links**, **Buttons**, **Embeds** or
-**Contrast**), then the message, and in small grey type the address, picture or words it is about, so
+**Contrast**), then the message, and in small gray type the address, picture or words it is about, so
 you can find it.
 
 Problems are listed before warnings. Under each one:
 
 - **Select the block** scrolls to the block concerned and selects it, so its settings open on the right.
   Fix it there and the item goes from the list.
-- **Show (in the template)** appears instead when the problem isn't in one of your page's blocks: it is
+- **Show (in the template)** appears instead when the problem isn't in one of your page's blocks. It is
   in the header, footer or another part of the template, or it is about the page as a whole. It scrolls
-  to the spot. Template parts are changed in the template, not on this page; if you don't edit
+  to the spot. You change template parts in the template, not on this page. If you don't edit
   templates, tell whoever looks after them.
 
 :::tip
@@ -69,22 +69,22 @@ the page, so try each size.
 | **Link goes nowhere (#).** (Warning) | A link or button still has the placeholder address `#`. A new **Button** starts with it. | Set the button's **Link** with **Find** (see [Links](/editors/page-editor/#links)), or delete the button. |
 | **Button has no text or label.** (Problem) | A button (in a form, a slider, a menu) has no words or label. | Give the button words. If it comes from your site's design, tell whoever looks after the site. |
 | **Embedded frame has no title.** (Problem) | Something embedded from another site (a video, a map, a booking widget) has no title, so a screen reader can't say what it is. | In the **Embed** block's **Embed HTML**, add `title="..."` to the `<iframe>`, for example `title="Map of the town centre"`. YouTube and Vimeo links added to a **Video gallery** get a title by themselves. |
-| **Text contrast 3.12:1 (needs 4.5:1): #888888 on #ffffff.** (Problem) | The text color is too close to the color behind it. The numbers say how far apart they are and how far apart they need to be. Normal text needs 4.5:1; large text (about 24 pixels, or 19 pixels in bold) needs 3:1. | Pick a darker text color on a light background, or a lighter one on a dark background. Changing the background works too. Each block's color pair is listed once. |
+| **Text contrast 3.12:1 (needs 4.5:1): #888888 on #ffffff.** (Problem) | The text color is too close to the color behind it. The numbers say how far apart they are and how far apart they need to be. Normal text needs 4.5:1. Large text (about 24 pixels, or 19 pixels in bold) needs 3:1. | Pick a darker text color on a light background, or a lighter one on a dark background. Changing the background works too. Each block's color pair is listed once. |
 | **Text over an image: its contrast can't be measured. Check by eye that it stays readable on every part of the image (a darker overlay or a text shadow helps), then mark it as checked.** (Problem) | Text sits on a picture (a **Hero**, a **Cover**, a gallery caption over the picture). The check can't tell how readable it is, because the picture's colors vary. | See [Text over images](#text-over-images). |
 
 ## Text over images
 
-Text over a photo is always listed as a problem until someone has looked at it, because no computer can
-measure it reliably: white text may be fine over a dark sky and unreadable over a white wall in the same
+The check always lists text over a photo as a problem until someone has looked at it. No computer can
+measure it reliably. White text may be fine over a dark sky and unreadable over a white wall in the same
 picture.
 
-1. Look at the text on the page at each screen size (desktop, tablet and phone), because the picture is
-   cropped differently on each.
+1. Look at the text on the page at each screen size (desktop, tablet and phone), because each size crops
+   the picture differently.
 2. If any of it is hard to read, make the picture darker behind it:
    - in a **Hero**, choose a stronger **Overlay (keeps the text readable)** (**Light**, **Medium** or
-     **Strong**), and set **Darkest at** to where the text sits;
+     **Strong**), and set **Darkest at** to where the text sits
    - in a **Cover**, raise the **Overlay opacity**, or set **Overlay** to **From bottom** or **From left**
-     to darken just where the text is;
+     to darken just where the text is
    - choose a different focal point so a busier part of the picture isn't behind the text (see [Focal
      points for one block](/editors/images-and-files/#focal-points-for-one-block)).
 3. Once it is easy to read everywhere, [mark it as checked](#marking-something-as-checked).
@@ -99,7 +99,7 @@ counting.
 2. Add a **Note (optional)**, for example "the overlay keeps it readable".
 3. Click **Mark as checked** again (or press Enter). **Cancel** leaves it as it was.
 
-The mark is saved straight away, on its own: the panel says **Saving…**, then **Saved** (or **Not
+The mark saves straight away, on its own. The panel says **Saving…**, then **Saved** (or **Not
 saved:** and the reason). It doesn't count as an unsaved change to the page, and your other changes
 stay unsaved until you save them as usual.
 
@@ -112,7 +112,7 @@ they need fixing.
 ### When a mark lapses
 
 A mark is about the item as it was when someone looked. If the text, the address or the picture it was
-about changes, the mark no longer applies: the item comes back on the list with **Marked as checked
+about changes, the mark no longer applies. The item comes back on the list with **Marked as checked
 before, but it has changed since: check it again.** Look at it again and mark it once more if it is
 still fine.
 
@@ -132,8 +132,8 @@ image](/editors/images-and-files/#pictures).
 - **Compose** in **Media** can write a first draft for you: read it and correct it, especially names of
   people and places.
 
-The **Hero** block's picture is treated as decoration, so anything visitors need to know belongs in the
-hero's title or text.
+The site treats the **Hero** block's picture as decoration, so anything visitors need to know belongs in
+the hero's title or text.
 
 ## Headings, links and colors
 
@@ -156,14 +156,15 @@ see where you are.
 
 ## When publishing waits for the check
 
-An admin can turn on **Check accessibility before publishing** (in **Settings**, **Accessibility**; see
+An admin can turn on **Check accessibility before publishing** (in **Settings**, **Accessibility**, see
 [Checking accessibility before publishing](/admins/features/#checking-accessibility-before-publishing)).
 The A11y panel then says **This site checks pages before publishing: fix each problem or mark it as
 checked, or publish anyway with a reason, kept in Revisions.**
 
 When you click **Publish** (or **Publish changes**), the editor shows **Checking accessibility…** and
 runs the check afresh. If nothing is left open (every problem and warning fixed or marked as checked),
-the page is published as usual. Otherwise it isn't published yet and a box appears:
+the editor publishes the page as usual. If something is left open, the editor doesn't publish the page
+yet, and a box appears:
 
 ![Publishing held by the accessibility check](../../../assets/guide/held.png)
 
@@ -185,9 +186,9 @@ and offers only **Publish anyway** and **Cancel**. Try reloading the editor firs
 A few things to know:
 
 - Warnings hold the publish as well as problems, so mark the ones you have judged to be fine.
-- The check applies to pages, posts and other entries with a page of their own. Entries that are data
-  only (such as venues) aren't held, and nor are templates, parts and patterns when you click **Save &
-  apply**.
+- The check applies to pages, posts and other entries with a page of their own. The check doesn't hold
+  entries that are data only (such as venues). It also doesn't hold templates, parts and patterns when
+  you click **Save & apply**.
 - Saving a draft is never held: only publishing is.
 
 ### Publishing from the content list

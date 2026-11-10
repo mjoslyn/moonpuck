@@ -10,8 +10,8 @@ If your site lists events, they appear under **Content**, **Events**, and on you
 **Tickets**.
 
 :::note
-If you don't see **Events** under **Content**, events are turned off. Nothing is lost while they are off;
-an admin turns them on under **Settings**, **Events** (see [Turning features on](/admins/features/#events)).
+If you don't see **Events** under **Content**, events are turned off. Nothing is lost while they are off.
+An admin turns them on under **Settings**, **Events** (see [Turning features on](/admins/features/#events)).
 While events are off, the site shows no events, calendar or ticket sales.
 :::
 
@@ -40,13 +40,13 @@ page has (**Title**, **Slug**, **Template**, **Excerpt**, **Featured image**, **
 
 | Setting | What it does |
 | --- | --- |
-| **Event category** | Tick the categories the event belongs to. They show as a label on the event's page and on the calendar, and each category has its own page listing its events. New categories are added under **Content**, **Taxonomies**. |
+| **Event category** | Tick the categories the event belongs to. They show as a label on the event's page and on the calendar, and each category has its own page listing its events. Add new categories under **Content**, **Taxonomies**. |
 | **Starts** and **Ends** | The date and time the event begins and finishes. An event with no date yet shows "To be announced". |
 | **Time zone** | Leave it empty to use the site's time zone. Choose another only for an event held somewhere else: its times are then in that zone, and visitors see the zone's short name beside them. Changing it keeps the clock times you typed (7:00 pm stays 7:00 pm, now in the new zone). |
 | **All-day event** | Turn on for an event with no set times. The site then says **All day** instead of a time. |
 | **Repeats** | For an event that happens more than once. See [Events that repeat](#events-that-repeat). |
 | **Venue** | Where it happens (under **Details**). |
-| **Cost** | The price as you want it written, for example "$25, kids free". It is shown in the event's details, unless the event sells tickets, when the ticket prices are shown instead. |
+| **Cost** | The price as you want it written, for example "$25, kids free". The event's details show it. If the event sells tickets, they show the ticket prices instead. |
 | **Event website** | A link to another website about the event. Click **Find** beside it to link to a page of your own site instead. |
 | **Schedule** | A programme, day by day. See [A schedule](#a-schedule). |
 | **Featured** | Only when an admin has turned on Featured for events ([see how](/admins/content-types/#featured-content)). Featured events are marked **Featured** on the calendar, and lists can show featured events only. |
@@ -116,7 +116,7 @@ How repeating events work on the site:
 
 ## Venues
 
-Venues are kept once and reused by every event held there. Find them under **Content**, **Venues**, or
+You add a venue once, and every event held there uses it. Find them under **Content**, **Venues**, or
 click **Edit** beside an event's venue.
 
 A venue's page has:
@@ -133,8 +133,8 @@ A venue's page has:
 
 Click **Save** when done. On the right, **Events at this venue** lists the events held there.
 
-Correct an address or phone number here, and every event at that venue updates. On an event's page the
-venue is shown with its address, its phone number (which phones can call with a tap) and a **Get
+Correct an address or phone number here, and every event at that venue updates. An event's page shows
+the venue with its address, its phone number (which phones can call with a tap) and a **Get
 directions** link to a map. Venues have no page of their own.
 
 To add a venue without an event, click **Content**, **Venues**, then **New Venue**.
@@ -170,8 +170,8 @@ These blocks are offered in the page editor while events are on. See
 | Block | Where to find it | What it does |
 | --- | --- | --- |
 | **Events calendar** | Lists and listings | Upcoming events on any page, such as the home page, as a month calendar or a list. Visitors switch between **Calendar** and **List** and move between months without leaving the page, and **All events** links to the full calendar. Settings: **Title** (none if empty), **Shows first** (**Calendar** or **List**), **Events in the list** (6 if empty), **Categories (any of)** and **Tagged with (any of)** to show only some events. |
-| **Events page (list, month, day)** | Lists and listings | The full calendar with its search, views and subscribe links. It belongs in the template of the calendar pages at `/events/`; it has no settings. |
-| **Event details** | Site | The event's page in one block: its picture, title and categories, the description, and beside it the date and time, venue, tickets or cost, website and category, then the schedule. Used in the event template; offered only on events and in templates. |
+| **Events page (list, month, day)** | Lists and listings | The full calendar with its search, views and subscribe links. It belongs in the template of the calendar pages at `/events/`. It has no settings. |
+| **Event details** | Site | The event's page in one block: its picture, title and categories, the description, and beside it the date and time, venue, tickets or cost, website and category, then the schedule. The event template uses it. It is offered only on events and in templates. |
 | **Event schedule** | Site | The event's **Schedule** on its own, for a template that places it somewhere else. |
 | **Event date** | Card fields | An event's date in a card of a **Collection** (a list of events). **Date format (PHP)** sets how it looks: `M j, Y` (the default) gives "Nov 14, 2026", `l j F` gives "Saturday 14 November". An event over several days shows both dates. |
 | **Tickets** | Site | The booking form for a ticket. See [The Tickets block](#the-tickets-block). |
@@ -185,7 +185,7 @@ Tickets work the same way for paid tickets and for free sign-ups. A **ticket** i
 buyers are asked. An event sells the ticket it is attached to. One ticket can be sold at several events
 from one pool, like a festival pass.
 
-Free tickets work straight away. Paid tickets need card payments set up for your site by an admin (see
+Free tickets work straight away. Paid tickets need an admin to set up card payments for your site (see
 [Turning features on](/admins/features/#tickets) and [Connections](/admins/connections/)).
 
 ### Making a ticket
@@ -208,20 +208,20 @@ If another ticket already has that name, a number is added (for example "Christm
 
 ### Ticket types and settings
 
-A ticket's **Ticket types and settings** tab has its **Name** (for you, and for emails and orders when it
-sells at several events; with one event they use the event's name), the events selling it, and the
-setup. Nothing is kept until you press **Save tickets**; the line beside it says **Unsaved changes** until
-then, and the browser asks before you leave with changes.
+A ticket's **Ticket types and settings** tab has its **Name**, the events selling it, and the setup. The
+name is for you, and for emails and orders when the ticket sells at several events. With one event, they
+use the event's name. Nothing is kept until you press **Save tickets**. Until then, the line beside it
+says **Unsaved changes**, and the browser asks before you leave with changes.
 
 **Ticket types.** Press **Add ticket type** for each kind of ticket. The first is called "General
-admission" to begin with. Click a type to open it; **Up**, **Down** and **Remove** put types in order or
+admission" to begin with. Click a type to open it. **Up**, **Down** and **Remove** put types in order or
 take one away. Each type has:
 
 | Setting | What it does |
 | --- | --- |
 | **Name** | What buyers choose, such as "Adult", "Student" or "Free entry". |
 | **Description** | A line under the name, such as "With a student ID". |
-| **Price (empty or 0: free)** | Type it as 25 or 12.50. An order has to come to at least 0.50 to be paid online; a smaller one is refused, and the box warns you. |
+| **Price (empty or 0: free)** | Type it as 25 or 12.50. An order has to come to at least 0.50 to be paid online. The site refuses a smaller one, and the box warns you. |
 | **How many of this type** | Leave **Unlimited** on, or turn it off and enter the **Number available**. 0 means none left: the type shows as sold out. |
 | **Most in one order** | The most of this type one person can buy at once. |
 | **On sale from (empty: now)** | When this type goes on sale. |
@@ -239,7 +239,7 @@ times are in the event's time zone.
 | **Heading** | The heading over the booking form ("Tickets" if empty). |
 | **Capacity: tickets of all types together** | The most tickets of all types together, such as the size of the room. Leave **Unlimited** on, or turn it off and enter the **Number available** (0: every type shows as sold out). For one repeating event, this is for each date. |
 | **Most tickets in one order (default 10)** | The most tickets of all types in one order. |
-| **Waitlist when sold out** | **Off**; **On: email people as tickets free up** (the site emails the people waiting, in order, as tickets come back on sale); or **On: notify people from the attendee list** (you choose when, see [The waitlist](#the-waitlist)). |
+| **Waitlist when sold out** | **Off**, **On: email people as tickets free up** (the site emails the people waiting, in order, as tickets come back on sale), or **On: notify people from the attendee list** (you choose when, see [The waitlist](#the-waitlist)). |
 
 **Buyers are asked** their name and email always, and:
 
@@ -252,7 +252,7 @@ times are in the event's time zone.
   - **Help text** (optional): shown under it.
   - **Required**.
 
-**Emails**: buyers get the site's ticket emails; **Give this ticket its own** opens the **Emails** tab
+**Emails**: buyers get the site's ticket emails. **Give this ticket its own** opens the **Emails** tab
 (see [The ticket's emails](#the-tickets-emails)).
 
 **Delete ticket**, at the bottom, is there only while a ticket has no orders. Its events stop selling
@@ -263,16 +263,16 @@ tickets, and it can't be undone.
 On the ticket's **Ticket types and settings** tab, under **Events selling this ticket**:
 
 - **To attach an event**: choose it in **Choose an event** and press **Attach**. If it already sells
-  another ticket, the list says so ("sells ..."), and attaching it here stops it selling the other one;
-  orders already made stay with that ticket.
+  another ticket, the list says so ("sells ..."). Attaching it here stops it selling the other one.
+  Orders already made stay with that ticket.
 - **To stop an event selling the ticket**: press **Detach** beside it. Its orders stay with the ticket.
 
 Or, from the event: choose the ticket under **Tickets**, **Sells** in the event's settings, or **No
 tickets** to stop selling. This is saved at once, without publishing the event. **Manage ticket** opens
 the ticket's setup in a new tab.
 
-The booking form then appears on the event's page once the event is published, under its description,
-whatever template the event uses. To put it somewhere else on the page, add a **Tickets** block there.
+Once the event is published, the booking form appears on its page under its description, whatever
+template the event uses. To put it somewhere else on the page, add a **Tickets** block there.
 
 :::note
 **Duplicate** makes a copy of an event that sells no tickets. Attach the copy to a ticket if it should.
@@ -300,15 +300,15 @@ To sell a ticket on any other page (a home page, or a "What's on" page), or in a
 event's page:
 
 1. Add a **Tickets** block (under **Site** in **Blocks**).
-2. Under **Ticket**, choose the ticket. Each is listed with how many events sell it. Left as **The
-   page's event's ticket**, the block shows the ticket of the event whose page it is on (in an event
+2. Under **Ticket**, choose the ticket. Each is listed with how many events sell it. If you leave it as
+   **The page's event's ticket**, the block shows the ticket of the event whose page it is on (in an event
    template, each event's own).
 3. For a ticket of one repeating event, **Date (a ticket for one recurring event; empty: its next)** picks
    the date.
 4. **Heading** replaces the heading over the form, if you want another.
 
 **Manage ticket** opens the ticket's setup in a new tab. On another page, the block shows the event's name
-and date over the form; for a ticket sold at several events, it lists them under the ticket's name. A page
+and date over the form. For a ticket sold at several events, it lists them under the ticket's name. A page
 can have several Tickets blocks.
 
 In the editor, a block whose ticket doesn't sell yet shows sample tickets and a note saying why (for
@@ -340,8 +340,8 @@ The button says **Register** when everything chosen is free, and **Continue to p
    **order code** to show at the door, and the confirmation email goes out.
 3. **Paid tickets**: the buyer goes to a secure payment page (Stripe or Square). Their tickets are held
    while they pay (for the time an admin sets, 30 minutes unless changed). When they come back, the page
-   says "Confirming your payment…", then shows the order code; the confirmation email goes out once the
-   payment is through. If they never come back, the payment is still picked up and confirmed.
+   says "Confirming your payment…", then shows the order code. The confirmation email goes out once the
+   payment is through. If they never come back, the site still picks up the payment and confirms it.
 4. If they cancel the payment, or don't pay in time, the tickets go back on sale.
 
 If something stops an order, the form shows why:
@@ -350,7 +350,7 @@ If something stops an order, the form shows why:
 | --- | --- |
 | Sorry, there are not enough tickets left for that order. Please choose fewer. | Someone else took the last ones. |
 | Please check your order: choose at least one ticket and fill in the required fields. | Something is missing. |
-| You have tickets set aside for this event, or several orders started, that are not paid for yet. ... | One person started too many unpaid orders; they can finish one, or try again in an hour. |
+| You have tickets set aside for this event, or several orders started, that are not paid for yet. ... | One person started too many unpaid orders. They can finish one, or try again in an hour. |
 | That order comes to less than the smallest amount we can take online. ... | The total is under 0.50. |
 | Online payment is not available right now. Please contact us to buy tickets. | Card payments aren't set up: ask an admin. |
 | Your payment was cancelled and nothing was charged. You can try again below. | The buyer cancelled on the payment page. |
@@ -381,7 +381,7 @@ their address and answers, when they ordered and paid, the payment, which emails
 | **Email** (their first name) | Writes to them from your own email program. |
 | **Resend confirmation** | Sends the confirmation email again, if they lost it. |
 | **Cancel order** | For an order awaiting payment or expired, and for free orders. Its tickets go back on sale. A paid order is refunded instead. |
-| **Refund** | Admins only: type the amount (all of it to begin with) and press **Refund**. The money goes back to their card. Refunding all of it puts the tickets back on sale; this can't be undone. Editors see "Refunds are made by admins." |
+| **Refund** | Admins only: type the amount (all of it to begin with) and press **Refund**. The money goes back to their card. Refunding all of it puts the tickets back on sale. This can't be undone. Editors see "Refunds are made by admins." |
 
 Along the top:
 
@@ -401,7 +401,7 @@ them in order, with how many tickets each **Wants**, when they **Joined** and th
 - **Notify selected** emails the people you tick.
 - **Remove** takes someone off the list.
 
-Notified people are told tickets are available; whoever buys first gets them. With **On: email people as
+Notified people are told tickets are available. Whoever buys first gets them. With **On: email people as
 tickets free up**, the site does this itself after a cancellation or refund, and once an hour.
 
 ### The ticket's emails
@@ -432,7 +432,7 @@ For each one:
 title**, **Event date**, **Venue and address**, **Tickets bought**, **Order code** and **Link to the
 order (waitlist: to the tickets)**.
 
-Beside **Edit email**, **Designed here** means this ticket sends its own; **Not changed yet** means it uses
+Beside **Edit email**, **Designed here** means this ticket sends its own. **Not changed yet** means it uses
 the site's. **Reset to the default** goes back to the site's. For the reminder and follow-up, **Don't send
 it for this event** turns them off for this ticket only.
 

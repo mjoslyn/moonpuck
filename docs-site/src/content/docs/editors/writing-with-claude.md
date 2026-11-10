@@ -14,7 +14,7 @@ Nothing goes on your site until you publish it (or, for a template, part or patt
 **Save & apply**).
 
 :::note
-Compose needs Claude to be connected, which an admin does under Settings (see
+Compose needs Claude to be connected. An admin connects it under Settings (see
 [Connections](/admins/connections/)). Until then, Compose screens say **Claude isn't connected yet**.
 :::
 
@@ -36,8 +36,8 @@ For a page or post, Compose opens and sends your request at once. To add documen
 first, click **Add documents, images or links first** instead: Compose opens with your words in its
 box, ready for you to add material and click **Send**.
 
-A form, campaign, template, part or pattern is made straight away and opens in its own editor, where
-Claude writes it (see [Forms, emails, templates and patterns](#forms-emails-templates-and-patterns)).
+Compose makes a form, campaign, template, part or pattern straight away. It opens in its own editor,
+where Claude writes it (see [Forms, emails, templates and patterns](#forms-emails-templates-and-patterns)).
 
 Below the box, **Recently edited** lists what you and others worked on lately, and **Continue with
 Compose** lists recent conversations with Claude, with the last thing asked. Click one to pick it up.
@@ -84,26 +84,26 @@ say, without changing the page.
 Under the box:
 
 - **Files**: documents and pictures from your computer: PDF, Word (.docx), text (.txt), Markdown, web
-  pages saved as HTML, CSV, images, and videos (MP4, WebM or MOV). Older Word files (.doc) aren't
-  read: save them as .docx or PDF first.
+  pages saved as HTML, CSV, images, and videos (MP4, WebM or MOV). Claude can't read older Word
+  files (.doc). Save them as .docx or PDF first.
 - **Media library**: pictures and videos already on the site. You can pick several at once.
 - **Link**: type or paste a web address and click **Add** (or press Enter). YouTube and Vimeo links
-  become videos on the page; other links are read by Claude and can be linked to.
+  become videos on the page. Claude reads other links and can link to them.
 
 You can also drag files or links onto the panel, or paste a picture straight into the box.
 
 What you've added shows as small tags above the box, marked **image**, **video**, **doc** or **link**.
 Click **×** on one to take it off before sending. Pictures and videos you upload from your computer
-are added to the media library, so they're there for later too.
+go into the media library, so they're there for later too.
 
 Good to know about materials:
 
 - Each message takes up to 10 documents, 40 pictures or videos and 20 links, and 20,000 characters of
-  text. Anything past that is left out, and the conversation says how many were left out, so you can
+  text. Compose leaves out anything past that. The conversation says how many it left out, so you can
   send them in another message.
-- A document over 25 MB is skipped, and the conversation says so.
-- A very long Word or text document is read only up to a point (about 60,000 characters), and a web
-  page's text up to about 12,000 characters.
+- Compose skips a document over 25 MB, and the conversation says so.
+- Claude reads only the first part of a very long Word or text document (about 60,000 characters).
+  Of a web page, it reads up to about 12,000 characters of text.
 - Claude reads a link as any visitor would. If it can't (the page is private, gone or blocks it), the
   conversation says **Could not read** with the address, and the link is still there for Claude to
   link to.
@@ -118,8 +118,8 @@ again, or **Close**, to hide it). Type what you'd like changed and click **Send*
 - "Add a section with the opening hours from the flyer."
 - "Use the second photo at the top instead."
 
-Claude changes the sections it built and leaves the rest of the page alone. When a change is applied
-you'll see **Updated the page:** with the page's title and how many sections it has.
+Claude changes the sections it built and leaves the rest of the page alone. When Claude applies a
+change, you'll see **Updated the page:** with the page's title and how many sections it has.
 
 If the page already had content and you open Compose for the first time, Claude adds its sections
 after what is there. Tick **Replace what's on the page** before your first message to have Claude's
@@ -133,7 +133,7 @@ page replace everything instead.
 3. Say what should change, for example "Warmer, half as long", and click **Send**.
 
 When it's done, the conversation says **Changed the selected block**. Click **×** on the **Editing**
-tag to send a request about the whole page instead; **Edit the selected ... instead** brings the tag
+tag to send a request about the whole page instead. **Edit the selected ... instead** brings the tag
 back.
 
 ### Your own edits
@@ -147,13 +147,13 @@ back.
 ### Keeping the panel open
 
 Click **Pin** at the top of the panel to keep it open every time you open the editor (it then reads
-**Pinned**; click again to unpin). This is remembered in your browser.
+**Pinned**. Click it again to unpin.) Your browser remembers this.
 
 ### Starting over
 
 Each page keeps its conversation, so you can come back to it another day and carry on. To start
 afresh, click **New conversation** at the top of the panel. Claude forgets the earlier messages and
-materials; the page itself stays as it is.
+materials. The page itself stays as it is.
 
 ## Forms, emails, templates and patterns
 
@@ -169,13 +169,13 @@ pages, with your latest ones of that kind listed beside it:
    emails**, and under **Confirmation as** choose **A message** or **A thank-you page (a draft)**.
 4. Click **Send** (or press Enter).
 
-It is made, opens where you edit it, and Claude writes it straight away:
+Compose makes it and opens it where you edit it. Then Claude writes it straight away:
 
 - **A form** opens in the form builder with its questions, thank-you message or page and emails
   filled in. Check them and click **Save**. See [Forms](/editors/forms/#having-claude-write-it).
 - **A campaign** opens as a draft with its name, subject, preview line and email written in your
-  site's email style; Claude can add your latest posts or upcoming events. Choose its lists, check it
-  and **Save**: nothing is sent until someone sends it. A campaign you're already working on has its
+  site's email style. Claude can add your latest posts or upcoming events. Choose its lists, check it
+  and **Save**. Nothing goes out until someone sends it. A campaign you're already working on has its
   own **Compose** button at the top of its editor. It replaces the email's blocks, but keeps its look
   and any plain text of its own.
 - **A template, part or pattern** opens in the editor with the Compose panel beside it, and Claude
@@ -203,7 +203,7 @@ they're writing while they work, and nothing is saved until you save as usual:
 
 ## How long it takes, and what you might see
 
-A page usually takes a minute or two; a big page from long documents can take longer. The small
+A page usually takes a minute or two. A big page from long documents can take longer. The small
 Compose buttons and the form and campaign writers take up to a minute. Keep the window open until
 Claude finishes.
 
@@ -222,8 +222,8 @@ Messages you might see:
 
 ## What Claude won't do
 
-- **Make things up on purpose.** Claude is told to use only facts from your material and the
-  conversation, and never to invent prices, dates, phone numbers, addresses, names or quotes. It can
+- **Make things up on purpose.** Claude's instructions say to use only facts from your material and
+  the conversation, and never to invent prices, dates, phone numbers, addresses, names or quotes. It can
   still get things wrong, so check.
 - **Add code.** Claude can't put HTML, scripts or embedded code on your pages. When it changes a
   block, its text is kept to simple formatting (bold, italics and links).

@@ -21,7 +21,7 @@ have a guide of their own for site-wide settings: the [Admin guide](/admins/).
 ![The sign-in screen](../../../assets/guide/login.png)
 
 You arrive on the home screen, or on the admin screen you were trying to open. You stay signed in on
-that browser while you keep using it; after seven days away, you are asked to sign in again.
+that browser while you keep using it. After seven days away, the site asks you to sign in again.
 
 If signing in doesn't work, the screen says why:
 
@@ -42,12 +42,12 @@ If signing in doesn't work, the screen says why:
 5. Click **Save password**. You are signed in.
 
 The link works once and only for an hour. If it has run out, the page says "This link has expired or was
-already used."; click **Send a new one**. If no email comes, check your spam folder; you can ask for a
+already used." Click **Send a new one**. If no email comes, check your spam folder. You can ask for a
 link up to three times an hour. Setting a new password signs you out on your other devices.
 
 ### New here?
 
-Someone at your organisation sends you an invitation by email:
+Someone at your organization sends you an invitation by email:
 
 1. Click the link in the email.
 2. On **Set your password**, choose a password (at least 10 characters), type it again under **Repeat
@@ -55,7 +55,7 @@ Someone at your organisation sends you an invitation by email:
 3. You are signed in and arrive on the home screen.
 
 The invitation lasts a week. If it has run out, was used already, or a newer one was sent, the page says
-so; ask an admin to send a new one (see [People and access](/admins/people/)).
+so. Ask an admin to send a new one (see [People and access](/admins/people/)).
 
 ### Signing out
 
@@ -75,7 +75,7 @@ way to have Claude start something for you:
 4. Click the button (it says **Compose page**, **Compose form** and so on), or press Ctrl+Enter (Cmd+Enter
    on a Mac).
 
-Claude writes it in your site's style. A page or post opens in Compose, which makes a draft; a form,
+Claude writes it in your site's style. A page or post opens in Compose, which makes a draft. A form,
 campaign, template, part or pattern opens in its own editor, where you check it and save. Nothing goes
 live until you publish it. To bring a flyer, photos or a link along, click **Add documents, images or
 links first** instead. See [Writing with Claude](/editors/writing-with-claude/).
@@ -103,12 +103,12 @@ The bar across the top of every admin screen takes you to each part of the site:
 | Menu item | What is in it |
 | --- | --- |
 | The site's name | The home screen. |
-| **Content** ▾ | A list for each kind of content your site has, such as **Pages**, **Posts**, **Events** and **Venues**; **Taxonomies** (categories, tags and the like); and, below a line, **Templates**, the shared layouts every page uses, with the header, footer and patterns. See [Pages and posts](/editors/pages-and-posts/). |
-| **Compose** ▾ | Have Claude make something new: each kind of content with a page; below a line, **Form** and **Campaign** (with mailing lists); below another, **Template**, **Template part** and **Pattern**. See [Writing with Claude](/editors/writing-with-claude/). |
+| **Content** ▾ | A list for each kind of content your site has, such as **Pages**, **Posts**, **Events** and **Venues**. Also **Taxonomies** (categories, tags and the like). Below a line, **Templates**: the shared layouts every page uses, with the header, footer and patterns. See [Pages and posts](/editors/pages-and-posts/). |
+| **Compose** ▾ | Have Claude make something new: each kind of content with a page. Below a line, **Form** and **Campaign** (with mailing lists). Below another, **Template**, **Template part** and **Pattern**. See [Writing with Claude](/editors/writing-with-claude/). |
 | **Media** | Your photos, images, videos and documents. See [Images and files](/editors/images-and-files/). |
 | **Stats** | How many people visit, and what they read. See [Stats](/editors/stats/). |
 | **Forms** ▾ | **Forms** (contact forms, sign-up forms and the like) and **Submissions** (what people sent through them). See [Forms](/editors/forms/). |
-| **People** ▾ | **Mailing Lists** and **Tickets**, each only when your site uses it; for admins also **Users** and **Members**. With only one of these, it shows as that link instead of a menu; with none, it isn't there. |
+| **People** ▾ | **Mailing Lists** and **Tickets**, each only when your site uses it. Admins also see **Users** and **Members**. With only one of these, it shows as that link instead of a menu. With none, it isn't there. |
 | **Shop** ▾ | **Orders**, **Discounts**, **Stock** and **Stats**, only when your site has a shop. See [The shop](/editors/shop/). |
 | ⚙ (the gear) | **Settings**: site-wide settings, such as the menu. Admins only. |
 | **?** | This guide, in a new tab. |
@@ -117,7 +117,7 @@ The bar across the top of every admin screen takes you to each part of the site:
 
 Click **Content**, **Compose**, **Forms**, **People** or **Shop** to open its menu, then click the
 screen you want.
-Only one menu is open at a time; click anywhere else or press Escape to close it. The menu you are in is
+Only one menu is open at a time. To close it, click anywhere else or press Escape. The menu you are in is
 highlighted.
 
 **On a phone or a narrow window**, the menus are behind the ☰ button at the top right. It lists every
@@ -125,8 +125,11 @@ screen, with each menu's name as a heading, then **Settings** (admins) and **Vie
 name is left out beside your initial.
 
 **On your website**, while you are signed in, a dark editor bar appears across the top of the site's
-pages: **Dashboard** goes to the home screen, **Edit page** opens the page you are looking at in the
-editor (admins also get **Edit template**), and **Sign out** signs you out.
+pages:
+
+- **Dashboard** goes to the home screen.
+- **Edit page** opens the page you are looking at in the editor (admins also get **Edit template**).
+- **Sign out** signs you out.
 
 ## Editors and admins
 
@@ -142,7 +145,7 @@ If you can't see something this guide mentions, it is probably for admins (see t
 
 ## What's in this guide
 
-- [Pages and posts](/editors/pages-and-posts/): adding, finding, copying and organising content, with
+- [Pages and posts](/editors/pages-and-posts/): adding, finding, copying and organizing content, with
   categories, tags and page addresses.
 - [Using the page editor](/editors/page-editor/): blocks, patterns, links, the page's settings and
   templates.

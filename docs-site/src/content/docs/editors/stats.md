@@ -29,9 +29,9 @@ Every number, table and download on the screen is for the dates chosen. Days fol
 Three tiles sum up the dates chosen:
 
 - **Page views**: how many times pages were opened.
-- **Visitors**: how many different people came. Without the Stats cookie, each person is counted once
-  a day, so someone who visits on three days counts three times; the tile says **Counted once a day
-  each**. With it, each person who has the cookie counts once for the whole range, and the tile says how
+- **Visitors**: how many different people came. Without the Stats cookie, the site counts each person once
+  a day, so someone who visits on three days counts three times. The tile then says **Counted once a day
+  each**. With the cookie, each person who has it counts once for the whole range, and the tile says how
   many return visits there were.
 - **Links clicked**: how many times people followed a link on the site, to another page, another site,
   a file, an email address or a phone number.
@@ -52,7 +52,7 @@ Before anything has been counted, it says "Nothing counted yet in this range."
 ## Pages
 
 Every page that was viewed, with its **Views** and its **Link clicks** (links followed from that page).
-The count beside the heading says how many pages there are; the list shows up to the first 2,000.
+The count beside the heading says how many pages there are. The list shows up to the first 2,000.
 
 - Click **Views** or **Link clicks** at the top of the list to sort by it. An arrow (↓) marks the one
   in use, and the sort is kept when you change the dates.
@@ -62,7 +62,7 @@ The count beside the heading says how many pages there are; the list shows up to
 
 The links followed most, up to 100, with how many **Clicks** each had.
 
-- Links to your own pages show as their address, such as `/about/`; links to other sites show the site
+- Links to your own pages show as their address, such as `/about/`. Links to other sites show the site
   and page and are marked **another site**.
 - **from 3 pages** means the same link was clicked on several pages.
 - Email addresses and phone numbers show as written.
@@ -71,8 +71,8 @@ The links followed most, up to 100, with how many **Clicks** each had.
 
 ## Where visits came from
 
-The other sites that sent people here most, up to 15, with the number of **Visits** from each, such as
-a search engine or a social network. Moving from page to page on your own site isn't counted here.
+The other sites that sent people here most, such as a search engine or a social network. The list shows
+up to 15, with the number of **Visits** from each. Moving from page to page on your own site isn't counted here.
 
 Visits typed in, from bookmarks or from many apps (such as email programs) don't name a site, so they
 aren't in this list.
@@ -102,8 +102,8 @@ heading. A box opens over Stats:
 
 ![The Make a campaign link box, with a link made for the events page](../../../assets/guide/stats-campaign-link.png)
 
-Names already used are suggested as you type, so a campaign keeps one spelling and its visits add up
-on one line. Names are made lower case, with hyphens for spaces: "Spring Fair" becomes `spring-fair`.
+As you type, the box suggests names already used, so a campaign keeps one spelling and its visits add up
+on one line. Names become lower case, with hyphens for spaces: "Spring Fair" becomes `spring-fair`.
 
 For a poster or flyer, make a QR code from the link (with **Medium** set to `qr` or `print`) using any
 free QR code maker.
@@ -131,11 +131,11 @@ clicked**, **Where visits came from** and **Campaigns**.
 
 Each page has a small script that tells the site a page was viewed or a link was followed.
 
-- **Without the Stats cookie** (the usual way), no cookie is set and no visitor's address is kept. A
-  visitor is recognised for one day only, by a scrambled code made from their connection and browser
-  that is thrown away the next day, so each person counts once a day.
-- **With the Stats cookie**, returning visitors are recognised across days. An admin turns it on and,
-  where a cookie consent banner is used, it is set only for visitors who accept cookies (see
+- **Without the Stats cookie** (the usual way), no cookie is set and no visitor's address is kept. The
+  site recognizes a visitor for one day only, by a scrambled code made from their connection and
+  browser. It throws the code away the next day, so each person counts once a day.
+- **With the Stats cookie**, the site recognizes returning visitors across days. An admin turns it on.
+  Where the site uses a cookie consent banner, the cookie is set only for visitors who accept cookies (see
   [The Stats cookie](/admins/popups-and-cookies/#the-stats-cookie) in the Admin guide).
 
 ## What isn't counted
@@ -148,5 +148,5 @@ Each page has a small script that tells the site a page was viewed or a link was
 
 So Stats is a guide to how the site is used, not an exact count of every visit.
 
-Numbers are kept for about 13 months (400 days), so a range further back than that shows nothing for
+The site keeps the numbers for about 13 months (400 days), so a range further back than that shows nothing for
 the earlier days.

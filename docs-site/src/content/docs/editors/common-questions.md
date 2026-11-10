@@ -10,20 +10,20 @@ sidebar:
 ### I didn't get my invitation or password email.
 
 1. Check your spam or junk folder, and search your inbox for the site's name.
-2. Check you typed the address your account uses. For safety, the site gives the same answer whether or
+2. Check that you typed the address your account uses. For safety, the site gives the same answer whether or
    not an address has an account.
 3. Ask for a new password link on the sign-in screen (**Forgot your password?**, then **Send link**). You
    can ask up to three times an hour.
 
-Password links last an hour and work once; invitations last a week. If yours has run out, ask for a new
-one: a password link from the sign-in screen, an invitation from an admin. Only the newest invitation
+Password links last an hour and work once. Invitations last a week. If yours has run out, ask for a new
+one: a password link from the sign-in screen, or an invitation from an admin. Only the newest invitation
 works. See [Signing in](/editors/#signing-in).
 
 ### It says "That email and password don't match an account."
 
 The email address or the password is wrong (capital letters count). Try again carefully, or click
 **Forgot your password?** to set a new one. After 10 wrong tries in 15 minutes, the screen says "Too many
-tries. Please wait a while and try again later.": wait a while before trying again.
+tries. Please wait a while and try again later." Wait a while before you try again.
 
 ### It says "This account does not have editor access."
 
@@ -32,8 +32,8 @@ to give your account the editor role (see [People and access](/admins/people/)).
 
 ### Why was I signed out?
 
-You stay signed in while you keep using the site, but after seven days without it you are asked to sign
-in again. Setting a new password from an emailed link also signs you out everywhere else.
+You stay signed in while you keep using the site. After seven days without using it, the site asks you
+to sign in again. Setting a new password from an emailed link also signs you out everywhere else.
 
 ### I can't see Settings or Users.
 
@@ -60,7 +60,7 @@ Each of these is a feature an admin turns on under **Settings** (see
 
 - A **Draft** is only visible to you and other editors. Visitors who go to its address see "Not found".
 - A **Published** page is on the site for everyone.
-- A published page with **Unpublished changes** shows visitors the old version; your edits wait until
+- A published page with **Unpublished changes** shows visitors the old version. Your edits wait until
   you click **Publish changes**, or **Discard changes** to throw them away.
 
 **Preview** shows what a draft or your unpublished changes will look like. See
@@ -72,7 +72,7 @@ The editor saves a few seconds after each change, so they are almost always kept
 
 - On a page that isn't published yet, they are in the draft. Open it again from **Content** (try the
   **Drafts** tab).
-- On a published page, they are kept aside as **Unpublished changes**. Open the page and click **Publish
+- On a published page, the editor keeps them aside as **Unpublished changes**. Open the page and click **Publish
   changes** when ready.
 - If you chose **Leave without saving** in the **Save your changes?** box, the changes since the last save
   are gone. Earlier saves are still in **Revisions**.
@@ -85,7 +85,7 @@ changes there.
 Pages and posts share addresses (both live at `/<address>/`), so two of them can't have the same one. The
 message names the page that has it, for example "The address “news” is used by the post “News”. Choose
 another." Change the **Slug** in the page's settings and publish again. The other page may be in the
-**Trash**: it keeps its address until it is deleted permanently.
+**Trash**: it keeps its address until someone deletes it permanently.
 
 ### I can't publish, or Publish opens a box about accessibility.
 
@@ -94,9 +94,9 @@ anyway with a reason. See [Accessibility](/editors/accessibility/#when-publishin
 
 ### A bulk Publish skipped some pages.
 
-The message at the top says which and why: an untitled page (give it a title), an address another page
-has, or, when your site checks accessibility before publishing, every page (publish those one by one from
-the editor, where the check runs).
+The message at the top says which pages it skipped and why. It skips an untitled page (give it a title)
+and a page whose address another page has. When your site checks accessibility before publishing, it
+also skips every page: publish those one by one from the editor, where the check runs.
 
 ### The editor says someone else saved this page.
 
@@ -128,13 +128,13 @@ page to see their version first. Agree with each other who edits the page.
 - **Part of a page**: open the page and use undo, or go back to an earlier version in **Revisions**.
 - **A template, part or pattern**: click **Content**, **Templates**, then **Restore** beside it in the
   **Trash** at the bottom of the list.
-- **An image**: images can't be deleted from **Media**, so it is still there.
+- **An image**: you can't delete images from **Media**, so it is still there.
 
 Only **Delete permanently**, in the Trash, can't be undone.
 
 ### I changed the header (or a template) and every page changed.
 
-That is how templates work: the header, footer and templates are shared by every page that uses them.
+That is how templates work: every page that uses the header, the footer or a template shares it.
 If you are still in the editor, use the undo arrow and click **Save & apply** again. Otherwise change it
 back by hand and click **Save & apply**. Templates have no revisions to go back to, so take care with them, and
 ask an admin if you are unsure. See [The header, footer and templates](/editors/page-editor/#the-header-footer-and-templates).
@@ -149,17 +149,17 @@ edited** list shows the last things edited.
 
 ### A page shows "Not found".
 
-- **It isn't published.** Drafts can't be seen by visitors. Open it and click **Publish** (use
+- **It isn't published.** Visitors can't see drafts. Open it and click **Publish** (use
   **Preview** to see it yourself).
 - **It is in the Trash.** Restore it (see above).
 - **The address is wrong.** Check the **Slug** in the page's settings, or click **View** beside it in
   **Content** to open it at its real address.
 - **The address changed before it was published.** Only a published page's old address sends visitors to
   the new one.
-- **It is an event, venue or calendar page** and events are turned off, or the calendar pages are turned
-  off by an admin. Venues have no page of their own.
+- **It is an event, venue or calendar page** and an admin has turned off events or the
+  calendar pages. Venues have no page of their own.
 
-Old addresses people still use (from printed flyers, say) can be sent to the right page by an admin (see
+An admin can send old addresses that people still use (from printed flyers, say) to the right page (see
 [Redirects](/admins/redirects/)).
 
 ### A page doesn't appear in a list on the site.
@@ -199,8 +199,8 @@ largest version you have.
 ### My upload was refused.
 
 Documents can be PDFs, Word, Excel, PowerPoint, OpenDocument, plain text or CSV files, up to 50 MB each.
-A file whose name says one thing but which is something else (a web page saved as `.pdf`, say) is
-refused. For very large videos, put them on YouTube or Vimeo and use an **Embed** block instead.
+The site refuses a file whose name says one thing but which is something else (a web page saved as
+`.pdf`, say). For very large videos, put them on YouTube or Vimeo and use an **Embed** block instead.
 
 ## Forms
 
@@ -211,7 +211,7 @@ refused. For very large videos, put them on YouTube or Vimeo and use an **Embed*
 2. Check your spam folder, and add the site's address to your contacts.
 3. Check that the form is **Active**.
 
-Everything sent is also kept under **Forms**, **Submissions**, so nothing is lost. An admin can see whether
+The site also keeps everything sent under **Forms**, **Submissions**, so nothing is lost. An admin can see whether
 emails went out in the email log (see [Email log](/admins/email-log-and-backups/#email-log)).
 
 ### I'm getting spam through a form.
@@ -226,13 +226,13 @@ To stop a form taking answers for a while, untick **Active** on it.
 
 Building a page usually takes a minute or two, sometimes longer with long documents. The panel shows
 how it is getting on. If Claude stops answering, the panel says "Claude stopped responding before
-finishing. Try again." Send your message again; nothing was changed.
+finishing. Try again." Send your message again. Nothing was changed.
 
 ### Compose says it is still working, or that I have two turns running.
 
-- "Claude is still working on the last message in this conversation.": wait for the answer before
+- "Claude is still working on the last message in this conversation." Wait for the answer before
   sending another.
-- "You already have two Compose turns running. Wait for one to finish.": you can run two at once, in
+- "You already have two Compose turns running. Wait for one to finish." You can run two at once, in
   different conversations.
 
 ### Compose says "Claude isn't connected yet".
@@ -247,7 +247,7 @@ and ask again.
 
 ### What Claude wrote isn't right.
 
-Ask for the change in plain words ("The date is the 14th, not the 4th"), or change it by hand: later
+Ask for the change in plain words ("The date is the 14th, not the 4th"), or change it by hand. Later
 requests build on your version. Always read the page before publishing, especially dates, prices and
 names. See [Writing with Claude](/editors/writing-with-claude/).
 
@@ -261,7 +261,7 @@ members-only event only shows to members. If no events show at all, events may b
 
 ### The event shows the wrong time.
 
-Check its **Time zone** in the event's settings: empty uses the site's time zone. If the site's time zone
+Check its **Time zone** in the event's settings. If it is empty, the event uses the site's time zone. If the site's time zone
 itself is wrong, an admin changes it under **Settings**, **Events**.
 
 ### The booking form doesn't show on an event's page.
@@ -282,8 +282,8 @@ folder.
 
 ### Someone wants a refund.
 
-Refunds are made by admins, from the order's **Details** on the ticket's page. A free or unpaid order can
-be cancelled by any editor with **Cancel order**.
+Admins make refunds, from the order's **Details** on the ticket's page. Any editor can cancel a free or
+unpaid order with **Cancel order**.
 
 ## Something else
 

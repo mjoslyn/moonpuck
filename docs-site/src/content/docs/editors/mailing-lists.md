@@ -11,12 +11,12 @@ through a sign-up form on your site, and confirm by email before anything is sen
 what's new on the site). Afterwards, the site shows how each email went: who it reached, who opened it
 and which links people followed.
 
-Editors write and test campaigns and digests. Sending, scheduling and approving them, and looking after
-the people on the lists, are for admins (see [Mailing lists](/admins/mailing-lists/) in the Admin guide).
+Editors write and test campaigns and digests. Only admins send, schedule and approve them, and look
+after the people on the lists (see [Mailing lists](/admins/mailing-lists/) in the Admin guide).
 
 :::note
-Mailing lists are a feature an admin turns on under **Settings**, **Mailing Lists**, and the emails go
-out through a service called Mailgun, which an admin connects. If you don't see **Mailing Lists** under
+An admin turns on mailing lists under **Settings**, **Mailing Lists**. The emails go out through a
+service called Mailgun, which an admin connects. If you don't see **Mailing Lists** under
 **People** in the top bar, the feature is off (see [Turning features on](/admins/features/#mailing-lists)).
 :::
 
@@ -35,7 +35,7 @@ Click **People** in the top bar, then **Mailing Lists**. The screen has five tab
 A colored line under the title can say:
 
 - **Sending is paused:** with the reason. Nothing goes out, digests included, until an admin resumes it.
-- **Add the postal address under Settings > Mailing Lists**: every email must carry the organisation's
+- **Add the postal address under Settings > Mailing Lists**: every email must carry the organization's
   postal address, so nothing can be sent until an admin adds it.
 - **Mailgun isn't set up, so nothing is sent**: an admin needs to connect Mailgun first.
 
@@ -56,7 +56,7 @@ A campaign's status is one of:
 | **Sent** | Gone out, with the date. |
 | **Paused** | Stopped part way, by an admin or because sending was paused for the whole site. The reason shows under it. |
 | **Cancelled** | Stopped for good. What had gone out stays sent. |
-| **Failed** | Something went wrong; the reason shows under it. |
+| **Failed** | Something went wrong. The reason shows under it. |
 | **Skipped (nothing new)** | A digest issue with too little in it to send. |
 
 ### Making a campaign
@@ -86,12 +86,12 @@ the email is about. See [Having Claude write it](#having-claude-write-it).
 | --- | --- |
 | **Name (for you)** | So you can tell campaigns apart. Readers never see it. |
 | **Subject** | The subject line people see in their inbox. Tags work here too, such as **{first_name\|there}** or **{site_name}** (see [Merge tags](#merge-tags)). |
-| **From name** | The name the email comes from. Empty, it uses the one set under **Settings**, **Mailing Lists**. |
-| **Replies go to** | Where replies go. Empty, it uses the one set under **Settings**, **Mailing Lists**. |
+| **From name** | The name the email comes from. If empty, it uses the one set under **Settings**, **Mailing Lists**. |
+| **Replies go to** | Where replies go. If empty, it uses the one set under **Settings**, **Mailing Lists**. |
 | **Email** | **Edit the email** opens the email builder. The box says how many blocks the email has, and whether it has a plain text of its own. |
 | **To the lists** | Tick the lists it goes to. Someone on two of them gets it once. |
 | **Segment** | **Everyone on those lists**, or a segment, so only the people on those lists who match it get the email. **See who matches** opens the segment. See [Segments](#segments). |
-| **Members** | Only on sites with members. **Everyone on those lists**, **Only members** or **Only people who aren't members**. With **Only members**, tick the levels under **Of the levels (none ticked: any)**. Members count when they are active, and are matched by their email address. |
+| **Members** | Only on sites with members. **Everyone on those lists**, **Only members** or **Only people who aren't members**. With **Only members**, tick the levels under **Of the levels (none ticked: any)**. Only active members count. The site matches them by their email address. |
 | **Track links (people's clicks told apart from mail scanners')** | Each link in the email goes through your site first, so you can see who followed which link. Ticked unless an admin changed the default. |
 | **Add UTM parameters to links to this site** | Adds campaign tags to links to your own site, so the visits they bring show under **Campaigns** in [Stats](/editors/stats/#campaigns) (source "newsletter", medium "email"). Links that already have their own `utm_` tags keep them. |
 
@@ -131,8 +131,9 @@ The **Entries** block lists your site's latest entries, each with its picture, t
 and a link. Its settings:
 
 - **Heading (optional)**: "Latest news" to start with.
-- **Shows**: under **Of**, tick the kinds of content to list (such as posts); **How many** (1 to 12);
-  and, for the kinds that have them, categories or other terms to list only those (**(any of)**).
+- **Shows**: under **Of**, tick the kinds of content to list (such as posts). Set **How many** (1 to 12).
+  For the kinds that have them, you can also pick categories or other terms to list only those
+  (**(any of)**).
 - **In a digest: only those new since the last issue**: for weekly digests (see below).
 - **Show the date**.
 - **Image**: **Show** or **Hide**.
@@ -160,9 +161,9 @@ Past events are left out. It is offered only while your site uses Events.
 
 ### Merge tags
 
-Tags in curly brackets are swapped for each reader's own details when the email is sent. **Insert field
-value…** in a Text block and on the **Plain text** tab adds them, and you can type them in a heading, a
-button's link or the subject.
+When the site sends the email, it swaps tags in curly brackets for each reader's own details. **Insert
+field value…** in a Text block and on the **Plain text** tab adds them. You can also type them in a
+heading, a button's link or the subject.
 
 | Tag | Becomes |
 | --- | --- |
@@ -182,9 +183,9 @@ for the name, email and subscriber field tags.
 
 ### The footer
 
-Every email ends with a footer added when it is sent, under your design, which you can't remove: "You're
-receiving this because you signed up for email from" your site, your organisation's name and postal
-address, and **Unsubscribe** and **Email preferences** links for that reader. You don't need to write an
+When the site sends an email, it adds a footer under your design. You can't remove it. The footer has
+"You're receiving this because you signed up for email from" your site, your organization's name and
+postal address, and **Unsubscribe** and **Email preferences** links for that reader. You don't need to write an
 unsubscribe line yourself. The footer doesn't show on the canvas, but it does on the **Preview** tab.
 
 ### The Preview tab
@@ -208,9 +209,9 @@ campaigns** and **New weekly digests**: new ones then start from that template.
    our latest news and upcoming events."
 3. Click **Write**. It says **Writing… this takes up to a minute.**
 
-Claude writes the campaign's name, subject, preview text and email: a heading, a few short sections of
-text, each with a button if it needs one, and, when you ask for them, an Entries block of your latest
-posts and an Events block of upcoming events. The email keeps its colors and font. It replaces the
+Claude writes the campaign's name, subject, preview text and email. The email has a heading and a few
+short sections of text, each with a button if it needs one. When you ask for them, Claude also adds an
+Entries block of your latest posts and an Events block of upcoming events. The email keeps its colors and font. It replaces the
 email's blocks, but a plain text of your own stays as it is. Claude doesn't write the unsubscribe line or
 postal address: the footer has them.
 
@@ -234,7 +235,7 @@ Always send yourself a test before a campaign goes out.
 
 A test is the email as it would go now, with "[Test]" at the start of its subject. It isn't counted in the
 campaign's numbers, and its links aren't tracked. If you are on the lists, your own details fill in the
-tags; otherwise your name from your account does.
+tags. If not, the site uses your name from your account.
 
 If the test can't be sent, the message says why, for example that the postal address is missing.
 
@@ -248,7 +249,7 @@ month's. **Delete** removes a draft (it asks first).
 
 Editors write and test campaigns. An admin sends or schedules them: the campaign shows **An admin
 schedules and sends it.** where the admin's **Send** box would be. Once a campaign is scheduled or sending,
-only admins can change it; editors can still open it and **See the email**. See
+only admins can change it. Editors can still open it and use **See the email**. See
 [Sending a campaign](/admins/mailing-lists/#sending-a-campaign) in the Admin guide.
 
 ## After a campaign is sent: its numbers
@@ -280,10 +281,10 @@ tells clicks apart:
   your own site can be confirmed.
 
 **Clicked** counts people and likely people, never machines. Opens leave out mail scanners and privacy
-features (such as Apple's, which opens every email in advance), but they still aren't exact: that is why
-they are marked as indicative. Clicks are the better measure of who read the email.
+features (such as Apple's, which opens every email in advance). But opens still aren't exact, so the site
+marks them as indicative. Clicks are the better measure of who read the email.
 
-### Each link
+### Clicks on each link
 
 Under **Links**, each link in the email is listed with how many **People** followed it and how many of
 them were **Confirmed**. Tick **Show machine clicks** to add the scanners' clicks, and how often the hidden
@@ -291,7 +292,7 @@ link was followed.
 
 ### Who it went to
 
-Under **Recipients**, everyone the campaign went to is listed with how their email went: **Delivery**
+**Recipients** lists everyone the campaign went to, with how their email went: **Delivery**
 (**Delivered**, **Bounced**, **Marked as spam**, **Not sent (unsubscribed first)**, **Waiting** or **Sent**),
 when they **Opened** it and when they **Clicked** (or **Confirmed**). The buttons above narrow the list:
 **Everyone**, **Delivered**, **Opened**, **Clicked**, **Bounced**, **Marked as spam**, **Unsubscribed** and
@@ -315,11 +316,11 @@ A new digest is off. It starts with the subject "{site_name}: the week of {week_
 heading, a greeting, an Entries block "New this week" set to list only what's new and, on sites with
 events, an Events block "Coming up".
 
-### Its settings
+### A digest's settings
 
 | Setting | What it does |
 | --- | --- |
-| **Name** | For you; each issue is named after it, such as "Weekly digest: week of October 12, 2026". |
+| **Name** | For you. Each issue is named after it, such as "Weekly digest: week of October 12, 2026". |
 | **Subject** | The subject line. **{week_of}** is the Monday of the issue's week. |
 | **Goes out on** and **At** | The weekday and time, in the site's time zone. |
 | **From name**, **Replies go to** | As for a campaign. |
@@ -327,14 +328,14 @@ events, an Events block "Coming up".
 | **To the lists**, **Segment**, **Members** | Who it goes to, as for a campaign. |
 | **Each issue** | **Waits for an admin's approval**, or **Goes out on its own**. |
 | **Hours it waits (made at its time, sent this much later if approved)** | With approval: how long an issue waits for an admin (1 to 168 hours). |
-| **Skip a week with fewer than** ... **entries and events** | Ticked, a week with less than that to show sends nothing. |
+| **Skip a week with fewer than** ... **entries and events** | When ticked, a week with less than that to show sends nothing. |
 | **Track links**, **Add UTM parameters to links to this site** | As for a campaign. |
 
 In the digest's email, an Entries block with **In a digest: only those new since the last issue** ticked
 lists what was published since the last issue went out (or, before the first, in the last 7 days).
-Events blocks list what's coming up. Both are filled in when each issue is made.
+Events blocks list what's coming up. The site fills in both when it makes each issue.
 
-### Trying it out
+### Testing a digest
 
 **Send me this week's issue** sends you this week's issue as it would be now, as a test. Unsaved changes
 are saved first (while you may still change the digest).
@@ -343,8 +344,8 @@ are saved first (while you may still change the digest).
 
 Editors make digests and change them while they are **Off**. Only an admin turns a digest on (the editor
 sees **An admin turns it on.**). Once it is on, the digest says **This digest is on: only admins change
-it.**: editors can see its settings and use **Send me this week's issue**, but can't change anything or
-open its email.
+it.** Editors can then see its settings and use **Send me this week's issue**, but they can't change
+anything or open its email.
 
 Under **Issues**, each week's issue is listed with its status and how many people it went to. Click one
 to open it as a campaign, with its numbers once it has gone out.
@@ -375,15 +376,15 @@ tagged**:
 | --- | --- | --- |
 | **On a list** | **is on** any of the lists ticked. | **isn't on** |
 | **Tagged** | **is tagged** with any of the tags typed (separated by commas). | **isn't tagged** |
-| **A field** | **has** a subscriber field **equal to** a value, **containing** it, or just **filled in**. Type the field's name; the site suggests the fields in use. Capital letters don't matter. | **doesn't have** |
+| **A field** | **has** a subscriber field **equal to** a value, **containing** it, or just **filled in**. Type the field's name. The site suggests the fields in use. Capital letters don't matter. | **doesn't have** |
 | **A member** | **is a member** (active), of the levels ticked (none ticked: any level). Only on sites with members. | **isn't a member** |
 | **Signed up** | **signed up in the last** so many days. | **signed up more than** so many days ago |
 | **Opened an email** | **opened an email in the last** so many days. | **hasn't opened an email in the last** |
 | **Clicked a link** | **clicked a link in the last** so many days. | **hasn't clicked a link in the last** |
 | **Signed up from** | **signed up from** a page, form or import: the words typed appear in how they signed up, such as the address of the page with the sign-up form (`/newsletter/`) or the note an admin gave an import. | **didn't sign up from** |
 
-Opens and clicks count people, not mail scanners. Tags and fields are set on each contact by an admin,
-from an import's columns, or by a sign-up form.
+Opens and clicks count people, not mail scanners. A contact's tags and fields come from an admin, from
+an import's columns, or from a sign-up form.
 
 ### Who matches now
 
@@ -395,9 +396,10 @@ hasn't gone out yet.**
 
 ### What you can't change
 
-- While a campaign that is scheduled, waiting for approval, sending or paused, or a digest that is on, uses
-  a segment, only admins can change its rules (you can still change its name and description). This stops
-  an email an admin approved from going to more people than they agreed to.
+- Some campaigns and digests lock a segment's rules: a campaign that is scheduled, waiting for approval,
+  sending or paused, and a digest that is on. While one of them uses a segment, only admins can change its
+  rules. You can still change its name and description. This stops an email an admin approved from going
+  to more people than they agreed to.
 - **Delete segment** works only for a segment no campaign or digest uses, sent campaigns included. Choose
   another segment on those first.
 
@@ -417,14 +419,16 @@ then click **Filter**. Clicking a tag shows everyone with it.
 | **Bounced** | Their address doesn't work. Nothing more is sent. |
 | **Marked as spam** | They marked an email as spam. Nothing more is ever sent. |
 
-Click an address to open that person's page: their name, fields, lists (with since when), tags and notes;
-their **Consent** (how and when they agreed, the wording they agreed to, and when they confirmed); **Sent
-to them**, each campaign with its delivery, when they opened it and when they clicked; and **Clicks**, each
-click with the link and its verdict (**Person (confirmed)**, **Likely a person** or **Machine**, with the
-reasons).
+Click an address to open that person's page. It shows:
+
+- Their name, fields, lists (with since when), tags and notes.
+- Their **Consent**: how and when they agreed, the wording they agreed to, and when they confirmed.
+- **Sent to them**: each campaign with its delivery, when they opened it and when they clicked.
+- **Clicks**: each click with the link and its verdict (**Person (confirmed)**, **Likely a person** or
+  **Machine**, with the reasons).
 
 The **Lists** tab shows the lists, each with **View** its number of **subscribers**. Public lists are the
-ones sign-up forms offer; the others are for people an admin adds.
+ones sign-up forms offer. The others are for people an admin adds.
 
 ## Sign-up forms on your pages
 
@@ -439,7 +443,7 @@ A sign-up form for one or more lists. Its settings:
 - **Heading**.
 - **Text**.
 - **Button**: says "Subscribe" unless you change it.
-- **Consent wording**: the line under the form saying what people agree to. Empty, it uses the wording
+- **Consent wording**: the line under the form saying what people agree to. If empty, it uses the wording
   set under **Settings**, **Mailing Lists** ("I agree to receive email from us. I can unsubscribe at any
   time." unless an admin changed it). It is kept with each sign-up.
 - **Tag sign-ups with (comma separated)**: tags for everyone who signs up here (up to five), so you can
@@ -470,8 +474,8 @@ email box and a button in a row. Its settings:
 
 ### The Email preferences block
 
-Where people who followed a link from one of the site's emails confirm their sign-up, choose their lists
-or unsubscribe. **Shows first**: **Email preferences** or **Unsubscribe**. You only need it if you make
+People who follow a link from one of the site's emails use it to confirm their sign-up, choose their
+lists or unsubscribe. **Shows first**: **Email preferences** or **Unsubscribe**. You only need it if you make
 your own page at one of the addresses below.
 
 ### The site's own pages
@@ -495,7 +499,7 @@ To change one, make a page with that address: yours shows instead. Put a Subscri
    **Confirm my subscription** button. It opens a page asking them to confirm, with a second **Confirm my
    subscription** button. (The second click is there because mail scanners open links on their own: only a
    person pressing the button confirms.) The page then says "Thanks! Your subscription is confirmed." Until
-   they confirm, nothing is sent to them, and someone who never confirms is removed after 30 days.
+   they confirm, the site sends them nothing. The site removes someone who never confirms after 30 days.
 3. **Receiving emails.** Each email ends with the footer and its two links.
 4. **Choosing lists.** **Email preferences** in the footer opens a page listing the public lists under
    "Email you receive", ticked where they are subscribed. They change the ticks and click **Save**, or click
@@ -549,7 +553,8 @@ A campaign or digest uses it, even one that was sent long ago. The message names
 ## What needs an admin
 
 - Turning mailing lists on, the sender, the postal address and the consent wording: **Settings**,
-  **Mailing Lists**; connecting Mailgun: **Settings**, **Connections**.
+  **Mailing Lists**.
+- Connecting Mailgun: **Settings**, **Connections**.
 - Sending, scheduling, pausing, cancelling and approving campaigns.
 - Turning a weekly digest on, and changing one that is on.
 - Making and changing lists, and adding, importing, unsubscribing, erasing and exporting subscribers.

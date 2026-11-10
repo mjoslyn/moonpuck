@@ -31,8 +31,8 @@ The toolbar under it has:
 - **Duplicate**: makes a draft copy of the page and opens it.
 - **Save draft** and **Publish** (or **Publish changes**).
 
-Saving, publishing, previewing and going back to an earlier version are explained in
-[Saving and publishing](/editors/saving-and-publishing/).
+[Saving and publishing](/editors/saving-and-publishing/) explains saving, publishing, previewing and going
+back to an earlier version.
 
 The undo and redo arrows are in the toolbar too.
 
@@ -58,7 +58,7 @@ template puts around it. Click a block to select it.
 Buttons above the page switch it between phone, tablet and desktop widths, and zoom in or out, so you
 can check how it looks on a small screen.
 
-Only the page's own content can be changed here. The header, footer and other parts that come from the
+You can change only the page's own content here. The header, footer and other parts that come from the
 template are shown so you can see the whole page, but you can't select them (see
 [The header, footer and templates](#the-header-footer-and-templates)).
 
@@ -97,8 +97,8 @@ When a block is selected, a small toolbar appears above it with its name and thr
 - **Duplicate**: puts a copy of the block (and everything in it) straight after it.
 - **Delete**: removes the block and everything in it.
 
-To move a block, drag it on the page to its new place. A line shows where it will land; you can drop it
-into another section or column too.
+To move a block, drag it on the page to its new place. A line shows where it will land. You can also drop it
+into another section or column.
 
 ### Keyboard shortcuts
 
@@ -140,8 +140,8 @@ the **Columns** settings.
 
 ## Styles
 
-Most blocks share the same style settings, near the end of their panel. Groups can be folded away by
-clicking their heading. Which groups a block has depends on the block.
+Most blocks share the same style settings, near the end of their panel. You can fold a group away by
+clicking its heading. Which groups a block has depends on the block.
 
 The site's colors, text sizes, fonts and spacing sizes offered here are the site's theme, which an
 admin sets under **Settings**, **Theme** (see [The site's theme](/admins/settings/#the-sites-theme)).
@@ -168,7 +168,7 @@ A color an admin left out of the choices doesn't show here, but blocks already u
   - **Padding right**.
   - **Padding bottom**.
   - **Padding left**.
-  - **Margin top**: space outside the block, between it and its neighbours.
+  - **Margin top**: space outside the block, between it and its neighbors.
   - **Margin bottom**.
   - Each is **None**, one of the site's spacing sizes, or **Custom** (type a value such as `2rem`).
 - **Border**:
@@ -210,8 +210,8 @@ To make one block look like another:
 3. Select the other block and click **Paste styles** (the button names the kind of block you copied
    from).
 
-Its colors, spacing, text style, borders and width change to match; its words and pictures stay as
-they are. Between two blocks of the same kind (two sections, say) the layout comes too: alignment, gaps,
+Its colors, spacing, text style, borders and width change to match. Its words and pictures stay as
+they are. Between two blocks of the same kind (two sections, for example), the layout is copied too: alignment, gaps,
 height, overlay, size, columns and display.
 
 The copy stays in your browser, so you can paste it on another page, a template or a pattern. Changed
@@ -222,7 +222,7 @@ Blocks inside a linked pattern don't offer **Copy styles**: their look belongs t
 ### Advanced settings
 
 Every block's settings end with **Advanced: all attributes (JSON)**, which shows all of its settings as
-code. It is there for people who know what they are doing; you never need it for ordinary editing.
+code. It is for people who know what they are doing. You never need it for ordinary editing.
 
 ## Writing and formatting text
 
@@ -275,7 +275,7 @@ These are the blocks as the **Blocks** list groups them. Some groups only appear
 that feature, and some blocks only appear on the kinds of content they work with (an event's blocks on
 events, for example). Templates offer every block.
 
-Your site may also have blocks of its own, made for its design; they appear in these groups too.
+Your site may also have blocks of its own, made for its design. They appear in these groups too.
 
 ### Text
 
@@ -318,9 +318,9 @@ Its settings:
 - **Marker**: **Bullets**, **Numbers**, **Icon** or **None**.
 - **Icon**: with **Icon**, the icon to use.
 - **Icon color**: its color.
-- **Items**: each item's text, with **Up**, **Down** and **Remove**; with icons, **Icon for this item** gives one item a different icon.
+- **Items**: each item's text, with **Up**, **Down** and **Remove**. With icons, **Icon for this item** gives one item a different icon.
 - **Add item**: adds one.
-- **Paste several**: takes a list, one item per line; **Add lines** adds them all.
+- **Paste several**: takes a list, one item per line. **Add lines** adds them all.
 - **Text**: the text styles and **Space between items**.
 
 #### Quote
@@ -361,8 +361,8 @@ Its settings:
 
 ### Media
 
-Pictures, galleries, videos and documents are covered in more depth in
-[Images and files](/editors/images-and-files/).
+[Images and files](/editors/images-and-files/) covers pictures, galleries, videos and documents in more
+depth.
 
 #### Image
 
@@ -372,7 +372,7 @@ One picture.
 
 Its settings:
 
-- **Image**: **Choose** (or **Replace**) picks one from the media library; **Edit** opens it in the media library in a new tab.
+- **Image**: **Choose** (or **Replace**) picks one from the media library. **Edit** opens it in the media library in a new tab.
 - **Alt text (describes the image)**.
 - **Caption**.
 - **Link**.
@@ -479,11 +479,11 @@ A document (a PDF, say) with its type, size and a Download button.
 
 Its settings:
 
-- **File**: **Choose** opens the media library on your documents; **Edit** opens the file in the media library.
+- **File**: **Choose** opens the media library on your documents. **Edit** opens the file in the media library.
 - **Or an address**: a document elsewhere.
 - **Link text** (the file's title if empty).
 - **Show its type and size**.
-- **Button**: its words (**Download**); empty for no button.
+- **Button**: its words (**Download**). Leave it empty for no button.
 - The **Color** and **Spacing** styles.
 
 ### Layout
@@ -496,7 +496,7 @@ A band across the page that holds other blocks, with a background color and spac
 
 Its settings:
 
-- **Element**: what kind of area it is for screen readers (such as header, footer or main); usually leave it at **Default**.
+- **Element**: what kind of area it is for screen readers (such as header, footer or main). Usually leave it at **Default**.
 - The **Layout** group.
 - All the styles.
 
@@ -568,7 +568,7 @@ Its settings:
 
 #### Navigation
 
-The site's menu (usually in the header). Its links are changed under **Settings**, **Menu** by an admin (see [Settings and the menu](/admins/settings/#the-menu)).
+The site's menu (usually in the header). An admin changes its links under **Settings**, **Menu** (see [Settings and the menu](/admins/settings/#the-menu)).
 
 ![The Navigation block on a page](../../../assets/guide/blocks/navigation.png)
 
@@ -579,7 +579,7 @@ Its settings:
 
 #### Social links
 
-Icons linking to the site's social media profiles. The profiles are set under **Settings**, **Social** by an admin.
+Icons linking to the site's social media profiles. An admin sets the profiles under **Settings**, **Social**.
 
 ![The Social links block on a page](../../../assets/guide/blocks/social-links.png)
 
@@ -629,7 +629,7 @@ Its settings:
 - **Center (latitude, longitude)** (empty: every pin in view).
 - **Zoom (1-19)**.
 - **Height**.
-- **Latitude field** (under **Fields**, as are the next three; ask whoever set up your site which to use).
+- **Latitude field** (under **Fields**, as are the next three. Ask whoever set up your site which to use.)
 - **Longitude field**.
 - **Address field (popup)**.
 - **Leave out when this field is on**.
@@ -857,7 +857,7 @@ Its settings:
 
 #### Member account
 
-Signing in, creating an account and resetting a password; once signed in, the member's details and Sign out.
+Signing in, creating an account and resetting a password. Once the member is signed in, it shows their details and Sign out.
 
 ![The Member account block on a page](../../../assets/guide/blocks/member-account.png)
 
@@ -927,8 +927,8 @@ Its settings:
 
 ### Shop
 
-Shown only while your site has a shop (an admin turns it on under **Settings**, **Shop**). Adding
-products and handling orders: see [The shop](/editors/shop/).
+Shown only while your site has a shop (an admin turns it on under **Settings**, **Shop**). For adding
+products and handling orders, see [The shop](/editors/shop/).
 
 #### Add to cart
 
@@ -939,7 +939,7 @@ product's card, it sells that product.
 
 Its settings:
 
-- **Product**: leave it empty to sell the page's own product; choose one to sell it anywhere.
+- **Product**: leave it empty to sell the page's own product. Choose one to sell it anywhere.
 - **Button**.
 - **Ask how many**.
 
@@ -956,7 +956,7 @@ Its settings:
 - **Product**: the product to show. Leave it empty for the page's or card's own.
 - **Layout**: A card (the picture over its name, price and button) or Side by side (the picture beside
   them).
-- **Square picture**: on, the picture is cropped square; off, its own shape.
+- **Square picture**: on, the picture is cropped square. Off, it keeps its own shape.
 - **Show its description (excerpt)**: on or off (on by default side by side).
 - **Add to cart button**: off shows the price alone.
 - **Button**: its words (empty: Add to cart).
@@ -987,11 +987,11 @@ Its settings:
 
 #### Cart
 
-The checkout, in two columns: on the left the visitor's email (Contact), name and address (Delivery),
-shipping or pickup and **Pay**; on the right the order summary, with each item's picture, quantity to
+The checkout, in two columns. On the left are the visitor's email (Contact), name and address (Delivery),
+shipping or pickup and **Pay**. On the right is the order summary, with each item's picture, quantity to
 change and price, a discount code and the totals. On a phone the summary comes first, folded behind
 **Show order summary** with the total. After paying, it shows their order. The cart at
-`/cart/` shows it on its own; a page you make with that address needs this block.
+`/cart/` shows it on its own. If you make a page with that address, it needs this block.
 
 ![The Cart block](../../../assets/guide/shop-cart.png)
 
@@ -1016,7 +1016,7 @@ Shown only while your site takes donations (an admin turns them on: see
 
 A donation form: once or monthly, preset amounts or another, covering the fees, a dedication, and the
 donor's name and email. Donors pay on Stripe's or Square's page and come back to a thank-you. The
-donation page at `/donate/` shows it on its own; a page you make with that address needs this block.
+donation page at `/donate/` shows it on its own. If you make a page with that address, it needs this block.
 
 ![The Donate block on a page](../../../assets/guide/blocks/donate.png)
 
@@ -1024,7 +1024,7 @@ Its settings:
 
 - **Heading**.
 - **Text**.
-- **Amounts**: separated by commas; empty, the site's.
+- **Amounts**: separated by commas. Empty, it uses the site's.
 - **Chosen at first**.
 - **Offer monthly gifts**.
 - **Starts on**: **Give once** or **Monthly**.
@@ -1163,7 +1163,7 @@ that part changes with the screen's shape. To choose which part stays in view:
    how it will be cropped on that screen.
 
 A size you have set shows a dot after its name. A size you don't set uses the picture's own focal point
-from the media library; **Use the image's own** goes back to it. See
+from the media library. **Use the image's own** goes back to it. See
 [Keeping the important part in view](/editors/images-and-files/#keeping-the-important-part-in-view).
 
 ## Patterns
@@ -1174,8 +1174,8 @@ already styled to match your site.
 **To add a pattern:**
 
 1. Open **Patterns** on the left. Type in **Search patterns** to find one by name.
-2. Select a block on the page if you want the pattern to go after its section; otherwise it goes at the
-   end of the page.
+2. If you want the pattern to go after a section, select a block in that section. Otherwise the pattern
+   goes at the end of the page.
 3. Click **Insert** beside the pattern.
 
 Click a pattern's address under its name to edit the pattern itself, in a new tab.
@@ -1184,7 +1184,7 @@ Click a pattern's address under its name to edit the pattern itself, in a new ta
 
 A pattern is one of two kinds:
 
-- **A copy** (most patterns): the blocks become the page's own. Change anything you like; the pattern
+- **A copy** (most patterns): the blocks become the page's own. Change anything you like. The pattern
   and other pages stay as they are.
 - **Linked** (marked **Linked** in the list): the layout and style stay the pattern's, and each page
   changes only the content. When someone edits the pattern, every page using it changes too, keeping
@@ -1208,7 +1208,7 @@ the pattern.** What you can change:
 
 Select the linked pattern itself (with **Select parent**, or in the **Outline**) to see where it comes
 from. **Detach (make an ordinary copy)** turns it into an ordinary copy whose blocks are the page's own
-to change; later edits to the pattern then no longer reach this page.
+to change. After that, later edits to the pattern no longer reach this page.
 
 ### Saving your own pattern
 
@@ -1218,7 +1218,7 @@ To reuse something you built:
 2. At the end of its settings, click **Save as pattern…**.
 3. Give it a **Pattern name**.
 4. Under **When placed on a page**, choose **Copy** (each page gets its own blocks to change freely) or
-   **Linked** (pages change only the content; this block becomes the first use).
+   **Linked** (pages change only the content, and this block becomes the first use).
 5. Click **Save pattern**.
 
 The pattern then appears in the **Patterns** tab on every page.
@@ -1258,8 +1258,8 @@ settings**. What's there depends on the kind of content.
   - **Share image**: the picture shown when the page is shared on social media. Empty, the site makes
     a share card from the page's title and featured image (see
     [Share cards](/admins/settings/#share-cards)). **Remove share image** clears it.
-  - **Hide from search engines and AI answer engines** asks Google and the like not to list the page,
-    and the tools behind ChatGPT, Claude, Perplexity and Google's AI answers not to read it. Use it for
+  - **Hide from search engines and AI answer engines** asks Google and the like not to list the page.
+    It also asks the tools behind ChatGPT, Claude, Perplexity and Google's AI answers not to read it. Use it for
     pages only your members or partners need, for example.
   - **Leave out of this site's search** stops the page appearing in your own site's search (it still
     shows in menus and lists).
@@ -1273,7 +1273,7 @@ Changes to the settings show on the page as you make them, and save with the pag
 
 Some templates have more than one place for a page's own content, such as a main column and a sidebar.
 Each place is a **content area**. On a page using such a template, every area shows where the template
-puts it; an empty one says **Content area:** and its name, with **Drop blocks here.** Drag blocks into
+puts it. An empty one says **Content area:** and its name, with **Drop blocks here.** Drag blocks into
 it like anywhere else. Each page fills in its own areas.
 
 In a template, each area is a **Page content** block. Its **Content area** is `main` (the default) for
@@ -1309,19 +1309,19 @@ and click **Make the page**. You get a new draft with a copy of the template's b
 editing it never changes the template.
 
 To change the name of a template, part or pattern, click **Rename** beside it in **Templates** (or at
-the top of the editor while editing it) and type the new name. Its **Address** follows the name; change
+the top of the editor while editing it) and type the new name. Its **Address** follows the name. Change
 it if you want another. Click **Rename**. Pages, settings and other templates using it switch to the new
 address, and anything still using the old one keeps working. Save your changes before giving a template
 you're editing a new address.
 
-To remove a template, part or pattern you no longer need, click **Trash** beside it in **Templates**. A
-box tells you which pages use it first: while it's in the trash, those pages show the next template in
+To remove a template, part or pattern you no longer need, click **Trash** beside it in **Templates**. First,
+a box tells you which pages use it. While it's in the trash, those pages show the next template in
 line, or leave the part or pattern out. Click **Move to the trash** to go ahead. The **Trash** at the
 bottom of **Templates** lists what's there: **Restore** brings one back as it was, and **Delete
 permanently** removes it for good.
 
 To have Claude build a new template, header, footer or pattern, click **Compose** in the top bar, then
-**Template**, **Template part** or **Pattern**, name it, say what it is for and click **Send**; the
+**Template**, **Template part** or **Pattern**, name it, say what it is for and click **Send**. The
 editor opens and Claude builds it (see [Writing with Claude](/editors/writing-with-claude/)).
 
 The menu's links are changed under **Settings**, **Menu**, not in the header itself. See

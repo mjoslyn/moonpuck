@@ -10,7 +10,7 @@ Saving and publishing are two different things:
 - **Saving** keeps your work. Only the people who look after the site can see it.
 - **Publishing** puts it on your website for visitors.
 
-A page you are working on is always saved; it only changes for visitors when you publish.
+A page you are working on is always saved. It changes for visitors only when you publish.
 
 ![The buttons at the top of the editor](../../../assets/guide/editor-header.png)
 
@@ -106,7 +106,7 @@ changes.
 ## Taking a page off the site
 
 - **Unpublish** takes the page off your site and keeps it as a draft. A box asks **Take this page off
-  the site? It stays here as a draft.** Click **OK**. Any unpublished changes are kept in the draft.
+  the site? It stays here as a draft.** Click **OK**. The draft keeps any unpublished changes.
 - **Discard changes** throws away your unpublished changes and goes back to the live version. A box asks
   **Discard the unpublished changes and go back to the live page?** Click **OK**, and the editor reloads
   with the live page. It only appears on a published page with unpublished changes.
@@ -141,7 +141,7 @@ The editor keeps earlier versions of the page. To go back to one:
 4. The restored version saves itself as a draft. Click **Publish changes** to put it on the site (or keep
    editing first).
 
-Restoring can be undone with the undo arrow, so it is safe to try. Nothing goes live until you publish.
+You can undo a restore with the undo arrow, so it is safe to try. Nothing goes live until you publish.
 
 ![The Revisions list](../../../assets/guide/revisions.png)
 
@@ -153,8 +153,8 @@ and the page's title then.
 
 - **Checkpoints** are the versions saved with a button: **Save draft**, **Publish**, **Publish
   changes**, **Unpublish** or **Save & apply**. They are marked **Checkpoint** and have a colored line beside them.
-- **Automatic saves** between them are kept as one version for each stretch of up to ten minutes of one
-  person's editing, so the list doesn't fill up with a version every few seconds. When a stretch lasted a
+- **Automatic saves** between them count as one version for each stretch of up to ten minutes of one
+  person's editing. This keeps the list from filling up with a version every few seconds. When a stretch lasted a
   while, it says when the edits began, for example **(edits since 3:05 PM)**.
 
 Tick **Checkpoints only** to hide the automatic saves.
@@ -213,17 +213,17 @@ may have changed it.
 
 ## Templates: Save & apply
 
-Templates, template parts (such as the header and footer) and patterns have no drafts. They are
-saved with **Save & apply**, which changes every page that uses them on the site straight away.
+Templates, template parts (such as the header and footer) and patterns have no drafts. You
+save them with **Save & apply**, which changes every page that uses them on the site straight away.
 
 Some pages are made entirely from their template (often the home page). When you open one, a line under
 the editor's toolbar says **Editing this page's template** and its name, and the button is **Save &
 apply** too. If that page has unpublished changes, **Save & apply** saves the template and keeps the
-page's own settings with those changes; the live page stays as it is until you publish them.
+page's own settings with those changes. The live page stays as it is until you publish them.
 
 Templates, template parts and patterns opened on their own have no **Revisions** (it says **Templates
-have no revisions.**). A page edited through its template does: in **Revisions**, it can only restore
-versions saved with the template it uses now; others say **preview only**. A restored layout says **Save & apply keeps it**: it changes nothing until you
+have no revisions.**). A page edited through its template does. In **Revisions**, it can only restore
+versions saved with the template it uses now. Other versions say **preview only**. A restored layout says **Save & apply keeps it**: it changes nothing until you
 click **Save & apply**, which applies it to every page using that template.
 
 See [Using the page editor](/editors/page-editor/#the-header-footer-and-templates) for more about
@@ -231,8 +231,8 @@ templates.
 
 ## Other messages
 
-- **Saved, but this version could not be added to the history.** Your page is saved; only its entry in
+- **Saved, but this version could not be added to the history.** Your page is saved. Only its entry in
   **Revisions** is missing. Carry on as usual.
 - **A linked pattern whose blocks were changed was saved as an ordinary copy.** The blocks inside a
-  linked pattern on this page no longer match the pattern, so the page now keeps its own copy, which no
+  linked pattern on this page no longer match the pattern. So the page now keeps its own copy, which no
   longer follows changes to the pattern.
