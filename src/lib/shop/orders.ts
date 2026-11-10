@@ -359,6 +359,8 @@ async function afterPaid(db: Db, id: number, origin?: string) {
     const products = (o?.lines ?? []).filter((l) => l.track).map((l) => l.product);
     await alertLowStock(db, products, siteOrigin(origin)).catch((e) => console.error(`shop: low-stock check for order ${id}: ${(e as Error).message}`));
   }
+  // Then the site's plugins (src/lib/site/plugins.ts), after the answer.
+  (await import('../site/plugins')).emitPluginEvent('shopOrderPaid', { orderId: id, stockTaken: !!took });
 }
 
 /** The buyer back from the provider (/api/shop/return): the order checked, and the address of its page. */
@@ -491,6 +493,7 @@ export async function restockOrder(db: Db, id: number, lines: Restock, by = ''):
     const { data: o } = await db.from('shop_orders').select('lines').eq('id', id).maybeSingle<Pick<ShopOrder, 'lines'>>();
     const what = Object.entries(back).map(([i, n]) => `${n} × ${o?.lines[Number(i)]?.title ?? 'item'}${o?.lines[Number(i)]?.label ? ` (${o.lines[Number(i)].label})` : ''}`).join(', ');
     await logOrder(db, id, 'restock', `Put back in stock: ${what}.`, by);
+    (await import('../site/plugins')).emitPluginEvent('shopOrderRestocked', { orderId: id, lines: back });
   }
   return back;
 }

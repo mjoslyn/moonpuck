@@ -5,6 +5,7 @@ import { handle } from '@astrojs/cloudflare/handler';
 import { cache } from 'cloudflare:workers';
 import { inScope, setBindings, type Bindings } from './lib/platform';
 import type { Job } from './lib/jobs';
+import type { ScheduleSlot } from './lib/site/plugins';
 import { PAGE_CACHE_TAG } from './lib/cache';
 
 type Env = Bindings & Record<string, unknown>;
@@ -20,20 +21,21 @@ interface MessageBatch<T> {
   messages: { body: T; ack(): void }[];
 }
 
-/** The scheduled runs, by their cron (wrangler.jsonc triggers). */
-const SCHEDULES: Record<string, { name: string; run: () => Promise<string> }> = {
+/** The scheduled runs, by their cron (wrangler.jsonc triggers), each with the plugins' slot it runs (src/lib/site/plugins.ts). */
+const SCHEDULES: Record<string, { name: string; slot?: ScheduleSlot; run: () => Promise<string> }> = {
   // Mailing: due campaigns, sending runs to carry on, digests (src/lib/mailing/due.ts).
-  '*/5 * * * *': { name: 'mail due', run: async () => (await import('./lib/mailing/due')).runDue() },
+  '*/5 * * * *': { name: 'mail due', slot: 'every5Minutes', run: async () => (await import('./lib/mailing/due')).runDue() },
   // Mailing upkeep: Mailgun's bounces and complaints, old events pruned; 06:20 UTC.
   '20 6 * * *': { name: 'mail nightly', run: async () => (await import('./lib/mailing/due')).runNightly() },
   // Snapshots of this site when they are on and due (src/lib/sync.ts); 07:00 UTC.
-  '0 7 * * *': { name: 'scheduled snapshot', run: async () => (await import('./lib/sync')).scheduledSnapshot() },
+  '0 7 * * *': { name: 'scheduled snapshot', slot: 'daily', run: async () => (await import('./lib/sync')).scheduledSnapshot() },
   // Ticket reminders, follow-ups, expired holds, waitlists (src/lib/tickets/orders.ts), and yesterday's
   // visitor hashes and old site statistics pruned (src/lib/stats.ts), and the email log's old entries
   // (src/lib/mail-log.ts), the shop's expired holds (src/lib/shop/orders.ts) and donations' unpaid
   // checkouts (src/lib/donations/donations.ts); hourly.
   '0 * * * *': {
     name: 'hourly',
+    slot: 'hourly',
     run: async () => {
       const db = (await import('./lib/db/site')).siteDb();
       const stats = await (await import('./lib/stats')).pruneStats(db).catch((e: Error) => `stats prune failed: ${e.message}`);
@@ -58,6 +60,8 @@ async function runJob(job: Job): Promise<void> {
       if (done?.site === 'here' && typeof cache?.purge === 'function') await cache.purge({ tags: [PAGE_CACHE_TAG] }).catch((e: Error) => console.error(`page cache purge failed: ${e.message}`));
       return;
     }
+    case 'plugin':
+      return (await import('./lib/site/plugins')).runPluginJob(job.plugin, job.job, job.data);
   }
 }
 
@@ -77,6 +81,15 @@ export default {
         console.log(`${s.name}: ${await s.run()}`);
       } catch (e) {
         console.error(`${s.name} failed: ${(e as Error).message}`);
+      }
+      // The site's plugins' work in the same run, after the core's (and whether or not it failed).
+      if (s.slot) {
+        try {
+          const plugins = await (await import('./lib/site/plugins')).runPluginSchedule(s.slot);
+          if (plugins) console.log(`${s.name} plugins: ${plugins}`);
+        } catch (e) {
+          console.error(`${s.name} plugins failed: ${(e as Error).message}`);
+        }
       }
     });
   },

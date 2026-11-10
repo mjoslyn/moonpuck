@@ -2,43 +2,13 @@
 // up to *_awaiting_password.sql). The server's own role (`service`) isn't checked. Everyone else is a
 // signed-in person: editors and admins get what the rules give them; anyone else (members, sign-ups,
 // visitors) gets nothing. Reads a role may not make return no rows; refused inserts and writes whose
-// rows fail a check are errors; updates and deletes reach only the rows the role may change.
+// rows fail a check are errors; updates and deletes reach only the rows the role may change. A site's
+// own tables (its plugins' too) have theirs in src/site/db.ts.
 import type { Filter } from './query';
+import { admins, adminsOrEditorsWhen, all, editors, nobody, readOnly, type Ctx, type Rule, type TablePolicy } from './access';
+import { SITE_POLICIES } from '../../site/db';
 
-export type Role = 'service' | 'admin' | 'editor' | 'none';
-
-export interface Ctx {
-  role: Role;
-  /** The signed-in person (their auth user id). */
-  uid?: string;
-}
-
-/** A write rule with conditions: the rows it reaches (`using`) and what the written rows must be (`check`). */
-export interface Rule {
-  using: (ctx: Ctx) => boolean | Filter;
-  check: (ctx: Ctx, row: Record<string, any>) => boolean;
-}
-
-type Access = (ctx: Ctx) => boolean;
-const editors: Access = (c) => c.role === 'editor' || c.role === 'admin';
-const admins: Access = (c) => c.role === 'admin';
-const nobody: Access = () => false;
-
-interface TablePolicy {
-  select: Access;
-  insert: Access | Rule;
-  update: Access | Rule;
-  delete: Access | Rule;
-}
-
-const all = (read: Access, write: Access | Rule): TablePolicy => ({ select: read, insert: write, update: write, delete: write });
-const readOnly = (read: Access): TablePolicy => all(read, nobody);
-
-/** Admins change any row; editors only rows (as they are and as written) that `editorRow` allows. */
-const adminsOrEditorsWhen = (filter: Filter, editorRow: (row: Record<string, any>) => boolean): Rule => ({
-  using: (c) => (admins(c) ? true : editors(c) ? filter : false),
-  check: (c, row) => admins(c) || (editors(c) && editorRow(row)),
-});
+export type { Access, Ctx, Role, Rule, TablePolicy } from './access';
 
 export const POLICIES: Record<string, TablePolicy> = {
   campaign_batches: readOnly(editors),
@@ -104,6 +74,10 @@ export const POLICIES: Record<string, TablePolicy> = {
   },
 };
 
+/** The core's policies with the site's (src/site/db.ts) for its own tables; a core table keeps the core's. */
+export const withSitePolicies = (core: Record<string, TablePolicy>, site: Record<string, TablePolicy>): Record<string, TablePolicy> => ({ ...site, ...core });
+const ALL_POLICIES = withSitePolicies(POLICIES, SITE_POLICIES);
+
 /**
  * What `ctx` may do with `table`: `true` (all rows), `false` (nothing), or for a read a filter on the
  * rows it sees, for a write (`write`) a Rule with conditions. Tables without policies are the server's.
@@ -112,7 +86,7 @@ export function policyFor(table: string, op: 'select', ctx: Ctx): boolean | Filt
 export function policyFor(table: string, op: 'insert' | 'update' | 'delete', ctx: Ctx, write: true): boolean | Rule;
 export function policyFor(table: string, op: 'select' | 'insert' | 'update' | 'delete', ctx: Ctx, _write?: true): boolean | Filter | Rule {
   if (ctx.role === 'service') return true;
-  const p = POLICIES[table];
+  const p = ALL_POLICIES[table];
   if (!p || ctx.role === 'none') return false;
   const access = p[op];
   if (typeof access === 'function') return access(ctx);

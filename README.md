@@ -212,6 +212,7 @@ Everything site-specific lives in `src/site/`:
 | `render.ts`, `editor.tsx` | Your own blocks (their markup in `render/c/`), and their settings panels |
 | `migrations/` | Content migrations for your own data changes |
 | `pages/api/`, `routes.json` | Your own endpoints |
+| `plugins/`, `server.ts`, `db.ts` | Plugins you install (one folder each), their server parts, and your own tables' policies. See Plugins in CORE.md |
 | `public/` | Your own static files (scripts, images), served at the same paths as `public/` |
 | `scripts/` | Your own checks |
 

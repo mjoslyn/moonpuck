@@ -24,9 +24,11 @@ export const contentHref = (type: string) => `/admin/?type=${type}`;
  * What the bar offers this person: Content's types (those shown, `types`), Taxonomies and, in a section
  * of its own, Templates; Donations while it is on; Compose, for each thing it makes (an entry of a type with a page, `composable`,
  * then a form and, while Mailing is on, a campaign, then a template, part or pattern); optional features
- * only while they are on (the Shop's Orders among them); admin screens to admins.
+ * only while they are on (the Shop's Orders among them); admin screens to admins. The site's plugins'
+ * links (`plugins`, src/lib/site/plugins.ts, `navLinksOf`) go in the dropdown they name (an existing one,
+ * or a new one after the others), or after everything else as links of their own.
  */
-export function adminNav(o: { isAdmin: boolean; ticketsOn: boolean; mailOn: boolean; membersOn: boolean; shopOn?: boolean; donationsOn?: boolean; types: { type: string; label: string }[]; composable: { type: string; singular: string }[] }): NavItem[] {
+export function adminNav(o: { isAdmin: boolean; ticketsOn: boolean; mailOn: boolean; membersOn: boolean; shopOn?: boolean; donationsOn?: boolean; plugins?: (NavLink & { group?: string })[]; types: { type: string; label: string }[]; composable: { type: string; singular: string }[] }): NavItem[] {
   const people: NavLink[] = [
     ...(o.isAdmin ? [{ href: '/admin/users/', label: 'Users' }] : []),
     ...(o.isAdmin && o.membersOn ? [{ href: '/admin/members/', label: 'Members' }] : []),
@@ -39,6 +41,15 @@ export function adminNav(o: { isAdmin: boolean; ticketsOn: boolean; mailOn: bool
     // The shop's orders, discounts, stock and stats while it is on (Settings > Shop); products stay under Content.
     { label: 'Shop', items: o.shopOn ? [{ href: '/admin/shop/', label: 'Orders' }, { href: '/admin/shop/discounts/', label: 'Discounts' }, { href: '/admin/shop/stock/', label: 'Stock' }, { href: '/admin/shop/stats/', label: 'Stats' }] : [] },
   ];
+  const own: NavLink[] = [];
+  for (const { group, ...link } of o.plugins ?? []) {
+    if (!group) own.push(link);
+    else {
+      const g = groups.find((x) => x.label === group);
+      if (g) g.items.push(link);
+      else groups.push({ label: group, items: [link] });
+    }
+  }
   return [
     { label: 'Content', items: [...o.types.map((t) => ({ href: contentHref(t.type), label: t.label })), { href: contentHref('terms'), label: 'Taxonomies' }, { href: '/admin/templates/', label: 'Templates', section: true }], also: ['/admin/content', '/admin/edit'] },
     {
@@ -58,6 +69,7 @@ export function adminNav(o: { isAdmin: boolean; ticketsOn: boolean; mailOn: bool
     ...(o.donationsOn ? [{ href: '/admin/donations/', label: 'Donations' }] : []),
     // A group of one is just its link.
     ...groups.filter((g) => g.items.length).map((g) => (g.items.length === 1 ? g.items[0] : g)),
+    ...own,
   ];
 }
 

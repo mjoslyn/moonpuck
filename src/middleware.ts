@@ -8,12 +8,14 @@ import { refreshSavedKeys } from './lib/site-keys';
 import { changesPages, PAGE_CACHE_TAG } from './lib/cache';
 import { AUTOSAVE } from './lib/admin/revisions';
 import { env } from './lib/env';
+import { adminOnlyIn, sitePlugins } from './lib/site/plugins';
 // Server-only work the page renderer calls (src/render/hooks.ts).
 import './lib/mailing/page-data';
 import './lib/shop/page-data';
 import './lib/donations/page-data';
 
 const PUBLIC_ADMIN = ['/admin/login/', '/admin/set-password/', '/api/auth/login', '/api/auth/logout'];
+// Admin screens and APIs only admins may open (and the site's plugins' own, `adminOnly`).
 const ADMIN_ONLY = ['/admin/settings', '/admin/email-log', '/api/admin/connections', '/api/admin/taxonomies', '/api/admin/types', '/admin/users', '/admin/members', '/api/admin/redirects', '/api/admin/settings', '/api/admin/sync', '/api/admin/users', '/api/admin/members', '/api/admin/mailing/contacts', '/api/admin/mailing/lists'];
 
 // Astro's own same-site check (security.checkOrigin) is off in astro.config.mjs and done here instead, the
@@ -128,7 +130,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (pathname.startsWith('/api/')) return new Response('Forbidden', { status: 403 });
     return context.redirect('/admin/login/?error=forbidden');
   }
-  if (profile.role !== 'admin' && ADMIN_ONLY.some((p) => pathname.startsWith(p))) {
+  if (profile.role !== 'admin' && (ADMIN_ONLY.some((p) => pathname.startsWith(p)) || adminOnlyIn(await sitePlugins(), pathname))) {
     if (pathname.startsWith('/api/')) return new Response('Admins only', { status: 403 });
     return context.redirect('/admin/?error=admins-only');
   }

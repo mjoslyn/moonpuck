@@ -95,6 +95,9 @@ Concise and factual: what changed, why, and any measurements; no editorial frami
 ## Open work
 
 - Core tests that run on the example site's content (several e2e scripts assume a site's content).
+- Plugins (CORE.md, Plugins): the hooks are in place, with no plugin built on them yet. The first is to
+  be a Square catalog and stock sync; add events and hooks as plugins need them, each in the same
+  registry (`src/lib/site/plugins.ts`).
 - The shop (CORE.md, Shop; its plan and decisions: `docs/shop-plan.md`) is checked against Shippo's and
   Stripe's test APIs; still to check on a deployed copy: Shippo's tracking webhook and webhook delivery
   from Stripe itself.

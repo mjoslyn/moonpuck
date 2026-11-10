@@ -22,8 +22,9 @@ remote. Its history starts from this one, with a commit that swaps the example `
   `src/lib/content/card-presets.ts`), `pages/api/` (endpoints, listed in `routes.json`), `styles/`
   (`tokens.css`, `theme.css`), `public/` (static files, served at the same paths as `public/` by the
   `site-public` integration in `astro.config.mjs`; a site file wins), `scripts/` (the site's own checks)
-  and `migrations/` (content migrations). The entry points stay at the top: `config.ts`, `render.ts`,
-  `editor.tsx`, `presets.json`, `routes.json`, `moved-paths.json`.
+  and `migrations/` (content migrations), and `plugins/` (see Plugins). The entry points stay at the top:
+  `config.ts`, `render.ts`, `editor.tsx`, `server.ts` (its plugins), `db.ts` (its tables' policies),
+  `schema.ts` (its tables, generated), `presets.json`, `routes.json`, `moved-paths.json`.
 - This file (`CORE.md`) documents the core and belongs to upstream; sites don't edit it. A site's own
   notes go in its `AGENTS.md`, which imports this file.
 - A core fix found while working on a site can be made there and sent upstream: commit it on its own
@@ -82,6 +83,36 @@ Compose's house style comes from the config's `compose`: colors (bands `plain`/`
 body, on-dark, accent and card; role tokens by default), and shapes and type (`headingFont`, `rule`
 between eyebrow and heading, `bodySize`/`bodyWeight`/`bodyLineHeight`, `bandPadding`, `textWidth`,
 `wideWidth`, `radius`, `buttonRadius`, `buttonCaps`; the defaults are the original house style).
+
+## Plugins
+
+A plugin is a feature a site installs, in `src/site/plugins/<name>/`, so core updates never touch it
+(the developer docs' Plugins page has the walk-through). The site wires each part in itself: the server
+part in `src/site/server.ts` (`defineServer({ plugins })`), blocks and panels in `render.ts` and
+`editor.tsx`, table policies in `src/site/db.ts` (`SITE_POLICIES`), pages and endpoints in `routes.json`.
+The core's side is `src/lib/site/plugins.ts` (server only):
+
+- `definePlugin` (`ServerPlugin`): `name` (unique, lower case, digits and dashes; `checkPlugins`),
+  `schedules` (`every5Minutes`, `hourly`, `daily`: run by the Worker's runs of those crons after the
+  core's own work, `SCHEDULES[].slot` in `src/worker.ts`, `runPluginSchedule`), `jobs` (by name, started
+  with `startPluginJob` on the jobs queue as `{ kind: 'plugin' }`, else after the answer), `on` (events:
+  `shopOrderPaid` from the shop's `afterPaid`, once per order, and `shopOrderRestocked` from
+  `restockOrder`; `emitPluginEvent`, run after the answer), `nav` (admin bar links, `navLinksOf`, put in
+  the dropdown they name or after everything else by `adminNav`'s `plugins`; `admins`, `when(site)`) and
+  `adminOnly` (address prefixes under `/admin/` or `/api/admin/` only admins open, checked by the
+  middleware with `ADMIN_ONLY`, `adminOnlyIn`).
+- The site's list is imported only when a hook runs (`sitePlugins`), so plugin code can import any core
+  module without an import cycle. Every hook runs on its own: one that throws is logged, and the core and
+  other plugins carry on.
+- Tables: a plugin's migrations (`migrations/<14 digits>_site_<name>.sql`) are copied into
+  `db/migrations` by `scripts/plugin-migrations.ts` (`copyPluginMigrations`, run by `npm run db:migrate`
+  and `npm run deploy:remote`; a copy already there is never overwritten, and a name that isn't a site
+  migration's is refused). `scripts/db-schema.ts` writes the tables the site's migrations make
+  (`isSiteMigration`, `siteTables` in `scripts/lib/site-migrations.ts`; the four core migrations named
+  `*_site_*` before this rule are listed in `CORE_SITE_NAMED`, and the core names no more that way) to
+  `src/site/schema.ts` (`SITE_SCHEMA`, which the query layer reads after the core's), so a site's tables
+  never change the core's file. Their policies, written with `src/lib/db/access.ts`, go in
+  `SITE_POLICIES`; a core table's policy always wins (`withSitePolicies`).
 
 ## Theme
 
@@ -1884,7 +1915,8 @@ takes more, so local runs don't show these): a row's `json_object` has 16 column
   cache. Of the functions, editors may call `campaign_stats` and `ticket_sold`; the rest are the
   server's.
 - New tables get a migration in `db/migrations/`, `scripts/db-schema.ts` run again, and a line in
-  `POLICIES` (none: the server's only).
+  `POLICIES` (none: the server's only). A site's own tables (its plugins' too) go in
+  `src/site/schema.ts` and `SITE_POLICIES` instead (see Plugins).
 
 ## Hosting
 
@@ -1972,7 +2004,7 @@ Auth's own). Env: `.env.example`.
 ## Commands
 
 ```
-npx wrangler d1 migrations apply DB --local   # the local database's schema (npm run db:migrate)
+npx wrangler d1 migrations apply DB --local   # the local database's schema (npm run db:migrate, which copies plugins' migrations first)
 docker run -d -p 1025:1025 -p 8025:8025 axllent/mailpit   # a local mail catcher (SMTP_URL=smtp://127.0.0.1:1025)
 npx astro dev --background              # http://localhost:4321 (the Worker, in workerd)
 npm run deploy                          # build and deploy the Worker (wrangler deploy)

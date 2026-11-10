@@ -102,3 +102,4 @@ Card fields available: `entry-title`, `entry-image`, `entry-excerpt`, `entry-dat
 - **Content migrations**: `src/site/migrations/index.ts` exports `MIGRATIONS`.
   `scripts/migrate-content.ts` runs them before the core's.
 - **Database migrations**: `db/migrations/YYYYMMDDHHMMSS_site_*.sql` (D1), beside the core's.
+- **Plugins**: features a site installs in `src/site/plugins/`: see [Plugins](../plugins/).

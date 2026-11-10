@@ -7,6 +7,7 @@
 // the server's, the policies (src/lib/db/policies.ts) decide what a query sees and may write; D1 has no
 // transactions to roll a refused write back, so rows are checked before they are written.
 import { SCHEMA, type TableSchema } from './schema';
+import { SITE_SCHEMA } from '../../site/schema';
 import { shape, type CallSpec, type DbError, type Executor, type Filter, type Order, type QuerySpec, type Result, type Scoped } from './query';
 import { policyFor, type Ctx, type Rule } from './policies';
 import { callFunction } from './functions';
@@ -28,7 +29,7 @@ const ident = (name: string) => `"${name.replace(/"/g, '""')}"`;
 const lit = (s: string) => `'${s.replace(/'/g, "''")}'`;
 
 function tableOf(name: string): TableSchema {
-  return SCHEMA[name] ?? fail(`Could not find the table 'public.${name}' in the schema cache`, 'PGRST205');
+  return SCHEMA[name] ?? SITE_SCHEMA[name] ?? fail(`Could not find the table 'public.${name}' in the schema cache`, 'PGRST205');
 }
 
 /** Bound values, numbered ?1, ?2... in the order they are added. */
