@@ -2026,7 +2026,7 @@ npx tsx scripts/checks/mailing.ts       # signed links, mailing emails, link tra
 npx tsx --env-file=.env scripts/media-formats.ts   # backfill AVIF/WebP for existing media
 ```
 
-`npm test` runs the unit tests (Vitest, `vitest.config.ts`, `tests/**/*.test.ts`): each file gets a database of
+`npm test` runs the unit tests (Vitest, `vitest.config.ts`, `tests/**/*.test.ts`, and the site's and its plugins' own under `src/site/`): each file gets a database of
 its own, a copy of one made from `db/migrations` (`tests/setup/global.ts`, `tests/setup/db.ts`), as the
 DB binding, and every statement sent to it is checked against D1's limits first (`tests/setup/d1-limits.ts`:
 32 arguments per SQL function, 50-byte LIKE and GLOB patterns, 100 bound values, 100 KB of SQL, 2 MB per
