@@ -9,6 +9,22 @@ A plugin is a feature a site installs that the core doesn't have, such as a sync
 It lives in the site, in `src/site/plugins/<name>/`, so core updates never touch it. A site wires each
 plugin in itself, in the same files it uses for its own code.
 
+## Installing one
+
+A plugin usually lives in its own repository. Install it, and later update it, from the site's folder:
+
+```
+npm run plugins:add -- https://github.com/<owner>/moonpuck-plugin-square-sync.git
+npm run plugins:update                  # every plugin
+npm run plugins:update -- square-sync   # just this one
+npm run plugins:update -- --check       # only list what would come in
+npm run plugins:list
+```
+
+Each plugin is kept as a squashed git subtree, so its files are committed in the site. Its repository
+and branch are listed in `src/site/plugins.json`. `npm run core:update` updates only the core, never the
+plugins. After adding a plugin, wire it in (below).
+
 ## Layout
 
 ```

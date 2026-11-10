@@ -17,7 +17,10 @@
     "seed": "tsx --env-file=.env scripts/seed.ts",
     "deploy": "npm run build && wrangler deploy",
     "deploy:remote": "tsx scripts/plugin-migrations.ts && wrangler d1 migrations apply DB --remote && wrangler deploy",
-    "core:update": "node scripts/update-core.mjs"
+    "core:update": "node scripts/update-core.mjs",
+    "plugins:add": "tsx scripts/plugins.ts add",
+    "plugins:update": "tsx scripts/plugins.ts update",
+    "plugins:list": "tsx scripts/plugins.ts list"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.129.0",

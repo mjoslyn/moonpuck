@@ -5,12 +5,14 @@
 // and no merge under way, fetches upstream and tries the merge in memory (git merge-tree), listing
 // every file that would conflict. Conflicts only in the files a site keeps as its own (KEEP) are taken
 // as the site's; any other conflict stops it with the branch as it was. Then it merges, says which
-// migrations came in and installs the dependencies when package.json or the lockfile changed.
+// migrations came in and installs the dependencies when package.json or the lockfile changed. It never
+// touches the site's plugins (src/site/plugins/): those update with npm run plugins:update.
 //
 //   npm run core:update                    merge upstream/main
 //   npm run core:update -- --check         only check: what would come in, and any conflicts
 //   npm run core:update -- --remote core --branch main --no-install
 import { execFileSync, spawnSync } from 'node:child_process';
+import fs from 'node:fs';
 
 /** Files a site keeps as its own when the core changes them too. */
 export const KEEP = ['AGENTS.md', 'README.md', '.env.example', 'wrangler.jsonc'];
@@ -117,4 +119,5 @@ if (migrations.length) console.log('  npm run db:migrate                     # t
 console.log('  npx tsx --env-file=.env scripts/migrate-content.ts   # if stored content needs migrating');
 console.log('  npm run check && npm test');
 if (depsChanged) console.log('  restart the dev server (the dependencies changed)');
+if (fs.existsSync('src/site/plugins.json')) console.log('  npm run plugins:update                 # the plugins update on their own, if wanted');
 console.log('  then push the site, which deploys it.');

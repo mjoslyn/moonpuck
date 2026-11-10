@@ -101,6 +101,11 @@ The core's side is `src/lib/site/plugins.ts` (server only):
   the dropdown they name or after everything else by `adminNav`'s `plugins`; `admins`, `when(site)`) and
   `adminOnly` (address prefixes under `/admin/` or `/api/admin/` only admins open, checked by the
   middleware with `ADMIN_ONLY`, `adminOnlyIn`).
+- A plugin can live in its own repository: `npm run plugins:add -- <repository>` installs it as a squashed
+  git subtree at `src/site/plugins/<name>/` (its repository and branch in `src/site/plugins.json`), and
+  `npm run plugins:update [-- <name>...]` takes the latest of all or some (`scripts/plugins.ts`,
+  `scripts/lib/plugin-repos.ts`; `--check` only lists what would come in). The core's update never
+  touches plugins. See README.md, Plugins.
 - The site's list is imported only when a hook runs (`sitePlugins`), so plugin code can import any core
   module without an import cycle. Every hook runs on its own: one that throws is logged, and the core and
   other plugins carry on.

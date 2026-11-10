@@ -318,6 +318,28 @@ The merges stay clean as long as the site only changes `src/site/`, its own migr
 (`db/migrations/*_site_*.sql`), `AGENTS.md`, `README.md` and its local settings. If you fix a core bug while working on a site,
 commit the fix on its own and `git cherry-pick` it into the core repository.
 
+## Plugins
+
+A plugin is a feature that lives in its own repository and is installed into a site at
+`src/site/plugins/<name>/`. `core:update` never touches plugins; they have their own commands:
+
+```
+npm run plugins:add -- https://github.com/<owner>/moonpuck-plugin-square-sync.git   # install (--name, --ref)
+npm run plugins:update                             # every plugin to its branch's latest
+npm run plugins:update -- square-sync              # one plugin (or several, by name)
+npm run plugins:update -- --check                  # only check: what would come in
+npm run plugins:list                               # what is installed, from where, at which commit
+```
+
+`scripts/plugins.ts` keeps each plugin as a squashed git subtree, so its files are committed in the site
+and deploys need nothing else. Each plugin's repository and branch (or tag, `--ref`) are in
+`src/site/plugins.json`, and the folder name comes from the repository name without `moonpuck-plugin-`
+(`--name` sets another). Like `core:update`, the commands stop before changing anything if there are
+uncommitted changes or a merge under way. An update that conflicts with changes the site made to a
+plugin's files stops on the merge: resolve it and commit, or `git merge --abort`. After an add or update,
+the plugins' new migrations are copied into `db/migrations` and committed, and it says what to run next.
+After adding a plugin, wire it in as its README says (CORE.md, Plugins).
+
 ## Checks
 
 ```
