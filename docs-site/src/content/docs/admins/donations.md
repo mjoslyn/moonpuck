@@ -6,7 +6,7 @@ sidebar:
 ---
 
 Donations let people give to your organization from your site, once or every month, with a Donate block
-on a page. Editors place the blocks (see [Donations](/editors/donations/) in the Editor guide); this
+on a page. Editors place the blocks (see [Donations](/editors/donations/) in the Editor guide). This
 page covers the settings, refunds and monthly donors.
 
 ## Before you start
@@ -43,7 +43,7 @@ Open **Settings** (the gear), then **Donations** under **Features**. Change what
 **Covering the fees**
 
 - **Percent** and **Plus a fixed amount**: your provider's rate. Donors can then tick a box to add the
-  fees to their gift, so you receive all of it. Both empty: not offered.
+  fees to their gift, so you receive all of it. If both are empty, the box isn't offered.
 
 **The form**
 
@@ -53,14 +53,14 @@ Open **Settings** (the gear), then **Donations** under **Features**. Change what
 
 **Receipts**
 
-- **Organization's legal name**: empty, the site's name.
+- **Organization's legal name**: if empty, the site's name.
 - **Tax or charity number (such as an EIN)**.
 - **Receipt note**: such as "No goods or services were provided in exchange for this gift." Check the
   wording your country requires with your accountant.
 
 **Email me news** (while mailing lists are on)
 
-- **Lists it signs up to**: none ticked, no tick on the form. Donors who tick it confirm by email, as with
+- **Lists it signs up to**: if none are ticked, the form has no tick. Donors who tick it confirm by email, as with
   any sign-up.
 - **The tick's words**.
 
@@ -68,9 +68,9 @@ Open **Settings** (the gear), then **Donations** under **Features**. Change what
 
 - **Add a goal** for each appeal, with its **Name**, **Target**, and optional **Starts** and **Ends**
   dates. Only gifts paid between the dates count.
-- A Donate block's **Counts towards** setting adds its gifts to a goal; a Donation progress block shows
+- A Donate block's **Counts towards** setting adds its gifts to a goal. A Donation progress block shows
   the goal's total.
-- Deleting a goal keeps its gifts; they are just no longer counted towards it.
+- Deleting a goal keeps its gifts. They no longer count towards it.
 
 **Emails**
 
@@ -91,7 +91,7 @@ tags and a **Donation details** block:
 
 1. Click **Donations** in the top bar and find the gift (search by receipt number, email or name).
 2. Click its receipt number.
-3. Under **Refund**, the amount left is filled in; change it for part of the gift.
+3. Under **Refund**, the site fills in the amount left. Change it to refund part of the gift.
 4. Press **Refund** and confirm.
 
 The money goes back to the donor's card at Stripe or Square, the donor is emailed, and the refund comes
@@ -103,7 +103,7 @@ The **Monthly donors** tab lists everyone giving monthly, with what they give, s
 status:
 
 - **Active**: paid this month.
-- **Payment failed**: the latest payment didn't go through; Stripe tries again. If it keeps failing,
+- **Payment failed**: the latest payment didn't go through. Stripe tries again. If it keeps failing,
   Stripe cancels the gift.
 - **Cancelled**: no more payments.
 
@@ -114,16 +114,16 @@ Click a donor to see each month's gift and:
 
 Donors can cancel their own gift from the link in their receipts.
 
-## Good to know
+## Copies of the site, refunds and tax
 
-- Gifts and monthly donors are in the site's backups, and **Settings > Sync** can copy them to another
-  copy of the site (**Monthly donors** and **Donations**). A sync or restore never deletes a gift, never
-  takes one back to an earlier state (a refund stays a refund), sends no receipts and changes nothing at
-  Stripe. Backups hold donors' names and emails: keep downloaded backups private.
+- Gifts and monthly donors are in the site's backups. **Settings > Sync** can copy them to another
+  copy of the site (**Monthly donors** and **Donations**). A sync or restore never deletes a gift and
+  never takes one back to an earlier state (a refund stays a refund). It sends no receipts and changes
+  nothing at Stripe. Backups hold donors' names and emails, so keep downloaded backups private.
 - A gift or monthly gift is looked after by the copy of the site it was made on. Another copy you sync
   it to shows it, but records none of its payments, sends its donor nothing, and can't refund or cancel
-  it: it says where it was made.
-- If two people press **Refund** on the same gift at once, only one refund goes through; the other is
-  told to reload and try again.
+  it. That copy says where the gift was made.
+- If two people press **Refund** on the same gift at once, only one refund goes through. The other
+  person is told to reload and try again.
 - The site doesn't file tax returns or send year-end statements for you. Export the year's gifts as CSV
   for that.

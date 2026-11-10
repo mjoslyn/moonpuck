@@ -41,7 +41,7 @@ An item can also open a larger drop-down panel: add **Links** under a **Links he
 | **Stats** | Whether Stats recognises returning visitors with a cookie (see [The Stats cookie](/admins/popups-and-cookies/#the-stats-cookie)). |
 | **Code snippets** | Code to put on every page: paste a tag from an analytics, chat or advertising service, or a site verification tag, into **Header**, **Body start** or **Footer**, as the service's instructions say. Paste only code from a service you trust. Tick **Only after visitors accept cookies** for tracking tags. |
 | **Events**, **Tickets**, **Members**, **Mailing Lists** | Features the site can use, each turned on here (see [Turning features on](/admins/features/)). |
-| **Shop** | The shop on or off, its currency and the unit weights are in and its checkout (see [Setting up the shop](/admins/shop/)). |
+| **Shop** | Whether the shop is on, its currency, the unit for weights, and its checkout (see [Setting up the shop](/admins/shop/)). |
 | **Connections** | Connecting Claude, card payments (Stripe or Square) and Mailgun (see [Connections](/admins/connections/)). |
 | **Accessibility** | Whether publishing waits for the [accessibility check](/editors/accessibility/). |
 | **Redirects** | Send visitors from an old address to a new one (see [Redirects and missing pages](/admins/redirects/)). |
@@ -65,8 +65,8 @@ changes on the site.
 - **On dark backgrounds**: the color to use in its place inside dark sections, such as a lighter blue,
   so text in it stays readable.
 
-**Add color** adds one, and **↑** and **↓** move a color up or down the list editors choose from. A color that something else in the theme uses can't be removed until that
-is changed.
+**Add color** adds one, and **↑** and **↓** move a color up or down the list editors choose from.
+You can't remove a color that something else in the theme uses until you change that.
 
 **What each color is for**, each one of the palette's colors or a color code:
 
@@ -109,7 +109,7 @@ was built with. Click **Save settings** to keep that.
 
 **Admin screens** sets how these admin screens and the page editor look, for everyone who signs in:
 
-- **Match the site**: on, they take the site's accent color, its dark background color for the menu bar,
+- **Match the site**: when on, they take the site's accent color, its dark background color for the menu bar,
   and its logo. Untick it to choose their own.
 - **Menu bar logo**: shown in the menu bar in place of the site name, up to 32px tall. Choose one that reads on
   the menu bar's color.
@@ -123,12 +123,12 @@ When a page is shared on Facebook, LinkedIn, X, Slack or in a text message, the 
 with the link. A page whose SEO settings have no **Share image** gets a share card: a picture made from
 the page's title, what kind of page it is and its featured image, with the site's name and icon.
 
-- **Make share cards** (Settings > Social): on unless you untick it. Off, pages without a share image
+- **Make share cards** (Settings > Social): on unless you untick it. When off, pages without a share image
   use their featured image, then the default share image.
 - **Default share image**: the photo on the cards of pages without a featured image.
 
-A card is made the first time someone shares the page, and made again when its title or featured
-image changes. A page with its own **Share image** always uses that. Drafts and members-only pages
+The site makes a card the first time someone shares the page, and makes it again when its title or
+featured image changes. A page with its own **Share image** always uses that. Drafts and members-only pages
 don't get a card.
 
 ## The home page

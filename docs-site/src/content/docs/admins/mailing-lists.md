@@ -9,12 +9,12 @@ Mailing lists let the site send news by email to people who signed up for it. Ed
 campaigns and weekly digests (see [Mailing lists](/editors/mailing-lists/) in the Editor guide). Admins
 also:
 
-- set the feature up under **Settings**, **Mailing Lists**, and connect Mailgun;
-- make the lists;
-- add, import, unsubscribe, erase and export subscribers;
-- send, schedule, pause, cancel and approve campaigns;
-- turn weekly digests on;
-- resume sending when it has been paused for the whole site.
+- set the feature up under **Settings**, **Mailing Lists**, and connect Mailgun
+- make the lists
+- add, import, unsubscribe, erase and export subscribers
+- send, schedule, pause, cancel and approve campaigns
+- turn weekly digests on
+- resume sending when it has been paused for the whole site
 
 Everything except the settings is on the **Mailing Lists** screen: **People** in the top bar, then
 **Mailing Lists**.
@@ -41,7 +41,7 @@ also shows the site's Mailgun webhook address, which the connection sets up for 
 | Setting | What it does |
 | --- | --- |
 | **From name (empty: the site's name)** | The name emails come from. Each campaign or digest can use its own. |
-| **From address, before the @** | The first part of the sender's address; the rest is your Mailgun sending domain. Empty, it is "news". |
+| **From address, before the @** | The first part of the sender's address. The rest is your Mailgun sending domain. If empty, it is "news". |
 | **Replies go to (optional)** | Where replies to campaigns go, such as your office address. Each campaign or digest can use its own. |
 | **Postal address (required: every email shows it)** | Your organisation's postal address, shown in every email's footer. The law in many countries requires it, and nothing can be sent until it is filled in. |
 
@@ -57,9 +57,9 @@ The section also links to the site's ready-made pages, `/subscribe/`, `/unsubscr
 
 **Subscriber fields**
 
-Fields every subscriber can have besides first and last name, such as "Town" or "Business type". They are
-set on each subscriber, filled in from an import's columns of the same name, asked for by Subscribe
-blocks, used in segments, and put in emails as merge tags.
+Fields every subscriber can have besides first and last name, such as "Town" or "Business type". You set
+them on each subscriber, and an import fills them from columns of the same name. Subscribe blocks ask
+for them, segments use them, and emails show them as merge tags.
 
 1. Click **Add a field**.
 2. Type its name, such as "Town", and choose its type: **Text**, **Number**, **Date** or **Choice**. For a
@@ -69,7 +69,7 @@ blocks, used in segments, and put in emails as merge tags.
 4. Click **Save settings**.
 
 A name must start with a letter, can't repeat another field's, and can't be one of the built-in tags
-(such as `email` or `first_name`): the field says so. **Remove** takes a field away; subscribers keep their
+(such as `email` or `first_name`): the field says so. **Remove** takes a field away. Subscribers keep their
 values, which then show as other fields on each subscriber's page. A site can have up to 30 fields.
 
 **New campaigns**
@@ -86,9 +86,9 @@ Each campaign can change both.
 - **Spam complaints pass (% of delivered; default 0.1)**
 - **Bounces pass (% of sent; default 2)**
 
-These are checked once a campaign has 500 deliveries (and at least 2 complaints or 10 bounces). Past
-either, everything stops, digests included, and the site's admin address is emailed, until an admin
-resumes sending (see [When sending is paused](#when-sending-is-paused)). Mail services judge senders by
+The site checks these once a campaign has 500 deliveries (and at least 2 complaints or 10 bounces). Past
+either, all sending stops, digests included, until an admin resumes it (see
+[When sending is paused](#when-sending-is-paused)). The site's admin address gets an email. Mail services judge senders by
 these numbers, so a campaign that annoys people can harm every later one.
 
 ## Connecting Mailgun
@@ -118,7 +118,7 @@ To make a list:
 3. Click **Add list**.
 
 To change a list, edit its name, description, order or **Public** in its row and click **Save** in that
-row. The number box is its order: lists are shown with the lowest number first, in sign-up forms, on the
+row. The number box is its order. Lists show with the lowest number first, in sign-up forms, on the
 preferences page and everywhere else. A new list goes last.
 
 **Public or not**:
@@ -126,7 +126,7 @@ preferences page and everywhere else. A new list goes last.
 - **Public** lists are offered by Subscribe and Newsletter signup blocks, and on the email preferences
   page, where people choose their lists.
 - Other lists are only for people you add or import (and, on sites with members, members when the list is
-  offered to them). They don't show on the preferences page; **Unsubscribe from all** still takes people
+  offered to them). They don't show on the preferences page. **Unsubscribe from all** still takes people
   off them.
 
 **Remove** deletes a list (it asks first): its subscribers leave it, and their other lists stay.
@@ -157,7 +157,7 @@ up themselves.
 
 ### Importing a CSV file
 
-A CSV file is a spreadsheet saved as plain text; any spreadsheet program can save one.
+A CSV file is a spreadsheet saved as plain text. Any spreadsheet program can save one.
 
 1. Open **Import a CSV**.
 2. Choose the **File** (up to 5 MB).
@@ -181,8 +181,8 @@ The file needs a first row naming its columns. The site reads:
 | Any other column | Becomes a field of its own on each person, to use in segments. |
 
 A file without an `email` column is read as addresses in the first column and names in the second. Commas,
-semicolons and tabs between columns all work. Columns from the site's own export (`status`, `lists`,
-`consent_source` and the dates) are ignored, so an exported file imports back.
+semicolons and tabs between columns all work. The site ignores the columns of its own export (`status`,
+`lists`, `consent_source` and the dates), so an exported file imports back.
 
 Everyone imported is subscribed at once, without a confirmation email. People already on file are put on
 the list, gain the file's tags and fields, and get a name if they had none. Anyone who unsubscribed (from
@@ -217,8 +217,8 @@ Then click **Save**.
 
 - Ticking a list adds them to it, but only while they are **Subscribed**: someone waiting for confirmation
   or unsubscribed has to sign up (or confirm) themselves. Unticking a list takes them off it.
-- Under **Other fields**, fill in the empty row (a field and a value) to add a field; clear a value to
-  remove one.
+- To add a field under **Other fields**, fill in the empty row (a field and a value). To remove one,
+  clear its value.
 
 The **Consent** box shows how they agreed: the **Source**, when they **Agreed**, when they **Confirmed**,
 the **Wording** they agreed to, the **From address** (the internet address they signed up from), and when
@@ -244,10 +244,10 @@ have.
 
 ### Erasing someone
 
-When someone asks for their details to be deleted, click **Erase** on their page and confirm. Their record,
-what was sent to them and their clicks are deleted, and Mailgun's records of their address too. Only a
-one-way scrambled copy of the address (a hash) is kept, which can't be turned back into the address, so the
-site knows never to email it again unless they sign up themselves. Imports and **Add a contact** skip an
+When someone asks for their details to be deleted, click **Erase** on their page and confirm. The site
+deletes their record, what was sent to them and their clicks, and Mailgun's records of their address too.
+It keeps only a one-way scrambled copy of the address (a hash), which can't be turned back into the
+address. With it, the site knows never to email that address again unless they sign up themselves. Imports and **Add a contact** skip an
 erased address. Their address is also added to Mailgun's unsubscribe list.
 
 ### Exporting
@@ -257,7 +257,7 @@ their consent and dates. It imports back as it is.
 
 ## Sending a campaign
 
-Editors write campaigns and send tests; sending is yours. Before you send:
+Editors write campaigns and send tests. Sending is yours. Before you send:
 
 - Open the campaign and check its **Subject**, **To the lists**, **Segment** and, on sites with members,
   **Members**.
@@ -271,20 +271,20 @@ In the **Send** box of the campaign:
 
 Either way a box asks **Send this campaign now?** (or **Schedule this campaign?**), saying who it goes to
 and counting how many people that is now. Tick **I've sent a test and checked it. This can't be called back
-once it goes.** and click **Send** (or **Schedule**). **Not yet** goes back. Unsaved changes are saved
+once it goes.** and click **Send** (or **Schedule**). **Not yet** goes back. The site saves unsaved changes
 first.
 
-The count is who would get it at this moment. Whoever is still subscribed when it actually goes out is who
-gets it, so people who unsubscribe meanwhile are left out.
+The count is who would get it at this moment. It goes to whoever is still subscribed when it goes out, so people
+who unsubscribe in the meantime are left out.
 
 It won't send, and says why, when:
 
-- it has no subject (**Give it a subject.**);
-- no list is ticked (**Choose at least one list.**);
-- the postal address is missing under **Settings**, **Mailing Lists**;
-- nobody matches (the **Send** button stays greyed out with 0 people);
-- the site's address isn't set on the server: the message asks for `SITE_URL`, which whoever runs the site
-  sets, because the links in every email are made from it.
+- it has no subject (**Give it a subject.**)
+- no list is ticked (**Choose at least one list.**)
+- the postal address is missing under **Settings**, **Mailing Lists**
+- nobody matches (the **Send** button stays greyed out with 0 people)
+- the site's address isn't set on the server: the message asks for `SITE_URL`. Whoever runs the site
+  sets it, and the site makes the links in every email from it.
 
 ### A scheduled campaign
 
@@ -308,8 +308,8 @@ several minutes. Its page refreshes every 15 seconds, and **Sent** shows how man
 
 | Status | What to do |
 | --- | --- |
-| **Paused** | The reason shows beside the status. **Resume now** carries on with the people not sent to yet (a box, **Resume this campaign now?**, asks again with the count); you can also pick a time and **Schedule** it. **Cancel the campaign** stops it for good. |
-| **Failed** | The reason shows beside the status, such as Mailgun refusing the email or nobody on the lists being subscribed. Fix what it names, then click **Resume now**: the batches that failed are sent again, to those still subscribed then. |
+| **Paused** | The reason shows beside the status. **Resume now** carries on with the people not sent to yet (a box, **Resume this campaign now?**, asks again with the count). You can also pick a time and **Schedule** it. **Cancel the campaign** stops it for good. |
+| **Failed** | The reason shows beside the status, such as Mailgun refusing the email or nobody on the lists being subscribed. Fix what it names, then click **Resume now**. The site sends the failed batches again, to those still subscribed then. |
 | **Cancelled** | Nothing more goes. A cancelled campaign that sent nothing can be deleted. |
 
 Sometimes the site can't tell whether Mailgun accepted a batch, for example when the connection dropped
@@ -330,11 +330,11 @@ sending. A campaign that started sending stays, with its numbers.
 
 ## The weekly digest
 
-Editors make and design digests while they are off; admins turn them on. Open the digest from the **Weekly
+Editors make and design digests while they are off. Admins turn them on. Open the digest from the **Weekly
 digests** tab.
 
-1. Check its **Subject**, **Goes out on** and **At** (the weekday and time, in the site's time zone; a new
-   digest says Thursday at 09:00), its lists, **Segment** and **Members**.
+1. Check its **Subject**, **Goes out on** and **At** (the weekday and time, in the site's time zone, Thursday
+   at 09:00 for a new digest), its lists, **Segment** and **Members**.
 2. Under **Each issue**, choose:
    - **Waits for an admin's approval**: each week's issue is made at its time and waits. Set **Hours it
      waits (made at its time, sent this much later if approved)** (24 to start with, 1 to 168).
@@ -358,19 +358,19 @@ issue went out.
 - **Waits for an admin's approval**: it shows **Waiting for approval**, and the site's admin address gets
   an email "... is ready for review" with a **Review it** link. Open it, check the email (you can change it
   and **Save**), then click **Approve** and confirm: it goes out at the time shown, its time plus the hours
-  it waits. You can also **Send now** instead. If nobody approves it in time, it is cancelled ("Not approved
-  before its time.") and the admin address is told it wasn't sent.
+  it waits. You can also **Send now** instead. If nobody approves it in time, the site cancels it ("Not
+  approved before its time.") and tells the admin address that it wasn't sent.
 - A week with too little in it is **Skipped (nothing new)**, with how many items it had and how many it
   needed. A week when nobody on its lists is subscribed is skipped too.
 
 An issue is made once a week. If you turn a digest on more than a day after this week's time, the first
 issue comes next week.
 
-### Its buttons
+### The digest's buttons
 
 - **Send me this week's issue**: this week's issue as it would be now, to you, as a test.
 - **Make an issue now**: makes an issue straight away, outside the schedule (save first). With approval,
-  it waits like any other; otherwise it is sent at once. It asks first.
+  it waits like any other. Otherwise it is sent at once. It asks first.
 - **Delete digest**: deletes the digest. Its issues stay as campaigns.
 
 While a digest is on, only admins can change it.
@@ -378,8 +378,8 @@ While a digest is on, only admins can change it.
 ## When sending is paused
 
 If a campaign passes the spam complaint or bounce rate set under **Settings**, **Mailing Lists**, the site
-pauses all sending: campaigns that were sending stop with **Paused**, scheduled ones and digests wait, and
-the site's admin address gets an email "Mailing paused". The Mailing Lists screen says **Sending is paused:**
+pauses all sending. Campaigns that were sending stop with **Paused**, and scheduled ones and digests wait.
+The site's admin address gets an email "Mailing paused". The Mailing Lists screen says **Sending is paused:**
 with the campaign and the rate.
 
 1. Find out why. Open the campaign named: was it sent to people who hadn't agreed, such as an old
@@ -396,15 +396,16 @@ emailed again unless they sign up and confirm themselves.
 ## Segments
 
 Editors and admins make segments (see [Segments](/editors/mailing-lists/#segments) in the Editor guide).
-While a campaign that is scheduled, waiting for approval, sending or paused, or a digest that is on, uses a
-segment, only admins can change its rules, so an approved email never goes to more people than intended.
+A segment can be in use by a campaign that is scheduled, waiting for approval, sending or paused, or by a
+digest that is on. While it is, only admins can change its rules, so an approved email never goes to more
+people than intended.
 Check **Who matches now** before you change the rules of a segment in use.
 
 ## What isn't synced or backed up
 
 Subscribers, lists, segments, campaigns with their numbers, digests and email templates stay on the copy
-of the site where they were made: **Settings > Sync** doesn't copy them, and
-[backups](/admins/email-log-and-backups/#backups) don't hold them, so restoring a backup never subscribes
+of the site where they were made. **Settings > Sync** doesn't copy them, and
+[backups](/admins/email-log-and-backups/#backups) don't hold them. So restoring a backup never subscribes
 anyone again. Settings > Mailing Lists is synced
 and backed up with the other settings. Whether sending is paused belongs to each copy.
 

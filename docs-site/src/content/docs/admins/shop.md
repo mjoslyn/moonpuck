@@ -6,8 +6,8 @@ sidebar:
 ---
 
 If your site has a shop, products appear under **Content**, **Products**, and on your site at `/shop/`.
-Adding products, showing them on pages, and handling orders, discounts and stock are in the Editor
-guide: see [The shop](/editors/shop/). This page covers what only admins set up.
+The Editor guide covers adding products, showing them on pages, and handling orders, discounts and
+stock: see [The shop](/editors/shop/). This page covers what only admins set up.
 
 ## Turning the shop on
 
@@ -15,7 +15,7 @@ guide: see [The shop](/editors/shop/). This page covers what only admins set up.
 in, and click **Save settings**. Turning it on the first time adds three templates under **Templates**:
 **Product** (a product's page), **Shop** (the `/shop/` listing) and **Product category** (a category's
 page). Change them like any template.
-Turning the shop off deletes nothing; products are hidden until it is on again.
+Turning the shop off deletes nothing. Products are hidden until it is on again.
 
 ## Checkout settings
 
@@ -27,8 +27,8 @@ While the shop is on, the same screen sets up checkout.
 - **Minutes an unpaid order holds its stock**: 30 to 120 (60 if left empty).
 
 **Shipping**: click **Add a shipping zone**, name it, and add the places it covers (a country, a US
-state, or **Everywhere else**). Zones are checked in order: the first that names the buyer's country or
-state gives its rates, and **Everywhere else** is used only when no zone names it. Without it, other
+state, or **Everywhere else**). The site checks zones in order. The first that names the buyer's country
+or state gives its rates. **Everywhere else** is used only when no zone names it. Without it, other
 addresses can't be shipped to. Each zone's rates:
 
 - **Name**: what the buyer sees, such as Standard or Express.
@@ -46,15 +46,15 @@ addresses can't be shipped to. Each zone's rates:
 **Tax**:
 
 - **Tax is**: Worked out from the rates here, or Worked out by Stripe Tax (only when payments go through
-  Stripe; turn Stripe Tax on in Stripe first). Until Stripe Tax is active, Stripe refuses every checkout
-  and buyers can't pay: the setting shows a warning saying so, and what Stripe still needs (such as your
+  Stripe. Turn Stripe Tax on in Stripe first.) Until Stripe Tax is active, Stripe refuses every checkout
+  and buyers can't pay. The setting shows a warning that says so, with what Stripe still needs (such as your
   business address, in Stripe's dashboard under Settings > Tax).
 - **Store's tax rate (%)**: used where no other rate applies.
 - **Rates for places**: a rate for a country or US state, replacing the store's. A state's rate wins
   over its country's.
 - **Tax shipping too**: on or off.
 
-Each product's **Taxed** switch decides whether it is taxed. The shop adds the tax you set up; it
+Each product's **Taxed** switch decides whether it is taxed. The shop adds the tax you set up. It
 doesn't register for or file tax for you.
 
 **Email me news** (while Mailing Lists is on): tick the mailing lists a box at checkout signs buyers
@@ -74,8 +74,8 @@ builder:
 In the builder, the **Order details** block shows the order (what was bought and the totals), or one part
 of it: the items, the totals, where it goes, the order number, the tracking number, the refund or the
 buyer's details. Merge tags such as `{first_name}`, `{code}`, `{total}` and `{tracking}` fill in the
-order's details; the builder lists them all. **Preview** shows the email with a sample order.
-**Templates** saves a design to start others from; a template set as the default for one of these emails
+order's details. The builder lists them all. **Preview** shows the email with a sample order.
+**Templates** saves a design to start others from. A template set as the default for one of these emails
 is sent until you design your own here. **Reset to the default** goes back to it.
 
 ## Order statuses
@@ -93,9 +93,9 @@ Use the arrows to put them in order, and **Delete** to remove one (orders with i
 
 ## Low stock
 
-The low-stock mark is set under **Settings**, **Shop**, **Stock**:
+You set the low-stock mark under **Settings**, **Shop**, **Stock**:
 
-- **Low stock at**: how few left counts as low (3 to begin with; 0 for never).
+- **Low stock at**: how few left counts as low (3 to begin with, 0 for never).
 - **Email the shop when a sale takes something to low stock**: on or off. Each one is emailed about once,
   until you raise its count again.
 
@@ -105,8 +105,8 @@ A product can have its own mark: **Low stock at** in its Shop settings, under **
 
 Under **Settings**, **Shop**, **Downloads**:
 
-- **Times a buyer can download each file**: 5 to begin with; 0 for no limit.
-- **Days after paying a download works**: 30 to begin with; 0 for always.
+- **Times a buyer can download each file**: 5 to begin with, 0 for no limit.
+- **Days after paying a download works**: 30 to begin with, 0 for always.
 
 An order's page shows how many times each file was downloaded. Download files aren't copied by Sync or
 kept in backups.
@@ -117,8 +117,8 @@ With Shippo, checkout can offer live USPS, UPS, FedEx and DHL rates, and you can
 order's page. To set it up:
 
 1. Make an account at Shippo and connect your carriers there (USPS comes with it).
-2. Under **Settings**, **Connections**, **Shippo**, paste Shippo's API token (Settings > API in Shippo; a
-   test token starts with `shippo_test_`) and click **Connect**. The site sets up Shippo's tracking
+2. Under **Settings**, **Connections**, **Shippo**, paste Shippo's API token (Settings > API in Shippo. A
+   test token starts with `shippo_test_`.) and click **Connect**. The site sets up Shippo's tracking
    updates itself.
 3. Under **Settings**, **Shop**, **Carrier rates and labels**, fill in the settings below.
 4. Give your products a weight (in their Shop settings).
@@ -126,23 +126,24 @@ order's page. To set it up:
 The settings:
 
 - **Offer live carrier rates at checkout**: on or off.
-- **In place of the shipping zones' rates**: on, only the carriers' rates are offered; off, they're
-  offered beside your own.
+- **In place of the shipping zones' rates**: when on, checkout offers only the carriers' rates. When
+  off, it offers them beside your own.
 - **Parcels go from**: your address, as the carriers need it (a phone number helps).
 - **The box**: its length, width and height, and the empty box's weight.
-- **Carriers offered**: tick the ones to offer; none ticked offers every carrier on your Shippo account.
+- **Carriers offered**: tick the ones to offer. If none are ticked, checkout offers every carrier on your
+  Shippo account.
 
 At checkout, the buyer types their ZIP or postal code and the carriers' rates appear, cheapest first.
 
 On a paid order's page, under **Shipping**:
 
-- **Buy a label…** lists the rates for the parcel (the buyer's choice is marked). Click one and confirm:
-  Shippo charges your account, the label is ready to print (**Print the label**), and the order is marked
-  shipped with its tracking number, which emails the buyer.
-- Typing a tracking number yourself, choose its **Carrier** too: the buyer's email links to the
-  carrier's tracking page, and with Shippo connected the parcel is followed.
+- **Buy a label…** lists the rates for the parcel (the buyer's choice is marked). Click one and confirm.
+  Shippo charges your account, and the label is ready to print (**Print the label**). The site marks the
+  order shipped with its tracking number, which emails the buyer.
+- If you type a tracking number yourself, choose its **Carrier** too. The buyer's email then links to the
+  carrier's tracking page, and with Shippo connected the site follows the parcel.
 - The latest tracking news shows on the order, and on the buyer's order page. **Check the tracking
-  now** asks Shippo at once; otherwise it comes in by itself, and is checked hourly.
+  now** asks Shippo at once. Otherwise the news comes in by itself, and the site checks it hourly.
 - When the carrier says the parcel was delivered, the buyer gets the **Delivered** email, once.
 
 With a test token, labels are test labels (nothing is charged or sent) and Shippo tracks only its own
@@ -165,6 +166,6 @@ marks the order refunded. A refund gives back what was paid, after any discount.
 A refund made in Stripe's or Square's own dashboard shows on the order too, but puts nothing back in
 stock and sends no email: put things back on the order's page.
 
-If two people refund the same order at once, only one refund goes through; the other is told to reload
-and try again. An order copied from another copy of the site (Settings > Sync) can only be refunded or
+If two people refund the same order at once, only one refund goes through. The other person is told to
+reload and try again. An order copied from another copy of the site (Settings > Sync) can only be refunded or
 cancelled on the copy it was made on.

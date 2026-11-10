@@ -7,7 +7,7 @@ sidebar:
 
 Members are people with an account on your site who can see members-only pages and blocks and pay member
 prices. They can't get into the admin screens. Editors decide what is members only (see
-[Members](/editors/members/) in the Editor guide); this page covers who is a member.
+[Members](/editors/members/) in the Editor guide). This page covers who is a member.
 
 ## Settings > Members
 
@@ -15,9 +15,9 @@ Open **Settings** (the gear), then **Members** under **Features**. Change what y
 **Save settings**.
 
 - **Members on**: turns on members-only pages and blocks, the account page (`/account/`) and **Members**
-  under **People** in the top bar. Turned off, nobody counts as a member, and nothing is deleted.
+  under **People** in the top bar. When it is off, nobody counts as a member, and nothing is deleted.
 - **Levels**: the kinds of membership, such as **Friend** and **Patron**. Editors tick levels when they
-  choose who may see something; ticket types and products can have a price for each.
+  choose who may see something. Ticket types and products can have a price for each level.
 - **Sign-ups**:
   - **Admins add members**: only you add people.
   - **Sign up, then approved**: visitors create an account on the account page and wait for you to
@@ -56,9 +56,9 @@ Each member's actions:
 2. Press **Add a member**.
 
 Someone who already has an account joins at once. Anyone else is emailed an invitation to set a
-password on the account page. Invitations last 7 days; **Resend invitation** sends a new one.
+password on the account page. Invitations last 7 days. **Resend invitation** sends a new one.
 
-## Good to know
+## Copies of the site and the Users screen
 
 - Members aren't synced between copies of the site or backed up: accounts belong to each copy. The
   levels are synced, with the other settings.

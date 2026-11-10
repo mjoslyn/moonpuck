@@ -14,13 +14,13 @@ Admins add them under **Settings**, **Types**:
 2. Give it a name (Recipes) and a name for one of them (Recipe).
 3. Choose whether each has a page, or is data only (kept to show elsewhere, like venues).
 4. For pages, type the address they start with (`recipes` puts Plum cake at `/recipes/plum-cake/`), and
-   if you like a listing page that shows them all (`cookbook`).
+   if you like, the address of a listing page that shows them all (`cookbook`).
 5. Under **Details each one keeps**, click **Add a detail** for each thing to keep, such as Serves (a
    number) or Course (a choice from a list, one choice a line).
 6. Click **Add type**. It now has its own list under **Content**.
 
 Kinds of content marked **Defined in the site's code** were set up when the site was built. Click
-**View** to see them; they can only be changed by whoever builds the site.
+**View** to see them. Only whoever builds the site can change them.
 
 The same section sets which layout (template) each kind of content and its listing page use, and can turn
 a listing page off.
@@ -45,5 +45,5 @@ use it.
 
 Add its terms on its tab. Each page of a ticked type then has a picker for them in its right-hand
 panel. To change the name, address or types later, open the taxonomy's tab and click its settings.
-The same place adds more types to the site's own taxonomies, such as Category; the types the site
+The same place adds more types to the site's own taxonomies, such as Category. The types the site
 was built with stay ticked.

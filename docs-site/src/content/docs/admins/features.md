@@ -22,7 +22,7 @@ Changing the time zone moves events that use it to the new one, keeping their lo
 **Settings > Tickets**, once events are on: the currency, how long an unpaid order holds its tickets,
 and the emails buyers get (confirmation, reminder and follow-up, with when they go out). Free tickets
 and sign-ups work as they are. For paid tickets, connect Stripe or Square first (see
-[Connections](/admins/connections/)); with both connected, choose which one takes the payments.
+[Connections](/admins/connections/)). With both connected, choose which one takes the payments.
 
 ## Members
 
@@ -41,7 +41,7 @@ postal address every email must carry. Sending needs Mailgun connected (see
 
 **Settings > Donations**: turn donations on, and set the amounts, monthly gifts, covering the fees, the
 receipt's details and fundraising goals. Gifts need Stripe or Square connected (see
-[Connections](/admins/connections/)); monthly gifts need Stripe. **Donations** then appears in the top
+[Connections](/admins/connections/)). Monthly gifts need Stripe. **Donations** then appears in the top
 bar. See [Donations](/admins/donations/).
 
 ## Checking accessibility before publishing

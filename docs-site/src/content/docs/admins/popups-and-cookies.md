@@ -7,7 +7,7 @@ sidebar:
 
 Popups show a message over the site's pages: a newsletter sign-up, a sale, an announcement. One of them
 can be the cookie consent banner, which asks visitors whether they accept cookies. Admins set them up
-under **Settings > Popups**; editors can change what a popup says (see [Popups](/editors/popups/) in the
+under **Settings > Popups**. Editors can change what a popup says (see [Popups](/editors/popups/) in the
 Editor guide).
 
 ![Settings > Popups with a newsletter popup and a cookie consent banner](../../../assets/guide/popups-settings.png)
@@ -32,7 +32,7 @@ won't show again in a browser that has already seen it.
 - **On** / **Off**: the box at the top. Off, the popup is kept but never shows.
 - **Name (for screen readers and this list)**: what the popup is called.
 - **Content (a template part)**: the template part it shows. Each popup gets a part of its own when it is
-  added; you can pick another here.
+  added. You can pick another here.
 - **Shown as**:
   - **Dialog in the middle**: a box over the page, which darkens behind it.
   - **Bar along the bottom**.
@@ -63,15 +63,15 @@ Buttons on each popup:
 
 Visitors close a popup with:
 
-- its **×** button;
-- the Escape key;
-- a click outside it, for a dialog;
+- its **×** button
+- the Escape key
+- a click outside it, for a dialog
 - any link in its content to `#close-popup`. Use one for a "No thanks" link: in the link box, type
   `#close-popup` as the address.
 
 The cookie consent banner closes with its **×** too, and with Escape, but closing it counts as
-**Reject**: the site keeps only the cookies it needs, and remembers that choice. (Escape works on a bar
-or corner banner while the visitor is using it, such as after tabbing to its buttons, so Escape pressed
+**Reject**: the site keeps only the cookies it needs, and remembers that choice. (On a bar or corner
+banner, Escape works while the visitor is using it, such as after tabbing to its buttons. Escape pressed
 elsewhere on the page never answers for them.) A click outside it doesn't close it. While it is waiting
 for their choice, no other popup shows.
 
@@ -89,9 +89,9 @@ holds back those cookies until the visitor accepts.
 
 Its content starts with:
 
-- a heading, "Cookies on this site";
-- a line of text saying what the cookies are for, ending with a **Privacy policy** link to `/privacy/`;
-- an **Accept** button and a **Reject** button;
+- a heading, "Cookies on this site"
+- a line of text saying what the cookies are for, ending with a **Privacy policy** link to `/privacy/`
+- an **Accept** button and a **Reject** button
 - a **×** in its corner, which counts as **Reject**.
 
 ![The cookie consent banner along the bottom of the home page](../../../assets/guide/consent-banner.png)
@@ -114,20 +114,20 @@ If the content has no button linking to `#accept-cookies`, the site adds its own
 
 ### 3. Choose how it looks, and turn it on
 
-1. Back in **Settings > Popups**, choose **Shown as**: a bar along the bottom or top is usual; a dialog
+1. Back in **Settings > Popups**, choose **Shown as**: a bar along the bottom or top is usual. A dialog
    in the middle makes sure it is seen.
 2. Tick the box at the top, so it says **On**.
 3. Click **Save settings**.
 
 The banner has no **Shows**, **How often** or **On** settings: it shows on every page, as soon as the
-page opens, until the visitor chooses. Their choice is remembered for six months; then they are asked
+page opens, until the visitor chooses. The site remembers their choice for six months, then asks
 again.
 
 ### 4. Let visitors change their mind
 
 Add a link to `#cookie-settings` somewhere on every page, such as a "Cookie settings" link in the
-footer: edit the footer part (**Content**, **Templates**, **Template parts**), add the words, select them, click the link
-button and type `#cookie-settings` as the address. Clicking it opens the banner again.
+footer. To add it, edit the footer part (**Content**, **Templates**, **Template parts**), then add the words and
+select them. Click the link button and type `#cookie-settings` as the address. Clicking it opens the banner again.
 
 ### 5. Hold back tracking code until visitors accept
 
@@ -152,5 +152,5 @@ Turn on **Recognise returning visitors with a cookie** under **Settings > Stats*
 random number in a cookie in each visitor's browser for 13 months, so [Stats](/editors/stats/) can tell a
 returning visitor from a new one.
 
-With a cookie consent banner on, only visitors who accept get the cookie; everyone else is still counted,
+With a cookie consent banner on, only visitors who accept get the cookie. Everyone else is still counted,
 once a day. Without a banner every visitor gets it, and Settings warns about that.
