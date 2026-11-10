@@ -16,7 +16,8 @@ describe('plugins', () => {
     expect(() => checkPlugins([{ name: 'a' }, { name: 'a' }])).toThrow(/twice/);
     expect(() => checkPlugins([{ name: 'a', adminOnly: ['/shop/'] }])).toThrow(/outside/);
     expect(checkPlugins([{ name: 'square-sync', adminOnly: ['/admin/square-sync', '/api/admin/square-sync'] }])).toHaveLength(1);
-    expect(await sitePlugins()).toEqual([]);
+    // The site's own list (any site's: none in the example) passes the same check.
+    expect(checkPlugins(await sitePlugins())).toBeInstanceOf(Array);
   });
 
   it('runs every plugin in a schedule slot, one failing not stopping the rest', async () => {
@@ -91,7 +92,9 @@ describe('site migrations', () => {
     expect(isSiteMigration('20261028200000_site_keys.sql')).toBe(false);
     expect(isSiteMigration('20261201000000_shop_orders.sql')).toBe(false);
     expect(tablesMadeBy('-- create table nope\nCREATE TABLE IF NOT EXISTS "square_items" (id INTEGER);\ncreate table square_runs(id INTEGER);')).toEqual(['square_items', 'square_runs']);
-    expect(siteTables('db/migrations').size).toBe(0);
+    // The core's own tables are never the site's, whatever the site's migrations make.
+    const site = siteTables('db/migrations');
+    for (const core of ['site_keys', 'site_stats', 'entries', 'shop_orders']) expect(site.has(core)).toBe(false);
   });
 
   it("copies plugins' migrations once, keeping one already there and refusing a core-looking name", () => {
