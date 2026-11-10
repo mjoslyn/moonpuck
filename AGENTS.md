@@ -91,8 +91,6 @@ renamed things come out of the docs too.
 ## Commits
 
 Concise and factual: what changed, why, and any measurements; no editorial framing.
-Write commit messages 80% of the way to ASD-STE100: short sentences, one idea each, active voice,
-plain words, no semicolons or dashes.
 
 ## Open work
 
