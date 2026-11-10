@@ -1,6 +1,6 @@
 ---
 title: Blocks and hooks
-description: render.ts and editor.tsx, where a site adds its own blocks, card designs and page behaviour.
+description: render.ts and editor.tsx, where a site adds its own blocks, card designs and page behavior.
 sidebar:
   order: 2
 ---
@@ -25,7 +25,7 @@ export default defineRender({
 | Option | Meaning |
 | --- | --- |
 | `blocks` | The site's own block types, by name |
-| `cards` | Card designs for collections; the first is the default |
+| `cards` | Card designs for collections. The first is the default |
 | `archiveQuery(args, ctx, tools)` | Adjusts the main query of listing pages (type archives and term pages): search, filters, order |
 | `head(ctx)` | Extra `<head>` markup after the site stylesheet: web fonts, meta tags |
 | `pageScripts(ctx)` | The page's footer scripts, given those the blocks added (`ctx.scripts`) |
@@ -51,18 +51,18 @@ blocks: {
 | `category` | Where it appears in the block list: `text`, `media`, `layout`, `dynamic`, `card`, `sections`, `site`, `advanced` |
 | `render` | Renders the block to an HTML string. Runs on the server and inside the editor, so it is synchronous |
 | `prepare` | Loads what the block needs before rendering, once per occurrence on the page |
-| `types` | The entry types it reads fields from; the editor offers it only there, and in templates |
+| `types` | The entry types it reads fields from. The editor offers it only there, and in templates |
 
 `prepare` gets helpers: `uid()` (a number unique within the page), `loadEntryMedia(ids)` (featured
 images and image fields in one query) and `descendantTermIds(ids)`.
 
 Block markup goes in `src/site/render/c/`. A site's classes in content are styling hooks for its
-`theme.css`; behaviour never keys off them.
+`theme.css`. Behavior never keys off them.
 
 ### Card designs
 
-A card design is the item a collection repeats per entry: a tree of blocks without ids (ids are
-generated per use).
+A card design is the item a collection repeats per entry: a tree of blocks without ids. The core
+makes the ids each time it uses the design.
 
 ```ts
 export const CARDS: CardPreset[] = [
@@ -95,10 +95,10 @@ Card fields available: `entry-title`, `entry-image`, `entry-excerpt`, `entry-dat
 
 ## Endpoints, static files and migrations
 
-- **Endpoints**: files in `src/site/pages/api/`, listed in `routes.json`, added by the `site-routes`
-  integration in `astro.config.mjs`.
-- **Static files**: `src/site/public/` is served at the same paths as `public/` by the `site-public`
-  integration. A site file wins.
-- **Content migrations**: `src/site/migrations/index.ts` exports `MIGRATIONS`, run by
-  `scripts/migrate-content.ts` before the core's.
+- **Endpoints**: files in `src/site/pages/api/`, listed in `routes.json`. The `site-routes`
+  integration in `astro.config.mjs` adds them.
+- **Static files**: the `site-public` integration serves `src/site/public/` at the same paths as
+  `public/`. A site file wins.
+- **Content migrations**: `src/site/migrations/index.ts` exports `MIGRATIONS`.
+  `scripts/migrate-content.ts` runs them before the core's.
 - **Database migrations**: `db/migrations/YYYYMMDDHHMMSS_site_*.sql` (D1), beside the core's.

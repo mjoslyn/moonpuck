@@ -11,11 +11,11 @@ for its files. Accounts are the site's own, in its database.
 ## 1. R2
 
 Create a private bucket for the site (`npx wrangler r2 bucket create <site>`) and put its name in
-`wrangler.jsonc` (`bucket_name`): the Worker reaches it through the `BUCKET` binding and serves the media
-library from it at `/media/`. Scripts working on the deployed files reach it over R2's S3 API instead:
-an API token with Object Read & Write (**R2 > Manage API tokens**), with `STORAGE_ENDPOINT`
-`https://<account-id>.r2.cloudflarestorage.com`, `STORAGE_BUCKET`, `STORAGE_REGION` `auto` and the
-token's `STORAGE_ACCESS_KEY_ID` / `STORAGE_SECRET_ACCESS_KEY`, in their env file only.
+`wrangler.jsonc` (`bucket_name`). The Worker reaches it through the `BUCKET` binding and serves the media
+library from it at `/media/`. Scripts that work on the deployed files reach it over R2's S3 API instead.
+They need an API token with Object Read & Write (**R2 > Manage API tokens**). Put these in the scripts'
+env file only: `STORAGE_ENDPOINT` `https://<account-id>.r2.cloudflarestorage.com`, `STORAGE_BUCKET`,
+`STORAGE_REGION` `auto` and the token's `STORAGE_ACCESS_KEY_ID` / `STORAGE_SECRET_ACCESS_KEY`.
 
 ## 2. D1
 
@@ -29,10 +29,10 @@ npx wrangler d1 migrations apply DB --remote
 ```
 
 Put the database's id in `wrangler.jsonc` (`database_id`). The site reads and writes it only on the
-server; the admin screens' queries go through the site, which checks each person's role. Accounts are
-the site's own (in its database). Invitations (7 days), password links (an hour) and members'
-confirmation links (a day) are sent by the site's email (Cloudflare Email Service, else SMTP); without
-either, admins are shown invitation and password links to pass on themselves.
+server. The admin screens' queries go through the site, which checks each person's role. Accounts are
+the site's own (in its database). The site's email (Cloudflare Email Service, else SMTP) sends
+invitations (7 days), password links (an hour) and members' confirmation links (a day). Without
+either, the site shows admins the invitation and password links, and they pass them on themselves.
 
 ## 3. Seed and create an admin
 
@@ -59,15 +59,15 @@ payment and Mailgun keys) and the other settings as `vars` in `wrangler.jsonc`.
 
 For the site's email, add `"send_email": [{ "name": "EMAIL" }]` to `wrangler.jsonc`, onboard the
 sender's domain under **Email Service** > **Email Sending** in the Cloudflare dashboard, and set
-`MAIL_FROM` to an address on it. Without that binding the site sends over SMTP (`SMTP_PASS` as a
-secret, the other `SMTP_*` settings as `vars`). Deploy with `npm run deploy`, then add your domain under the Worker's **Domains &
+`MAIL_FROM` to an address on it. Without that binding the site sends over SMTP. Set `SMTP_PASS` as a
+secret and the other `SMTP_*` settings as `vars`. Deploy with `npm run deploy`, then add your domain under the Worker's **Domains &
 Routes**.
 
 To deploy from git instead (the Worker's **Settings** > **Build**, connected to the repository), set the
-build command to `npm run build` and the deploy command to `npm run deploy:remote`, which applies any new
-database migrations and then deploys. The API token Cloudflare makes for builds can't change D1: add
+build command to `npm run build` and the deploy command to `npm run deploy:remote`. That command applies any new
+database migrations and then deploys. The API token Cloudflare makes for builds can't change D1, so add
 **D1 Edit** to it under **My Profile** > **API Tokens**. A migration that changes stored blocks has to go
-out after its code; deploy that one with `npm run deploy` and apply it straight after. SMTP, when used, goes through the Worker's sockets: use port 587 or 465 (25 is closed to Workers).
+out after its code. Deploy that one with `npm run deploy` and apply it straight after. SMTP, when used, goes through the Worker's sockets. Use port 587 or 465 (25 is closed to Workers).
 
 The Worker does the background work itself (`src/worker.ts`):
 
@@ -77,12 +77,12 @@ The Worker does the background work itself (`src/worker.ts`):
 | Ticket reminders and follow-ups, expired holds, automatic waitlists | Hourly |
 | Scheduled snapshots | Daily at 07:00 UTC |
 | Mailing: scheduled campaigns, weekly digest issues, issues not approved in time | Every 5 minutes |
-| Mailing: Mailgun's bounces, complaints and unsubscribes; pruning | Nightly at 06:20 UTC |
+| Mailing: Mailgun's bounces, complaints and unsubscribes, and pruning | Nightly at 06:20 UTC |
 
 ## Connections
 
-Claude, Stripe, Square and Mailgun can be set up by an admin on the deployed site, under **Settings >
-Connections**, with no environment variables: paste the service's key and click **Connect**. The site
+An admin can set up Claude, Stripe, Square and Mailgun on the deployed site, under **Settings >
+Connections**, with no environment variables. Paste the service's key and click **Connect**. The site
 checks the key with the service and sets the rest up itself:
 
 - **Stripe**: makes its webhook at `/api/payments/stripe` and keeps its signing secret.
@@ -92,17 +92,18 @@ checks the key with the service and sets the rest up itself:
   webhooks and reads its signing key.
 
 Webhooks need the site's public address, so connect on the live site (`SITE_URL`), not a local copy.
-Connecting again with the same key keeps the webhook and its secret; with a new key, the old webhook is
-deleted only once the new one is made and its secret saved. Mailgun's webhooks get the site's address
-beside any already there, so a staging copy connected to the same domain doesn't take them from the live
-site. A setting the server sets that the key doesn't fit (say
-`MAILGUN_REGION=eu` with a US key) stops the connection until it is changed on the server.
+If you connect again with the same key, the site keeps the webhook and its secret. With a new key, it
+deletes the old webhook only after it makes the new one and saves its secret. The site adds its address
+to Mailgun's webhooks beside any that are already there. So a staging copy connected to the same domain
+doesn't take them from the live site. If the server sets a setting that the key doesn't fit (say
+`MAILGUN_REGION=eu` with a US key), the connection stops until someone changes it on the server.
 
-Keys are encrypted in the database with a key made from `AUTH_SECRET`, readable by no admin or editor,
-and never synced or backed up. Admins see only their last 4 characters. Payment and Mailgun keys ask for
-the admin's password again, and every change (not a check that changed nothing) is emailed to all admins. Changing `AUTH_SECRET` makes
-saved keys unreadable: enter them again. A key set as an environment variable wins and can't be changed
-on the screen, for a site whose keys should stay with the Cloudflare account.
+The site encrypts keys in the database with a key made from `AUTH_SECRET`. No admin or editor can read
+them, and they are never synced or backed up. Admins see only their last 4 characters. Payment and
+Mailgun keys ask for the admin's password again. The site emails every change to all admins (not a check
+that changed nothing). If you change `AUTH_SECRET`, the saved keys become unreadable, so enter them
+again. A key set as an environment variable wins and can't be changed on the screen. This suits a site
+whose keys should stay with the Cloudflare account.
 
 ## Payments
 
@@ -110,28 +111,28 @@ To take payments on forms or tickets, connect one provider under Settings > Conn
 its keys and add its webhook by hand. One endpoint per provider serves both:
 
 - **Stripe**: `https://<your-domain>/api/payments/stripe`, with the `checkout.session.*`,
-  `charge.refunded`, `charge.refund.updated`, `refund.updated` and `refund.failed` events; its signing secret is
+  `charge.refunded`, `charge.refund.updated`, `refund.updated` and `refund.failed` events. Its signing secret is
   `STRIPE_WEBHOOK_SECRET`.
 - **Square**: `https://<your-domain>/api/payments/square`, with `payment.created`,
-  `payment.updated`, `refund.created` and `refund.updated`; its signature key is
-  `SQUARE_WEBHOOK_SIGNATURE_KEY`, and `SQUARE_WEBHOOK_URL` must be that exact address (the
-  signature covers it).
+  `payment.updated`, `refund.created` and `refund.updated`. Its signature key is
+  `SQUARE_WEBHOOK_SIGNATURE_KEY`. `SQUARE_WEBHOOK_URL` must be that exact address, because the
+  signature covers it.
 
 Free tickets need no provider. See [Tickets](../../features/tickets/) and
 [Forms](../../features/forms/).
 
 ## Mailing
 
-To send [Mailing](../../features/mailing/) campaigns and digests, set up Mailgun (its key, domain,
-region and webhooks can be connected under Settings > Connections, above, in place of the last two
-points' webhook and variables):
+To send [Mailing](../../features/mailing/) campaigns and digests, set up Mailgun. You can connect its
+key, domain, region and webhooks under Settings > Connections (above) in place of the webhook and
+variables in the last two points:
 
-- Add a **sending domain for marketing**, a subdomain such as `news.<your-domain>`, separate from
-  the domain the site's other mail uses, so its reputation stays its own.
+- Add a **sending domain for marketing**, a subdomain such as `news.<your-domain>`. Keep it separate
+  from the domain the site's other mail uses, so its reputation stays its own.
 - Add the DNS records Mailgun gives for it: SPF, DKIM and the tracking CNAME (such as
-  `email.news.<your-domain>`), and publish a DMARC record (`p=none` at first, `quarantine` once the
+  `email.news.<your-domain>`). Publish a DMARC record too (`p=none` at first, `quarantine` once the
   reports are clean).
-- Turn on **open tracking** for that domain. Leave click and unsubscribe tracking off: the site tracks
+- Turn on **open tracking** for that domain. Leave click and unsubscribe tracking off. The site tracks
   clicks itself and handles unsubscribing, with its own one-click `List-Unsubscribe` header.
 - Add a **webhook** to `https://<your-domain>/api/mailgun/webhook` for delivered, opened, permanent
   failure, temporary failure, spam complaint and unsubscribed events, and set its signing key as
@@ -141,7 +142,7 @@ points' webhook and variables):
 - Before the first real campaign, send tests to Gmail, Outlook and Yahoo addresses, and check that
   Gmail shows its Unsubscribe link next to the sender.
 
-A shared IP is enough to start; a dedicated one is worth it only past roughly 50,000 emails a month,
+A shared IP is enough to start. A dedicated one is worth it only past roughly 50,000 emails a month,
 with a warmup plan.
 
 ## 5. Invite editors
@@ -166,7 +167,7 @@ Admins invite editors from `/admin/users/`. See [Editor and roles](../../feature
 | `TICKETS_NOTIFY_EMAIL` | Where the copy of each ticket order goes (default `FORMS_ADMIN_EMAIL`, then `adminEmail`) |
 | `SITE_URL` | The site's address for links in emails (default the request's address). Required for Mailing: campaigns and digests are sent without a request |
 | `SITE_NOINDEX` | `1` or `true` on a demo or preview copy: every answer, static files included, tells search engines to stay away (`X-Robots-Tag: noindex`). Set it in `wrangler.jsonc` `vars`, which the build reads for static files. After changing it, save anything in the admin to clear the cached pages |
-| `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Compose (the key, or Settings > Connections; `ANTHROPIC_MODEL` overrides the default model, `claude-sonnet-5-5`) |
+| `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` | Compose (the key, or Settings > Connections. `ANTHROPIC_MODEL` overrides the default model, `claude-sonnet-5-5`) |
 | `ANTHROPIC_SEO_MODEL` | SEO text generation (default Haiku 4.5) |
 | `MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, `MAILGUN_REGION`, `MAILGUN_WEBHOOK_SIGNING_KEY`, `MAILGUN_TEST_MODE` | Mailing through Mailgun (or Settings > Connections, but for test mode) |
 | `MAIL_LINK_SECRET` | The key for signed links in mailing emails (default: one made from `AUTH_SECRET`) |

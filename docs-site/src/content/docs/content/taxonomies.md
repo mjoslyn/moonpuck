@@ -5,40 +5,42 @@ sidebar:
   order: 4
 ---
 
-Taxonomies are declared in the site config. `category` and `tag` are required; a site adds its own
+The site config declares taxonomies. `category` and `tag` are required. A site adds its own
 (`event_category`, `member_category`...). A type's `category` is its main taxonomy and `taxonomies`
 lists any others. Each gets a term picker in an entry's settings, and collections, the event
 calendar and bulk actions offer them.
 
 ## Taxonomies made in the admin
 
-Admins can also make taxonomies, each for any number of types, and add types to the config's own
-(**Content > Taxonomies**: **Add a taxonomy**, and each tab's settings; `/api/admin/taxonomies`). They
-are kept in the site settings:
+Admins can also make taxonomies, each for any number of types. They can also add types to the
+config's own taxonomies (**Content > Taxonomies**: **Add a taxonomy**, and each tab's settings,
+`/api/admin/taxonomies`). The site settings keep them:
 
 - `settings.site.taxonomies`: those made, each `{ name, label, singular?, base?, flat?, types }`. The
-  name comes from the label when it is made and stays. Without a `base` its terms have no pages; a base
+  name comes from the label when it is made and stays. Without a `base` its terms have no pages. A base
   can't be one of the site's own routes or another type's or taxonomy's (`baseProblem`).
 - `settings.site.taxonomy_types`: types added to a config taxonomy (`{ category: ['page'] }`). The
-  types the config gives it can't be taken away; tags are on every type already.
+  types the config gives it can't be taken away. Tags are on every type already.
 
-`applyTypeSettings` (`src/lib/site`) joins them to the config's: the made ones to `site.taxonomies`
-and `TAXONOMY_BASES` (changed in place), every one's types to `taxonomiesOf` and `typesOfTaxonomy`. The
+`applyTypeSettings` (`src/lib/site`) joins them to the config's. It adds the made ones to
+`site.taxonomies` and `TAXONOMY_BASES` (changed in place). It adds every one's types to `taxonomiesOf`
+and `typesOfTaxonomy`. The
 server applies it with the timezone, at most once a minute per instance (`refreshSiteTimezone`), and
 admin pages hand it to the browser as `window.__siteTypes`. Deleting a made taxonomy deletes its
 terms, which entries lose. A taxonomy on more than one type has term pages listing all of them.
 
 ## Tags
 
-Tags are terms of the `tag` taxonomy, on any type. They are edited in each entry's settings (created
-on save, `setEntryTags`), filterable in collections (`query.taxQuery.tag`) and listed at
-`/tag/<slug>/`.
+Tags are terms of the `tag` taxonomy, on any type. Editors edit them in each entry's settings (the
+site creates new ones on save, `setEntryTags`). Collections can filter by them (`query.taxQuery.tag`),
+and each tag is listed at `/tag/<slug>/`.
 
 ## Managing terms
 
 **Content > Taxonomies** (`src/admin/Terms.astro`, `/api/admin/terms`) has a tab per taxonomy, with
-the types it is used on: terms nested under their parents (tags, and made taxonomies set flat, stay flat), with name, address and template to change, how
-many entries use each, a link to its page, and Delete.
+the types it is used on. Each tab shows the terms nested under their parents (tags, and made taxonomies
+set flat, stay flat). Each term has its name, address and template to change, how many entries use it,
+a link to its page, and Delete.
 
 - A term can't sit under itself or its children.
 - A changed address leaves a redirect from the old term page.
@@ -48,8 +50,8 @@ many entries use each, a link to its page, and Delete.
 
 Terms move by dragging their handle: onto another term's top or bottom edge to go beside it, onto its
 middle to go under it, or onto **Top level**. The handle's menu does the same from the keyboard
-(Move up, Move down, Move under). The order among siblings is `terms.sort` (then name), used by the
-list, the Filters dropdown and an entry's listed terms (`byTermOrder`).
+(Move up, Move down, Move under). The order among siblings is `terms.sort` (then name). The
+list, the Filters dropdown and an entry's listed terms use it (`byTermOrder`).
 
 ## Term details
 
@@ -64,8 +66,8 @@ Each term's **Details** button opens:
     fields: [{ key: 'tagline', label: 'Tagline', type: 'text' }] }
   ```
 
-  They are stored in `terms.fields` under their keys (`template`, `image` and `seo` are reserved) and
-  shown by the Field block on its page.
+  The site stores them in `terms.fields` under their keys (`template`, `image` and `seo` are
+  reserved). The Field block shows them on its page.
 - **SEO**: search title, meta description, share image and noindex, as an entry's.
 
 ### Compose
@@ -78,10 +80,11 @@ SEO** panel has the same button, which writes its `{term}` title and description
 
 ### Taxonomy defaults
 
-Under **Settings > Types**, each taxonomy with term pages has an **SEO** button beside its template's Edit, opening its featured image and SEO: an image, a
-search title, a meta description and noindex that its term pages use when a term has none of its own
-(for the meta description, a term's own description comes first too).
-In the title and description, `{term}` is replaced by the term's name, so `Example Town {term}
+Under **Settings > Types**, each taxonomy with term pages has an **SEO** button beside its template's
+Edit. It opens the taxonomy's featured image and SEO: an image, a search title, a meta description and
+noindex. Its term pages use these when a term has none of its own. For the meta description, a term's
+own description comes first too.
+In the title and description, the term's name replaces `{term}`, so `Example Town {term}
 businesses` gives each category page its own title.
 
 ### On the term page

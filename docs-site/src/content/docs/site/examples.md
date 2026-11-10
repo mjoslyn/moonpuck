@@ -14,8 +14,8 @@ An **Opening hours** block: a heading and a list of days and times, edited in th
 
 ### 1. Its fields
 
-The fields the panel shows, kept beside the site's other block fields (`lib/fields.ts`). `FieldDef`
-types are the ones content types use, each described with what it stores under
+These are the fields the panel shows, kept beside the site's other block fields (`lib/fields.ts`).
+`FieldDef` types are the ones content types use. Each is described, with what it stores, under
 [Field types](../configuration/#field-types).
 
 ```ts
@@ -41,7 +41,7 @@ export const BLOCK_FIELDS: Record<string, FieldDef[]> = {
 
 A renderer turns the block's `attrs` into an HTML string. It runs on the server and in the editor's
 canvas, so it is synchronous and loads nothing itself. Escape every value with `esc`. In the editor
-(`env.ctx.editor`) an empty block shows a hint; on the site it shows nothing.
+(`env.ctx.editor`) an empty block shows a hint. On the site it shows nothing.
 
 ```ts
 // render/c/hours.ts
@@ -95,8 +95,8 @@ export default defineEditor({
 });
 ```
 
-The block also takes the shared style settings (colors, spacing, width) every block has, which
-editors set in its panel below these fields.
+The block also takes the shared style settings that every block has (colors, spacing, width).
+Editors set them in its panel below these fields.
 
 ### 5. Its styles
 
@@ -118,9 +118,9 @@ The stored block looks like this:
 
 ## A block that loads data
 
-A **Latest post** block shows the newest post's title and date. What it needs is loaded before the
-page renders, in `prepare`, and put on `ctx.data` under a key with the block's id; the renderer reads
-it from there. Everything the Loader offers is in [Querying data](../querying/).
+A **Latest post** block shows the newest post's title and date. Its `prepare` hook loads what it
+needs before the page renders. It puts the result on `ctx.data` under a key with the block's id, and the
+renderer reads it from there. Everything the Loader offers is in [Querying data](../querying/).
 
 ```ts
 // render/c/latest.ts
@@ -154,14 +154,14 @@ blocks: {
 ```
 
 `prepare` runs once for each time the block is on the page. Its third argument has helpers: `uid()`,
-`loadEntryMedia(ids)` (featured images and image fields in one query) and `descendantTermIds(ids)`. A
-block that reads the page's own fields (a product's details, a member's address) sets `types` to the
-entry types it belongs to, and reads `env.post.fields`.
+`loadEntryMedia(ids)` (featured images and image fields in one query) and `descendantTermIds(ids)`. Some
+blocks read the page's own fields (a product's details, a member's address). Such a block sets `types`
+to the entry types it belongs to, and reads `env.post.fields`.
 
 ## A template
 
 Templates, parts and patterns are rows in `templates` (`kind` `template`, `part` or `pattern`), whose
-`content` is a Puck document of blocks. Editors make and change them under **Content > Templates**; a
+`content` is a Puck document of blocks. Editors make and change them under **Content > Templates**. A
 site that starts with its own writes them from a seed script. Every block needs an `id` unique in its
 document.
 
@@ -200,14 +200,15 @@ await ensureTemplate('template', 'single-post', 'Single post', singlePost);
 ```
 
 Run it with `npx tsx --env-file=.env src/site/scripts/seed.ts`. The name `single-post` puts it in the
-template hierarchy for posts (`single-<type>`, then `single`, then `index`); any other name is chosen per
-type under Settings > Types, or per entry in its settings. A template can have more than one Page content
-block, each with its own `area` (`entry-content` with `{ area: 'sidebar' }`), filled in per entry.
+template hierarchy for posts (`single-<type>`, then `single`, then `index`). A template with any other
+name is chosen per type under Settings > Types, or per entry in its settings. A template can have more
+than one Page content block, each with its own `area` (`entry-content` with `{ area: 'sidebar' }`). Each
+entry fills in those areas.
 
 ## A pattern
 
-A pattern is a group of blocks editors insert from the editor's **Patterns** tab: a call to action
-band here. Editors can also make one from any block with **Save as pattern**.
+A pattern is a group of blocks that editors insert from the editor's **Patterns** tab. This one is
+a call to action band. Editors can also make one from any block with **Save as pattern**.
 
 ```ts
 const callToAction = [
@@ -221,12 +222,12 @@ const callToAction = [
 await ensureTemplate('pattern', 'call-to-action', 'Call to action', callToAction);
 ```
 
-A section whose background is one of the theme's dark colors (here `night`, ticked **Dark background**
-under Settings > Theme) takes the theme's dark-band colors, so the heading, text and button need no
-colors of their own.
+Here the section's background is `night`, one of the theme's dark colors (**Dark background** is
+ticked for it under Settings > Theme). So the section takes the theme's dark-band colors, and the
+heading, text and button need no colors of their own.
 
-Inserted, a pattern's blocks are copied into the page. To make every page that uses it follow later
-changes to its layout, save it as a linked pattern: its document's root has `linked: true`
-(`{ root: { props: { linked: true } }, ... }`), and pages place it as
-`{ type: 'pattern', props: { id, attrs: { slug: 'call-to-action', linked: true, overrides: {} } } }`, each
-page changing only its content (see [Templates and types](../../content/templates/)).
+When an editor inserts a pattern, its blocks are copied into the page. To make every page that uses it
+follow later changes to its layout, save it as a linked pattern. Its document's root has `linked: true`
+(`{ root: { props: { linked: true } }, ... }`). Pages place it as
+`{ type: 'pattern', props: { id, attrs: { slug: 'call-to-action', linked: true, overrides: {} } } }`, and
+each page changes only its content (see [Templates and types](../../content/templates/)).

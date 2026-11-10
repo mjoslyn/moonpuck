@@ -5,10 +5,10 @@ sidebar:
   order: 3
 ---
 
-Renderers are synchronous: they turn a block's `attrs` into HTML and load nothing. Everything a page
-shows is read before it renders, in `prepare` hooks (a block's `prepare`, the site's `archiveQuery`),
-through the page's **Loader** (`src/lib/data.ts`), `ctx.loader`. What a hook loads goes on `ctx.data`,
-and the renderer reads it from there (see [A block that loads data](../examples/#a-block-that-loads-data)).
+Renderers are synchronous: they turn a block's `attrs` into HTML and load nothing. The page reads
+everything it shows before it renders. It does this in `prepare` hooks (a block's `prepare`, the site's
+`archiveQuery`), through the page's **Loader** (`src/lib/data.ts`), `ctx.loader`. What a hook loads goes
+on `ctx.data`, and the renderer reads it from there (see [A block that loads data](../examples/#a-block-that-loads-data)).
 
 There is one Loader per request. It keeps what it has read, so a second lookup of the same entry, term,
 media row or setting costs nothing, and blocks that need the same things can each ask for them.
@@ -19,15 +19,15 @@ A Loader reads as the site's visitors see it (its **scope**, `LoaderScope`):
 
 - Published entries only.
 - Members-only entries only for members of their levels and for editors (see
-  [Members](../../features/members/)). The page's visitor is in the scope when the page is rendered
-  again for someone signed in.
+  [Members](../../features/members/)). When the site renders the page again for someone signed in,
+  that visitor is in the scope.
 - No entries of a feature that is off (events while Events is off, products while the Shop is off).
 
 The editor's canvas and previews read without a scope, as the signed-in editor, so drafts show there.
 
-A list or lookup that leaves out a members-only entry the visitor may not see marks the page as
-depending on its visitor (`loader.hidMembersOnly`), so it isn't cached for everyone and members see
-theirs. A hook that reads through the Loader gets this for nothing.
+Sometimes a list or lookup leaves out a members-only entry that the visitor may not see. Then it marks
+the page as depending on its visitor (`loader.hidMembersOnly`). So the page isn't cached for everyone,
+and members see their entries. A hook that reads through the Loader gets this for nothing.
 
 ## Entries
 
@@ -42,7 +42,7 @@ const { ids, total, pages } = await ctx.loader.query({
 const posts = await ctx.loader.entriesByIds(ids);
 ```
 
-`query()` answers with ids (in order), the total and the number of pages, and keeps the rows it read, so
+`query()` answers with ids (in order), the total and the number of pages. It keeps the rows it read, so
 `entriesByIds(ids)` afterwards reads nothing more.
 
 | Method | Answers |
@@ -57,7 +57,7 @@ An `Entry` (`src/lib/types.ts`) has `id`, `type`, `slug`, `title`, `excerpt`, `s
 `parent_id`, `menu_order`, `featured_media_id`, `fields` (its own fields, see
 [Fields](../configuration/#fields)), `content` (its blocks, when asked for), `event_start`, `event_end`,
 `event_all_day`, `published_at`, `updated_at` and `term_ids`. An occurrence of a recurring event also has
-`occurrence` (its date) and `series_id`; its `id` is negative. Link to an entry with `permalink(entry)`
+`occurrence` (its date) and `series_id`. Its `id` is negative. Link to an entry with `permalink(entry)`
 (`src/lib/permalink.ts`).
 
 ### query() arguments
@@ -92,11 +92,11 @@ Events that repeat are listed as their occurrences, each at its own date, up to 
 | `termCounts(taxonomy)` | A map of term id to its number of published entries (members-only ones left out) |
 
 A `Term` has `id`, `taxonomy`, `slug`, `name`, `description`, `parent_id`, `sort` and `fields` (the
-taxonomy's own fields). An entry's terms are its `term_ids`; find them with `termById`.
+taxonomy's own fields). An entry's terms are its `term_ids`. Find them with `termById`.
 
 ## Media
 
-`loadMedia(ids)` reads media rows by id (numbers or numeric strings; others are skipped), with the
+`loadMedia(ids)` reads media rows by id (numbers or numeric strings, and it skips others), with the
 images they use for other crop shapes. `mediaById(id)` then gives a row, from a renderer too. For
 entries, `tools.loadEntryMedia(ids)` (the hook's third argument) reads their featured images and image
 fields at once. A renderer turns a row into markup with `mediaImgTag(mediaImage(media, size, { alt }))`
@@ -105,8 +105,8 @@ fields at once. A renderer turns a row into markup with `mediaImgTag(mediaImage(
 ## Settings, templates and forms
 
 - `settings()`: every settings row by key (`site`, `options`). `ctx.settings` already holds them.
-- `template(kind, slug)`: a template, part or pattern's document by address, or null (a trashed one
-  counts as missing; a renamed one is found by its old address).
+- `template(kind, slug)`: a template, part or pattern's document by address, or null. A trashed one
+  counts as missing. A renamed one is found by its old address too.
 - `forms()`: the active forms' definitions.
 
 ## The page itself
@@ -142,14 +142,14 @@ export default defineRender({
 });
 ```
 
-A Filters block on the page is applied first, so `args.search` and `args.terms` already hold what the
+The core applies a Filters block on the page first, so `args.search` and `args.terms` already hold what the
 visitor chose.
 
 ## Below the Loader
 
 `ctx.loader.db` is the query layer, a chained query builder on D1
-(`db.from('entries').select(...).eq(...)`, `src/lib/db`). It reads as the server and isn't limited to what visitors may see: a query of
-`entries` through it should go through `visibleTo(query, ctx.loader.scope)` (`src/lib/data.ts`), which
-adds the Loader's limits. Reach for it only for what the Loader doesn't read: a table of the site's own,
-or a count. Each statement stays within D1's limits (100 bound values; lists are bound as one value, so
-`in()` takes any length).
+(`db.from('entries').select(...).eq(...)`, `src/lib/db`). It reads as the server and isn't limited to
+what visitors may see. So a query of `entries` through it should go through
+`visibleTo(query, ctx.loader.scope)` (`src/lib/data.ts`), which adds the Loader's limits. Use it only
+for what the Loader doesn't read: a table of the site's own, or a count. Each statement stays within
+D1's limits (100 bound values). Lists are bound as one value, so `in()` takes any length.

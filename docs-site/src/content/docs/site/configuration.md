@@ -13,11 +13,11 @@ calls `defineSite` (types in `src/lib/site/types.ts`).
 | `config.ts` | Name, organization, timezone, mail sender, admin email, the Compose brief, content types and taxonomies |
 | `render.ts` | The site's own blocks, card designs, listing filters, `<head>` markup, footer scripts, old-URL redirects ([Blocks and hooks](../extending/)) |
 | `editor.tsx` | Settings panels for the site's blocks, site-wide options ([Blocks and hooks](../extending/)) |
-| `styles/tokens.css`, `styles/theme.css` | Extra tokens and the site's styles; the theme is in `render.ts` ([Styling](../styling/)) |
+| `styles/tokens.css`, `styles/theme.css` | Extra tokens and the site's styles. The theme is in `render.ts` ([Styling](../styling/)) |
 | `lib/content/cards.ts` | Card designs for collections |
 | `migrations/` | Content migrations for the site's own data changes |
 | `pages/api/`, `routes.json` | The site's own endpoints |
-| `public/` | Static files, served at the same paths as the core's `public/`; a site file wins |
+| `public/` | Static files, served at the same paths as the core's `public/`. A site file wins |
 | `scripts/` | Checks that need this site's content |
 | `moved-paths.json` | URL prefixes that moved, answered with a 301 |
 
@@ -45,7 +45,7 @@ export default defineSite({
 | --- | --- |
 | `name` | The site's name as visitors see it |
 | `organization` | Who runs it: admin sign-in, mail sender name |
-| `timezone` | IANA timezone for event times. The default; admins can change it under Settings |
+| `timezone` | IANA timezone for event times. This is the default, and admins can change it under Settings |
 | `mailFrom` | Default From for outgoing mail, overridden by `MAIL_FROM` |
 | `adminEmail` | Where form notifications go when a form doesn't say (`FORMS_ADMIN_EMAIL` overrides it) |
 | `brief` | What Compose knows about the site: who it is for, what it covers, its voice |
@@ -54,8 +54,8 @@ export default defineSite({
 ## Content types
 
 `page`, `post` and `global` are required. Events (the `event` and `venue` types and the
-`event_category` taxonomy) come with the core and are turned on under Settings > Events; extend them
-with `events` (fields added, replaced or left out, labels, URLs), see
+`event_category` taxonomy) come with the core. Admins turn them on under Settings > Events. To extend
+them, use `events` (fields added, replaced or left out, labels, URLs). See
 [Events](../../features/events/#extending-the-event-types).
 
 ```ts
@@ -81,11 +81,11 @@ with `events` (fields added, replaced or left out, labels, URLs), see
 | `label`, `singular` | Plural and singular names |
 | `base` | URL segment for single entries: `base: 'directory'` serves `/directory/<slug>/`. Without it, entries live at the root |
 | `archive` | The type's listing page (`/directory/`) |
-| `record` | Data only, with no page; edited with a plain form (venues) |
+| `record` | Data only, with no page. Editors edit it with a plain form (venues) |
 | `pageless` | No public page (globals) |
 | `hidden` | Left out of the admin's Content menu |
 | `category` | The type's main taxonomy: card labels, and the first offered to filter by |
-| `taxonomies` | Its other taxonomies. Each gets a term picker in an entry's settings; collections, filters and bulk actions offer them. Tags apply to every type |
+| `taxonomies` | Its other taxonomies. Each gets a term picker in an entry's settings. Collections, filters and bulk actions offer them. Tags apply to every type |
 | `fields` | The type's own fields, shown in the editor's Details |
 | `describe` | For Compose: what an entry of this type is |
 | `logoField` | An image field used as the entry's logo, before the featured image |
@@ -94,7 +94,7 @@ with `events` (fields added, replaced or left out, labels, URLs), see
 
 ## Fields
 
-A field definition (`FieldDef`, `src/lib/site/types.ts`) is used in three places, with the same types:
+A field definition (`FieldDef`, `src/lib/site/types.ts`) works in three places, with the same types:
 
 - A content type's `fields`: shown in the editor's Details, stored in `entries.fields`.
 - A taxonomy's `fields`: shown in each term's Details (Content > Taxonomies), stored in `terms.fields`.
@@ -128,38 +128,38 @@ fields: [
 | `image` | A media picker (Choose, Replace, Edit) | The image's address as picked, or a media id (imports and Compose write ids) | |
 | `entry` | A search for one entry, with Clear and an inline Add | The entry's id, a number | `entryType`: the type to pick from. `create`: the fields asked for when adding one inline |
 | `entries` | A search that adds entries to a list, with ↑ and ↓ to reorder | An array of entry ids, in order | `types`: the types to pick from |
-| `repeater` | A list of items, each its own small form that folds away, with Up, Down, Remove and Add | An array of objects, one per item, keyed by its fields | `fields`: the item's fields (any of these types). `itemLabel`: the field shown as an item's title. `itemName`: what one item is called ("Add day"); else the label made singular |
+| `repeater` | A list of items, each its own small form that folds away, with Up, Down, Remove and Add | An array of objects, one per item, keyed by its fields | `fields`: the item's fields (any of these types). `itemLabel`: the field shown as an item's title. `itemName`: what one item is called ("Add day"). Else the label made singular |
 
 Notes:
 
 - Code that reads an `image` field takes either kind of value, as the Featured image block's `field`
-  setting and the Field block shown as an image do: a number is a media id, anything else an address.
-  Media ids in a type's top-level image fields are loaded with the page (and with a collection's cards,
-  `loadEntryMedia`), so their sizes and alt text are there; an address is used as it is.
-- `bool` values from older imports can be `"1"` or `1`; the tick box reads those as ticked.
-- Values aren't checked against the type on save: a renderer escapes what it shows (`esc`, `escAttr`)
+  setting and the Field block shown as an image do. A number is a media id, and anything else is an
+  address. The page loads the media ids in a type's top-level image fields (and so do a collection's
+  cards, `loadEntryMedia`), so their sizes and alt text are there. An address is used as it is.
+- `bool` values from older imports can be `"1"` or `1`. The tick box reads those as ticked.
+- Values aren't checked against the type on save. A renderer escapes what it shows (`esc`, `escAttr`)
   and treats a missing or odd value as empty.
 - Admins can add types of their own under Settings > Types, with the field types `text`, `textarea`,
-  `html`, `url`, `email`, `number`, `bool`, `image` and `select`; `entry`, `entries` and `repeater` are
+  `html`, `url`, `email`, `number`, `bool`, `image` and `select`. `entry`, `entries` and `repeater` are
   for code only.
 
 ### Compose
 
-A field with a `compose` hint may be filled by Compose from an editor's materials; the text tells
-Claude what it holds (`"phone number"`, `"logo (image id)"`). Fields without one are left to the
-editor. Only `text`, `textarea`, `html`, `url`, `email`, `number`, `bool`, `image` and `select` take a
-hint: Compose writes a `select` field's values only from its `options`, an `image` field as the media id
-of an image among the materials, and `""` to clear a field.
+Compose may fill a field that has a `compose` hint, from an editor's materials. The hint tells
+Claude what the field holds (`"phone number"`, `"logo (image id)"`). Compose leaves fields without one
+to the editor. Only `text`, `textarea`, `html`, `url`, `email`, `number`, `bool`, `image` and `select`
+take a hint. Compose writes a `select` field's values only from its `options`. It writes an `image`
+field as the media id of an image among the materials, and writes `""` to clear a field.
 
 ### Showing a field
 
 - The **Field** block (`entry-field`) shows any field as text, a link, an email address, a phone number or
-  an image, with an optional label before it. In a collection's card it shows the card's entry; on a
-  term page, the term's.
+  an image, with an optional label before it. In a collection's card it shows the card's entry. On a
+  term page, it shows the term's.
 - The **Featured image** block's `field` shows an image field in place of the featured image (a logo, a
   banner), and `linkField` links it to a `url` field.
-- A site's own blocks read the page's fields from `env.post.fields` (set `types` on the block so the
-  editor offers it only on those entry types; see [Blocks and hooks](../extending/)).
+- A site's own blocks read the page's fields from `env.post.fields`. Set `types` on the block so the
+  editor offers it only on those entry types (see [Blocks and hooks](../extending/)).
 
 ### Reserved keys
 
@@ -184,7 +184,7 @@ taxonomies: [
 | Option | Meaning |
 | --- | --- |
 | `name` | Stored in `terms.taxonomy` |
-| `label`, `singular` | Names; `singular` defaults to the label |
+| `label`, `singular` | Names. `singular` defaults to the label |
 | `base` | URL base for term pages: `directory/category` serves `/directory/category/<slug>/` |
 | `lists` | The type a term page lists. Default: the one type with this taxonomy as its `category`, else every type |
 | `fields` | Its terms' own fields, edited in each term's Details and shown by the Field block on term pages. `template`, `image` and `seo` are reserved |

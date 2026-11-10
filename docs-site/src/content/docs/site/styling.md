@@ -54,8 +54,8 @@ export default defineRender({
 });
 ```
 
-- `colors`: the palette, as `--color-<slug>`. `dark` marks a dark background; `onDark` is the color
-  used in its place inside dark bands; `hidden` leaves it out of the editor's choices.
+- `colors`: the palette, as `--color-<slug>`. `dark` marks a dark background. `onDark` is the color
+  used in its place inside dark bands. `hidden` leaves it out of the editor's choices.
 - `roles`, `bands`, `buttons`: palette slugs or color codes (see below).
 - `fonts`: a library font id (`inter`, `work-sans`, `dm-sans`, `montserrat`, `source-sans-3`,
   `fraunces`, `lora`, `merriweather`, `playfair-display`, `source-serif-4`, `anton`, `oswald`,
@@ -74,15 +74,15 @@ The core's styles never use palette names, only **role tokens**, which the theme
 | `--color-muted` | Secondary text |
 | `--color-accent`, `--color-accent-hover` | Links, buttons, eyebrows |
 | `--color-dark`, `--color-on-dark` | Dark bands and the text on them |
-| `--color-on-accent` | Text on accent fills (optional; falls back to on-dark) |
-| `--color-accent-fill` | The accent as a background under text: the Hero's first button, button and search hovers, today in the calendar (optional; falls back to the accent) |
+| `--color-on-accent` | Text on accent fills (optional, falls back to on-dark) |
+| `--color-accent-fill` | The accent as a background under text: the Hero's first button, button and search hovers, today in the calendar (optional, falls back to the accent) |
 | `--color-surface`, `-surface-alt`, `-surface-soft` | Light backgrounds |
 
-Inside dark bands (sections on a `dark` color, covers, heroes and `darkSelectors`), the theme writes
-each color's `onDark` shade, the roles using those colors again, and the `bands` values (text,
-muted, accent, on-accent, headings, links and buttons), so accent text keeps 4.5:1 contrast. A lighter
-accent can be too light under white text: set the `accent-fill` role to a deep enough accent, so filled
-buttons keep 4.5:1 there too.
+Dark bands are sections on a `dark` color, covers, heroes and `darkSelectors`. Inside them, the theme
+writes each color's `onDark` shade, the roles that use those colors again, and the `bands` values
+(text, muted, accent, on-accent, headings, links and buttons). So accent text keeps 4.5:1 contrast. A
+lighter accent can be too light under white text. Set the `accent-fill` role to a deep enough accent,
+so filled buttons keep 4.5:1 there too.
 
 Other tokens: `--font-display`, `--font-body`, `--text-*` (sizes, `small` to `hero`) and
 `--space-*` (spacing). Block props store styles as CSS that uses these tokens.

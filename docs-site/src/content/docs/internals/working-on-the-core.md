@@ -18,7 +18,7 @@ Update the docs in the same commit as the change:
 ## Where things go
 
 - Nothing site-specific in core code. Core code reads a site only through `src/lib/site`.
-- Sites keep their own blocks, patterns and templates where those are their design; only general
+- Sites keep their own blocks, patterns and templates where those are their design. Only general
   features belong in the core.
 - The example site follows the same layout as every site and must keep working with every change.
 - Styles use role tokens only, never a site's palette names.
@@ -28,25 +28,25 @@ Update the docs in the same commit as the change:
 
 1. **Renderer** in `src/render/c/`: a string of HTML with `c-*` classes, added to
    `src/render/blocks/index.ts`.
-2. **Data** it needs: a `case` in `walk()` in `src/render/prepare.ts`. Load into `ctx.data`; add page
-   scripts to `ctx.scripts` / `ctx.headScripts`, vendor CSS through `ctx.assets`.
+2. **Data** it needs: a `case` in `walk()` in `src/render/prepare.ts`. Load it into `ctx.data`. Add page
+   scripts to `ctx.scripts` / `ctx.headScripts`, and vendor CSS through `ctx.assets`.
 3. **Editor**: a panel in `CONTENT_PANELS` and a label in `CONTENT_LABELS` (`src/puck/panels.tsx`),
    its category in `buildConfig` (`src/puck/config.tsx`). Containers go in `CONTENT_CONTAINERS`.
-4. **Browser behaviour**: a script in `public/assets/js/` that enhances the server markup.
+4. **Browser behavior**: a script in `public/assets/js/` that enhances the server markup.
 5. **Styles** in `src/styles/site.css`, and a section in `CORE.md` and these docs.
 
 ## Changing stored content
 
-Content changes the core needs (renamed props, moved settings) ship as a core content migration
-(`scripts/migrate-content.ts`; `migrateCollectionLayout` in `src/lib/content/collections.ts` is one)
-or a SQL migration (`db/migrations/`) that edits the JSON.
+Content changes the core needs (renamed props, moved settings) ship as a core content migration or a
+SQL migration (`db/migrations/`) that edits the JSON. `scripts/migrate-content.ts` runs the content
+migrations, and `migrateCollectionLayout` in `src/lib/content/collections.ts` is one.
 
 - Walk the JSON properly (a content migration in TypeScript). The key order of stored blocks varies,
   so text patterns miss some. The query layer fills `body_text` when content is written, so changes to
   entries' content belong in content migrations.
 - Keep updated dates: drop the table's `*_touch` trigger before the update and create it again after
-  (as `*_init.sql` has it). It fires whenever a write leaves `updated_at` as it was, setting it to
-  itself included.
+  (as `*_init.sql` has it). The trigger fires whenever a write leaves `updated_at` as it was, and that
+  includes a write that sets it to itself.
 - Name migrations with the time they are written (`YYYYMMDDHHMMSS_name.sql`).
 
 When a site migration switches block types or settings, the site's code and its database change must
@@ -56,15 +56,15 @@ land together: push the code, wait for the deploy, then `npx wrangler d1 migrati
 
 1. Change and commit in `moonpuck`. `npm run check` and `npm test` must pass (a fix comes with a
    test in `tests/` that fails without it).
-2. Test on the example site and, for anything real content exercises, in a site: merge the core
-   change there without committing and test.
+2. Test on the example site. For anything that real content exercises, test in a site too: merge the
+   core change there without committing, and test.
 3. Push `moonpuck` (it deploys nothing), then in each site `npm run core:update` (or `git fetch upstream && git merge upstream/main`)
    and commit. The site's owner pushes the site, which deploys it.
 
 ## Tests
 
 `npm test` runs the unit tests in `tests/` with [Vitest](https://vitest.dev/). A test imports the code
-it tests and calls it; nothing needs a dev server. Each test file gets a fresh database made from
+it tests and calls it. Nothing needs a dev server. Each test file gets a fresh database made from
 `db/migrations`, so tests that read and write through the query layer (`siteDb()`, or `sessionDb()` to
 act as an editor or admin) start from empty tables and see real SQLite.
 
@@ -83,6 +83,6 @@ and give every fix one that fails without it. CI runs `npm test` on every push.
   page scrolled before a full-page screenshot.
 - Browser tests use Playwright from a script inside the project, signing in as `LOCAL_ADMIN_EMAIL` /
   `LOCAL_ADMIN_PASSWORD`. POSTs to Astro need an `Origin` header (CSRF check). The editor canvas is
-  `iframe#preview-frame`; blocks that can't be dragged report as disabled, so tests click them with
+  `iframe#preview-frame`. Blocks that can't be dragged report as disabled, so tests click them with
   `force`.
 - Checks that need one site's content live in that site's `src/site/scripts/`.

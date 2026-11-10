@@ -31,7 +31,7 @@ type renders its children.
 ### Notable blocks
 
 - **`file`**: a link to a document from the media library (or any address), with its type and size
-  (`details`, on by default) and a Download button (`button`, its label; empty for none).
+  (`details`, on by default) and a Download button (`button`, its label, or empty for none).
 - **`hero`**: a full-bleed image with eyebrow, title, text and two buttons. Its overlay keeps the text
   readable: **Overlay** (`overlay`: none, light, medium by default, strong) and **Darkest at**
   (`overlayFrom`: bottom by default, left, or all over).
@@ -41,8 +41,8 @@ type renders its children.
   Phone (`focal`, `focalTablet`, `focalPhone`, set by clicking the image in the block's settings,
   `src/puck/FocalPoints.tsx`). A size without its own uses the image's focal points from the media
   library: its point for the crop's shape on that size (16:9 on desktop and 3:4 on tablets and phones
-  for Hero and Cover, the block's ratio for Image), else its main point. They are written as CSS
-  variables (`--focal`, `--focal-tablet`, `--focal-phone`) and the stylesheet picks one per screen
+  for Hero and Cover, the block's ratio for Image), else its main point. The block writes them as CSS
+  variables (`--focal`, `--focal-tablet`, `--focal-phone`). The stylesheet picks one per screen
   (tablet up to 1024px wide, phone up to 599px).
 - **`gallery`, `video-gallery`**: image blocks, or embed and video blocks, shown as a grid, masonry
   columns or a slider (`display`). The slider is a scroll-snap row with buttons and autoplay
@@ -53,10 +53,10 @@ type renders its children.
 - **`entry-content`**: where a template places the entry's content. `attrs.area` names a content area
   ([Templates and types](../templates/#content-areas)).
 
-## Classes and behaviour
+## Classes and behavior
 
 Core blocks output `c-*` classes. A site's classes in content are only styling hooks for its
-`theme.css`. Behaviour never keys off content class names: the core uses block settings instead
+`theme.css`. Behavior never keys off content class names: the core uses block settings instead
 (`entry-image` `field`, `event-date` for card dates, collection `shuffle`, `query.upcoming`,
 `columns`, `autoplay`).
 

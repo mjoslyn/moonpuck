@@ -14,8 +14,8 @@ Every piece of content is a row in `entries` with a `type` from the site config 
 `fields`.
 
 - **Content** is Puck data in `entries.content` (see [Blocks](../blocks/)).
-- **Body text**: `entries.body_text` is the entry's readable text, filled from its content by the
-  query layer whenever the content is written. Search and event descriptions use it.
+- **Body text**: `entries.body_text` is the entry's readable text. The query layer fills it from the
+  content whenever the content is written. Search and event descriptions use it.
 - **Unpublished changes** to a published entry are kept aside in `entry_drafts` (editors only: the
   published rows of `entries` are public).
 - **Image fields** hold media ids.
