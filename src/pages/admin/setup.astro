@@ -1,0 +1,48 @@
+---
+import { site } from '../../lib/site';
+import Admin from '../../layouts/Admin.astro';
+import { siteDb } from '../../lib/db/site';
+import { MIN_PASSWORD, needsFirstAdmin, setupCodeNeeded } from '../../lib/admin/first-run';
+import { hasNoTemplates } from '../../lib/admin/seed';
+// The first admin, while the site has none (src/lib/admin/first-run.ts); otherwise the sign-in page.
+if (!(await needsFirstAdmin())) return Astro.redirect('/admin/login/');
+const error = Astro.url.searchParams.get('error');
+const email = Astro.url.searchParams.get('email') ?? '';
+const codeNeeded = setupCodeNeeded();
+const fresh = await hasNoTemplates(siteDb());
+const input = 'w-full rounded border border-admin-ink/20 bg-white px-3 py-2 outline-none focus:border-admin-accent';
+---
+<Admin title="Set up the site">
+  <div class="mx-auto mt-16 max-w-sm">
+    <h1 class="text-3xl font-normal">Welcome</h1>
+    <p class="mt-2 text-sm text-admin-muted">{site.name} has no admin yet. Make yours to sign in.</p>
+    {error && <p class="mt-6 rounded border border-[#c4592a]/30 bg-[#c4592a]/5 px-3 py-2 text-sm text-[#c4592a]">{error}</p>}
+    <form method="post" action="/api/auth/setup" class="mt-6 space-y-4">
+      <label class="block text-sm">
+        <span class="mb-1 block font-medium">Your name</span>
+        <input name="name" autocomplete="name" class={input} />
+      </label>
+      <label class="block text-sm">
+        <span class="mb-1 block font-medium">Email</span>
+        <input name="email" type="email" required autocomplete="username" value={email} class={input} />
+      </label>
+      <label class="block text-sm">
+        <span class="mb-1 block font-medium">Password</span>
+        <input name="password" type="password" required minlength={MIN_PASSWORD} autocomplete="new-password" class={input} />
+        <span class="mt-1 block text-xs text-admin-muted">At least {MIN_PASSWORD} characters.</span>
+      </label>
+      {codeNeeded && (
+        <label class="block text-sm">
+          <span class="mb-1 block font-medium">Setup code</span>
+          <input name="code" type="password" required autocomplete="off" class={input} />
+          <span class="mt-1 block text-xs text-admin-muted">The site's <code>SETUP_CODE</code>, or its <code>AUTH_SECRET</code> if no setup code is set. This proves you set up this site.</span>
+        </label>
+      )}
+      <label class="flex items-start gap-2 text-sm">
+        <input type="checkbox" name="starter" value="1" checked={fresh} class="mt-1" />
+        <span>Add starter content<span class="block text-xs text-admin-muted">A header and footer, the basic templates, a home page and an About page. Anything already there stays as it is.</span></span>
+      </label>
+      <button class="w-full rounded-sm bg-admin-ink px-4 py-2.5 text-sm font-semibold tracking-wider text-white uppercase hover:bg-admin-accent">Make my account</button>
+    </form>
+  </div>
+</Admin>

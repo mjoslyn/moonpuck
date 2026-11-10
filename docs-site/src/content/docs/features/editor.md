@@ -27,6 +27,17 @@ password on the sign-in page, an hour) land there. Setting the password signs th
 account out everywhere else. After 10 wrong passwords for an address (or 30 from one visitor) in 15
 minutes, sign-in asks them to wait. Password links go out at most 3 an hour per address.
 
+A site with no admin yet sends `/admin/` to `/admin/setup/`, which makes the first one and can add the
+starter content. Outside `astro dev` it asks for the setup code (`SETUP_CODE`, else `AUTH_SECRET`).
+
+## Finding your way
+
+The **command palette** (Ctrl+K, ⌘K on a Mac, or the search button in the admin bar) goes to any screen
+in the admin bar, any Settings section (admins) and any entry by title. Signed-in editors get it on the
+site's own pages too, from the editor bar's **Go to**. Settings also has **Search settings** over its
+menu, which matches section names and the labels of the settings inside them. See `src/admin/CommandPalette.tsx`,
+`src/lib/admin/commands.ts` and `GET /api/admin/commands`.
+
 ## Admin colors and logo
 
 **Settings > Theme**, **Admin screens**, sets the admin's colors for everyone who signs in. With **Match the

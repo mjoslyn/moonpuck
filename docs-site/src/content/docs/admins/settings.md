@@ -9,6 +9,12 @@ sidebar:
 on the left lists its sections in groups: **Site**, **Features** (each marked **On** or **Off**),
 **Services**, **Admin** and **Upkeep**. On a phone, pick a section from the **Section** list at the top.
 
+To find a setting, type in **Search settings** above the menu, such as "time zone", "logo" or "Stripe".
+The menu shows only the sections that have it. Press **Enter** to open the first one, or click the one
+you want. Press **Escape** (or clear the box) to see the whole menu again. You can also press **Ctrl**
+and **K** (**⌘** and **K** on a Mac) on any screen and type the setting's name (see
+[Go to](/editors/#go-to-find-anything-by-typing)).
+
 When you change something, **Save settings** appears beside the section's title. Changes take effect
 when you click it. You can move between sections before saving: your changes are kept, and the site
 asks before you leave Settings without saving them.

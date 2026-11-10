@@ -8,10 +8,11 @@
 // pages before they are published), Appearance (the admin's colors and logo). Upkeep: Redirects (saved
 // as they are added, with the Not found log), Sync (with another copy of the site), Backups. One Save
 // for all, beside the section's title while there are unsaved changes; leaving with some asks first.
-// On phones the menu is a Section dropdown.
+// On phones the menu is a Section dropdown. A search box over the menu narrows it to the sections whose
+// label, keywords or settings' labels have the words typed (`sectionMatches`); Enter opens the first.
 import type { PaymentProvider, ProviderStatus } from '../lib/payments';
 import { Fragment, useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { SAVES_AS_IT_GOES, SETTINGS_GROUPS, sectionOf, settingsPath } from '../lib/admin/settings-sections';
+import { SAVES_AS_IT_GOES, SETTINGS_GROUPS, keywordsOf, sectionMatches, sectionOf, settingsPath } from '../lib/admin/settings-sections';
 import { FieldsForm } from './entry-fields';
 import { SITE_EDITOR } from '../lib/site/editor';
 import { ARCHIVE_PATHS, CONTENT_TYPES, PAGELESS_TYPES, SEARCHABLE_TYPES, TYPE_BASES, codeFeatured, site as config, taxonomiesOf, taxonomyLabel, typeDef } from '../lib/site';
@@ -426,7 +427,18 @@ export default function SiteSettings({ section, site: initialSite, options: init
       : []),
   ];
   const current = tabs.find((t) => t.id === tab) ?? tabs[0];
-  const groups = SETTINGS_GROUPS.map((g) => ({ label: g.label, sections: g.sections.flatMap((x) => tabs.filter((t) => t.id === x.id)) })).filter((g) => g.sections.length);
+  // Search: sections whose label, keywords or settings' labels have every word typed (the panels' text,
+  // read from the page, leaving out choices in lists and what was typed in fields).
+  const [query, setQuery] = useState('');
+  const panels = useRef(new Map<string, HTMLElement>());
+  const [found, setFound] = useState<Set<string> | null>(null);
+  useEffect(() => {
+    if (!query.trim()) return setFound(null);
+    setFound(new Set(tabs.filter((t) => sectionMatches(query, [t.label, keywordsOf(t.id), panelText(panels.current.get(t.id))])).map((t) => t.id)));
+  }, [query]);
+  const grouped = (keep: (id: string) => boolean) => SETTINGS_GROUPS.map((g) => ({ label: g.label, sections: g.sections.flatMap((x) => tabs.filter((t) => t.id === x.id && keep(t.id))) })).filter((g) => g.sections.length);
+  const allGroups = grouped(() => true);
+  const groups = grouped((id) => !found || found.has(id));
   const heading = useRef<HTMLHeadingElement>(null);
   const choose = (id: string) => {
     if (id === current.id) return;
@@ -442,12 +454,47 @@ export default function SiteSettings({ section, site: initialSite, options: init
   };
   const mark = (on?: boolean) => (on === undefined ? null : <span className={`ml-auto rounded px-1.5 text-[10px] font-semibold uppercase tracking-wider ${on ? 'bg-admin-accent/15 text-admin-accent' : 'text-admin-muted'}`}>{on ? 'On' : 'Off'}</span>);
 
+  const searchBox = (cls: string) => (
+    <input
+      type="search"
+      aria-label="Search settings"
+      placeholder="Search settings"
+      className={`${inputClass} ${cls}`}
+      value={query}
+      onChange={(e) => setQuery(e.target.value)}
+      onKeyDown={(e) => {
+        const first = groups[0]?.sections[0];
+        if (e.key === 'Enter' && first) {
+          e.preventDefault();
+          choose(first.id);
+        }
+        if (e.key === 'Escape') setQuery('');
+      }}
+    />
+  );
+  const nothing = found && !found.size ? <p className="px-3 py-2 text-sm text-admin-muted">No settings match.</p> : null;
+
   return (
     <div className="md:flex md:items-start md:gap-8">
+      <div className="mb-3 md:hidden">
+        {searchBox('')}
+        {nothing}
+        {found && found.size > 0 && (
+          <ul className="m-0 mt-2 list-none p-0">
+            {groups.flatMap((g) => g.sections).map((t) => (
+              <li key={t.id}>
+                <a href={settingsPath(t.id)} onClick={(e) => follow(e, t.id)} className="block rounded px-3 py-2 text-sm hover:bg-admin-soft">
+                  {t.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       <label className="mb-6 block md:hidden">
         <span className="mb-1 block text-xs font-medium text-admin-muted">Section</span>
         <select className={inputClass} value={current.id} onChange={(e) => choose(e.target.value)}>
-          {groups.map((g) => (
+          {allGroups.map((g) => (
             <optgroup key={g.label} label={g.label}>
               {g.sections.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -460,6 +507,8 @@ export default function SiteSettings({ section, site: initialSite, options: init
         </select>
       </label>
       <nav aria-label="Settings" className="sticky top-4 hidden w-48 shrink-0 md:block">
+        {searchBox('mb-4')}
+        {nothing}
         {groups.map((g) => (
           <div key={g.label} className="mb-5">
             <h2 className="mb-1 px-3 text-[11px] font-semibold tracking-wider text-admin-muted uppercase">{g.label}</h2>
@@ -502,13 +551,22 @@ export default function SiteSettings({ section, site: initialSite, options: init
           </div>
         </div>
         {tabs.map((t) => (
-          <section key={t.id} aria-label={t.label} hidden={t.id !== current.id} className={['redirects', 'sync', 'backups'].includes(t.id) ? 'max-w-5xl' : t.id === 'site' || t.id === 'types' || t.id === 'tickets' || t.id === 'connections' || t.id === 'code' || t.id === 'popups' ? 'max-w-3xl' : 'max-w-md'}>
+          <section key={t.id} ref={(el) => void (el ? panels.current.set(t.id, el) : panels.current.delete(t.id))} aria-label={t.label} hidden={t.id !== current.id} className={['redirects', 'sync', 'backups'].includes(t.id) ? 'max-w-5xl' : t.id === 'site' || t.id === 'types' || t.id === 'tickets' || t.id === 'connections' || t.id === 'code' || t.id === 'popups' ? 'max-w-3xl' : 'max-w-md'}>
             {t.panel}
           </section>
         ))}
       </div>
     </div>
   );
+}
+
+/** A settings panel's own words (labels, headings, notes), without the choices in its lists or what is typed in it. */
+function panelText(el?: HTMLElement): string {
+  if (!el) return '';
+  const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (n.parentElement?.closest('option, select, textarea, script, style') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
+  let out = '';
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) out += ` ${n.nodeValue}`;
+  return out;
 }
 
 /** Types with pages of their own, and the template for their entries and their listing page. */

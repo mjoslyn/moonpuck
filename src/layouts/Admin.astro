@@ -1,17 +1,14 @@
 ---
 import { siteTheme } from '../lib/theme/site';
-import { COMPOSABLE_TYPES, CONTENT_TYPES, SITE_TZ, appliedTypeSettings, site } from '../lib/site';
+import { SITE_TZ, appliedTypeSettings, site } from '../lib/site';
 import AdminTheme from './AdminTheme.astro';
 import { loadAdminTheme } from '../lib/admin-theme';
 import { siteDb } from '../lib/db/site';
-import { memberSettings } from '../lib/members/config';
-import { eventsOn } from '../lib/events/on';
-import { featuresOf, showsType } from '../lib/features';
-import { mailingOn } from '../lib/mailing/config';
-import { donationsOn } from '../lib/donations/config';
 import { helpUrl } from '../lib/help';
-import { adminNav, isGroup, navActive } from '../lib/admin/nav';
-import { navLinksOf, sitePlugins } from '../lib/site/plugins';
+import { isGroup, navActive } from '../lib/admin/nav';
+import { adminNavFor } from '../lib/admin/nav-for';
+import { navCommands, settingsCommands } from '../lib/admin/commands';
+import CommandPalette, { OPEN_EVENT } from '../admin/CommandPalette';
 // Admin chrome. Tailwind only; the public site's CSS never loads here.
 import '../styles/tailwind.css';
 import '../styles/admin.css';
@@ -25,20 +22,13 @@ const user = Astro.locals.user;
 const path = Astro.url.pathname;
 const isAdmin = user?.role === 'admin';
 const theme = await loadAdminTheme(Astro.locals.db ?? siteDb());
-// Members, Tickets, Mailing and the Shop while they are on (Settings > Members, Events, Mailing, Shop).
-const siteSettings = (await (Astro.locals.db ?? siteDb()).from('settings').select('value').eq('key', 'site').maybeSingle()).data?.value;
+// The bar's menu: content types shown, features on (Settings), the site's plugins' links (src/lib/admin/nav-for.ts).
+const { nav, siteSettings } = await adminNavFor(Astro.locals.db ?? siteDb(), isAdmin);
 // The site's theme as it is now, for the editor's color and size choices (src/lib/theme/theme.ts, PRESETS).
 const siteThemeNow = siteTheme(siteSettings);
-const membersOn = isAdmin && memberSettings(siteSettings).enabled;
-const ticketsOn = eventsOn(siteSettings);
-const mailOn = mailingOn(siteSettings);
-const features = featuresOf(siteSettings);
-const types = CONTENT_TYPES.filter((c) => showsType(c.type, features)).map((c) => ({ type: c.type, label: c.label }));
-const composable = COMPOSABLE_TYPES.filter((c) => showsType(c.type, features)).map((c) => ({ type: c.type, singular: c.singular }));
-// The site's plugins' links (src/lib/site/plugins.ts).
-const plugins = navLinksOf(await sitePlugins(), { isAdmin, site: siteSettings });
-const nav = adminNav({ isAdmin, ticketsOn, mailOn, membersOn, shopOn: features.shop, donationsOn: donationsOn(siteSettings), plugins, types, composable });
 const url = Astro.url;
+// The command palette's places (Ctrl+K / ⌘K): every screen in the bar, Settings' sections for admins.
+const commands = [...navCommands(nav), ...(isAdmin ? settingsCommands() : []), { label: 'View site', href: '/', group: 'Go to' }];
 const inSettings = path.startsWith('/admin/settings');
 const link = (on: boolean) => (on ? 'bg-admin-on-bar/15 text-admin-on-bar' : 'text-admin-on-bar/65 hover:bg-admin-on-bar/10 hover:text-admin-on-bar');
 ---
@@ -97,6 +87,10 @@ const link = (on: boolean) => (on ? 'bg-admin-on-bar/15 text-admin-on-bar' : 'te
                   <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
                 </a>
               )}
+              <button type="button" id="admin-palette-open" title="Go to… (Ctrl+K)" aria-label="Go to a screen, setting or entry (Ctrl+K)" class="flex h-8 items-center gap-2 rounded-full px-2 text-admin-on-bar/65 hover:bg-admin-on-bar/10 hover:text-admin-on-bar">
+                <svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+                <kbd id="admin-palette-key" class="rounded border border-admin-on-bar/30 px-1 font-sans text-[11px] max-md:hidden">Ctrl K</kbd>
+              </button>
               <a href={helpUrl(isAdmin)} target="_blank" rel="noopener" title={isAdmin ? 'Help: the Admin guide' : 'Help: the Editor guide'} aria-label={isAdmin ? 'Help: the Admin guide (opens in a new tab)' : 'Help: the Editor guide (opens in a new tab)'} class="flex h-7 w-7 items-center justify-center rounded-full border border-admin-on-bar/40 text-sm font-semibold hover:border-admin-on-bar hover:text-admin-on-bar">?</a>
               <a href="/" target="_blank" class="whitespace-nowrap hover:text-admin-on-bar max-sm:hidden">View site</a>
               <details class="relative" data-menu>
@@ -139,6 +133,15 @@ const link = (on: boolean) => (on ? 'bg-admin-on-bar/15 text-admin-on-bar' : 'te
             </div>
           </div>
         </header>
+        <CommandPalette client:load commands={commands} />
+        <script is:inline define:vars={{ openEvent: OPEN_EVENT }}>
+          // The search button opens the command palette (src/admin/CommandPalette.tsx); a Mac shows ⌘K.
+          document.getElementById('admin-palette-open')?.addEventListener('click', () => document.dispatchEvent(new Event(openEvent)));
+          if (/Mac|iPhone|iPad/.test(navigator.platform)) {
+            const k = document.getElementById('admin-palette-key');
+            if (k) k.textContent = '⌘K';
+          }
+        </script>
         <script is:inline>
           // One menu open at a time; a click elsewhere or Escape closes it.
           document.addEventListener('click', (e) => {

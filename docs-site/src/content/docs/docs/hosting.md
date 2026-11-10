@@ -34,9 +34,15 @@ the site's own (in its database). The site's email (Cloudflare Email Service, el
 invitations (7 days), password links (an hour) and members' confirmation links (a day). Without
 either, the site shows admins the invitation and password links, and they pass them on themselves.
 
-## 3. Seed and create an admin
+## 3. The first admin
 
-Scripts reach the deployed database through Cloudflare's API. In a copy of `.env`, set
+Once the Worker is deployed (step 4), open `/admin/` on the site. While it has no admin, it asks you to
+make one: your name, email, a password and the **Setup code**, which is the Worker's `SETUP_CODE` secret
+if you set one, else its `AUTH_SECRET`. The code means nobody who finds the new site before you can
+claim it. Tick **Add starter content** for the header, footer, base templates, a home page and an About
+page.
+
+Or use the scripts. They reach the deployed database through Cloudflare's API. In a copy of `.env`, set
 `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` (a token with D1 edit) and `D1_DATABASE_ID`, then run
 the same commands as locally:
 

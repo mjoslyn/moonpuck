@@ -8,6 +8,7 @@ sidebar:
 ## Running
 
 ```sh
+npm run setup                           # a new copy: .env with an AUTH_SECRET, the local database, then the dev server
 npm run db:migrate                      # the local database (.wrangler/state)
 npx astro dev --background              # http://localhost:4321
 docker run -d -p 1025:1025 -p 8025:8025 axllent/mailpit   # a local mail catcher (optional)
@@ -17,6 +18,7 @@ docker run -d -p 1025:1025 -p 8025:8025 axllent/mailpit   # a local mail catcher
 
 ```sh
 npm run seed                            # starter templates, home page, sample event (skips what exists)
+# The first admin: /admin/ on a site with none (the setup code asked for outside astro dev), or:
 npx tsx --env-file=.env scripts/create-editor.ts you@example.org 'password' [editor|admin]
 npx tsx --env-file=.env scripts/migrate-content.ts [--dry-run]   # site then core content migrations
 npx tsx --env-file=.env scripts/media-formats.ts                 # backfill AVIF/WebP for existing media

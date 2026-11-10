@@ -21,8 +21,10 @@ categories, and the site shows none of them:
 - Tickets and Settings > Tickets are hidden
 
 Orders already placed still complete: buyers coming back from paying and the payment webhooks work.
-When you turn Events back on, everything returns. `npm run seed` adds the event templates, a sample event and events on
-the home page only while Events is on (run it again after turning them on).
+When you turn Events back on, everything returns. Turning Events on adds the event templates (`single-event`,
+an event's page, and `archive-events`, the calendar) where no templates have those addresses
+(`ensureEventTemplates`, `src/lib/admin/seed.ts`). `npm run seed` adds a sample event and venue, and events on the
+home page, only while Events is on.
 
 ## Extending the event types
 

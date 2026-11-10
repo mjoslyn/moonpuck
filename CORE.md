@@ -731,7 +731,8 @@ conversation.
   a collection's query parameter. A guess from a missing address leaves out events while Events is off.
   Signed-in editors get an editor bar
   (`public/assets/js/editor-bar.js`, `/api/admin/me`) added in the browser, so cached pages stay shared;
-  it asks only when the `site.signed_in` cookie is there (see Accounts).
+  it asks only when the `site.signed_in` cookie is there (see Accounts). The bar's **Go to** (and Ctrl+K
+  or ⌘K) opens the command palette there too (see Editor), asking `GET /api/admin/commands?q=` as they type.
 
 ## Media
 
@@ -973,8 +974,10 @@ menus); `EVENT_BLOCKS` render nothing (a note in the editor) and load nothing; e
 none; and the hourly ticket emails don't run. The editor doesn't offer event and ticket blocks, the
 email Events block or the event type in collections and Compose, and the admin hides Tickets and
 Settings > Tickets. The checkout's return and the payment webhooks still work for orders already
-placed. `npm run seed` adds the event templates, a sample event and venue, and events on the home page
-and in the header only while Events is on.
+placed. Turning Events on (Settings > Events) makes the event templates, `single-event` and
+`archive-events`, where no templates have those addresses (`ensureEventTemplates`, `src/lib/admin/seed.ts`,
+from the settings API), as the shop does its own. `npm run seed` adds them, a sample event and venue, and
+events on the home page and in the header only while Events is on.
 
 The default time zone (`SITE_TZ`) is set by admins under Settings > Events (`settings.site.timezone`;
 the config's `timezone` is the default); an event can choose its own (`fields.timezone`, in its
@@ -1758,6 +1761,14 @@ link (Forgot password, `/api/auth/forgot`) and an opened invitation both lead to
 password confirms the address, spends any invitation and signs in. Without SMTP a visitor's own request
 gets the same answer and the link is only logged; admins are shown the link to pass on.
 
+**The first admin** (`src/lib/admin/first-run.ts`, `/admin/setup/`, POST `/api/auth/setup`): while no profile
+is an admin (`needsFirstAdmin`), the sign-in page sends visitors to a form that makes one (name, email, a
+password of at least 10 characters), signs them in and, with **Add starter content** (ticked while the site
+has no templates, `hasNoTemplates`), runs `seedSite` (`src/lib/admin/seed.ts`, which `npm run seed` runs too).
+Outside `astro dev` it also asks for the setup code (`setupCodeNeeded`): `SETUP_CODE`, else `AUTH_SECRET`,
+compared in constant time (`setupCodeMatches`), so a stranger who finds a new site first can't claim it. Once
+there is an admin, both addresses lead to the sign-in page; more admins come from Users.
+
 Invitations (Users and Members; `src/lib/admin/invite.ts`) last `INVITE_DAYS` (7). The account is made
 with no password and the link, `/api/auth/invite?t=`, is signed with a key made from `AUTH_SECRET` and
 names the account, its expiry, where it leads (set-password or the account page) and the account's
@@ -1775,9 +1786,21 @@ of its own, `section`; the content list has no tabs of its own for the types), a
 then Template, Template part and Pattern), Media, Stats, a **Forms** dropdown (Forms, Submissions), a **People** dropdown (Users and Members
 for admins, Mailing Lists and Tickets, each while its feature is on; a group of one shows as its link)
 Donations while it is on, and a **Shop** dropdown (Orders, Discounts, Stock, Stats) while the shop is on,
-then a gear for Settings (admins), **?**, View site and the account menu. Below 1024px it all sits behind
-one menu button, the groups as headings. The dropdowns are `details[data-menu]`: one open at a time, closed
-by a click elsewhere or Escape.
+then a gear for Settings (admins), the command palette's button, **?**, View site and the account menu. Below
+1024px it all sits behind one menu button, the groups as headings. The dropdowns are `details[data-menu]`: one
+open at a time, closed by a click elsewhere or Escape. The bar's menu is built by `adminNavFor`
+(`src/lib/admin/nav-for.ts`: the types shown and the features on, from the settings), which the palette's
+endpoint shares.
+
+**The command palette** (Ctrl+K, ⌘K on a Mac, or the search button in the admin bar; `src/admin/CommandPalette.tsx`,
+`src/lib/admin/commands.ts`): a dialog with one box that goes to any screen in the bar (`navCommands`, each
+under its dropdown's name), Settings' sections for admins (`settingsCommands`, with their keywords) and
+entries found by title (`entryCommands`: the types shown, not trashed, latest edited first, from two
+characters), ranked by `matchCommands` (every word typed in the label, group or keywords; labels starting
+with it first). The screens are matched in the browser; entries come from `GET /api/admin/commands?q=`
+(`only=entries`), which answers the whole list for the editor bar's palette on the site's own pages
+(`public/assets/js/editor-bar.js`, plain script). Arrows choose, Enter opens (with Ctrl or ⌘, in a new tab),
+Escape closes. In rich text (`contenteditable`) the shortcut is left to the editor.
 
 **The admin's home** (`/admin/` with no list asked for: `src/pages/admin/index.astro` rewrites to
 `src/pages/admin/home.astro`; the content lists stay at `/admin/?type=<type>`): **What would you like to
@@ -1806,7 +1829,11 @@ Backups); a Section dropdown on phones. Each section has its own address, `/admi
 (General `/admin/settings/`; `sectionOf`, `settingsPath`); the screen moves between them in place, so
 unsaved changes carry over, and an old `#<section>` link (and `admin` and `appearance`, now `theme`) forwards to it.
 One **Save settings**, beside the section's title while there are unsaved changes, saves every section's
-form; Connections, Redirects, Sync and Backups save as they go (`SAVES_AS_IT_GOES`).
+form; Connections, Redirects, Sync and Backups save as they go (`SAVES_AS_IT_GOES`). **Search settings**, over
+the menu (and over the Section dropdown on phones, listing what it finds), narrows the menu to the sections
+whose label, keywords (`SettingsSection.keywords`) or settings' own words have every word typed
+(`sectionMatches`, ignoring case and accents; a panel's words are read from the page, leaving out the choices
+in its lists and what is typed in its fields, `panelText`); Enter opens the first, Escape clears it.
 
 Every admin page (`src/layouts/AdminTheme.astro`) stops the scroll wheel changing a focused number field, which
 would otherwise set it (from empty, to its minimum) as the page scrolls.
@@ -2009,12 +2036,13 @@ Auth's own). Env: `.env.example`.
 ## Commands
 
 ```
+npm run setup                           # a new copy: .env with an AUTH_SECRET, the local database, then astro dev (scripts/setup.ts)
 npx wrangler d1 migrations apply DB --local   # the local database's schema (npm run db:migrate, which copies plugins' migrations first)
 docker run -d -p 1025:1025 -p 8025:8025 axllent/mailpit   # a local mail catcher (SMTP_URL=smtp://127.0.0.1:1025)
 npx astro dev --background              # http://localhost:4321 (the Worker, in workerd)
 npm run deploy                          # build and deploy the Worker (wrangler deploy)
 npm run deploy:remote                   # apply remote migrations, then deploy what is built (git deploys)
-npx tsx --env-file=.env scripts/create-editor.ts you@example.org 'password' [editor|admin]   # a user
+npx tsx --env-file=.env scripts/create-editor.ts you@example.org 'password' [editor|admin]   # a user (the first admin: /admin/ on a site with none)
 npm run seed                            # starter templates, home page, sample event (skips what exists)
 npx tsx --env-file=.env scripts/migrate-content.ts [--dry-run]   # site then core content migrations
 npm test                                # unit tests (Vitest), with D1's limits checked on every statement

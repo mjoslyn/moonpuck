@@ -76,7 +76,8 @@ renamed things come out of the docs too.
 
 ## Local setup
 
-- `npm run db:migrate` (the local database; it and the local file bucket are in `.wrangler/state`) and
+- `npm run setup` on a new checkout (`.env` with an `AUTH_SECRET`, the database, the dev server; then
+  /admin/ makes the first admin). Afterwards `npm run db:migrate` (the local database; it and the local file bucket are in `.wrangler/state`) and
   `npx astro dev --background` (http://localhost:4321). A mail catcher for the e2e scripts that read
   email: `docker run -d -p 1025:1025 -p 8025:8025 axllent/mailpit`, `SMTP_URL=smtp://127.0.0.1:1025`.
 - The dev server and scripts share `.wrangler/state`: the database through `node:sqlite`, files through

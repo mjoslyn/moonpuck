@@ -14,7 +14,7 @@ import './lib/mailing/page-data';
 import './lib/shop/page-data';
 import './lib/donations/page-data';
 
-const PUBLIC_ADMIN = ['/admin/login/', '/admin/set-password/', '/api/auth/login', '/api/auth/logout'];
+const PUBLIC_ADMIN = ['/admin/login/', '/admin/setup/', '/admin/set-password/', '/api/auth/login', '/api/auth/logout'];
 // Admin screens and APIs only admins may open (and the site's plugins' own, `adminOnly`).
 const ADMIN_ONLY = ['/admin/settings', '/admin/email-log', '/api/admin/connections', '/api/admin/taxonomies', '/api/admin/types', '/admin/users', '/admin/members', '/api/admin/redirects', '/api/admin/settings', '/api/admin/sync', '/api/admin/users', '/api/admin/members', '/api/admin/mailing/contacts', '/api/admin/mailing/lists'];
 

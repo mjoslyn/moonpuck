@@ -16,6 +16,8 @@ import { mailingSettingsFrom } from '../../../lib/mailing/config';
 import { shopOn, shopSettingsFrom } from '../../../lib/shop/config';
 import { donationSettingsFrom } from '../../../lib/donations/config';
 import { ensureShopTemplates } from '../../../lib/shop/templates';
+import { ensureEventTemplates } from '../../../lib/admin/seed';
+import { eventsOn } from '../../../lib/events/on';
 import { a11ySettingsFrom } from '../../../lib/a11y-gate';
 import { snippetsFrom } from '../../../lib/snippets';
 import { popupsFrom, statsSettingsFrom } from '../../../lib/popups';
@@ -132,6 +134,8 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   const moved = after !== before ? await moveEventsToTimezone(locals.db, before, after) : 0;
   // Turning the shop on makes its starter templates (a product's page, the shop's listing) if they aren't there.
   if (shopOn(site) && !shopOn(current?.value)) await ensureShopTemplates(locals.db).catch((e) => console.error(`shop templates: ${e.message}`));
+  // Turning Events on makes its templates (an event's page, the calendar) if they aren't there.
+  if (eventsOn(site) && !eventsOn(current?.value)) await ensureEventTemplates(locals.db).catch((e) => console.error(`event templates: ${e.message}`));
   await refreshSiteTimezone(locals.db, true);
   await loadAdminTheme(locals.db, true);
   resetMailLogCache();

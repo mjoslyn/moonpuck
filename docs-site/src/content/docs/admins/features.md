@@ -12,7 +12,9 @@ on again and everything is still there.
 ## Events
 
 **Settings > Events**: tick the box to turn events on, and set the site's time zone. Editors then find
-**Events** and **Venues** under **Content**, and the site shows its calendar at `/events/`. See
+**Events** and **Venues** under **Content**, and the site shows its calendar at `/events/`. Turning events
+on also adds two layouts under **Templates**, **Event** (an event's page) and **Events** (the calendar),
+unless the site has them already. See
 [Events and tickets](/editors/events-and-tickets/) in the Editor guide.
 
 Changing the time zone moves events that use it to the new one, keeping their local times.

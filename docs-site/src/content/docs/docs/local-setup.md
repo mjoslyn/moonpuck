@@ -17,49 +17,39 @@ Wrangler (Cloudflare's CLI) is a dev dependency, so `npx wrangler` needs no inst
 
 ## Steps
 
-1. **Install.**
+1. **Install and set up.**
 
    ```sh
    git clone https://github.com/mjoslyn/moonpuck.git my-site
    cd my-site
    npm install
+   npm run setup
    ```
 
-2. **Make the local database.** This makes the local D1 database from `db/migrations/`. It goes in
-   `.wrangler/state`, where the local file bucket also lives. The dev server and the scripts share
-   both. Nothing else needs to run.
+   `npm run setup` makes `.env` from `.env.example` with a new `AUTH_SECRET` (an existing `.env` is
+   kept; only an empty `AUTH_SECRET` is filled in), makes the local D1 database from `db/migrations/`
+   and starts the dev server. The database goes in `.wrangler/state`, where the local file bucket also
+   lives; the dev server and the scripts share both. Add `-- --no-dev` to stop before the server.
 
-   ```sh
-   npm run db:migrate
-   ```
+2. **Make your admin.** Open http://localhost:4321/admin/. While the site has no admin, it asks you to
+   make one: your name, email and a password (at least 10 characters). **Add starter content**, ticked on
+   a new site, adds the header, footer, base templates, a home page and an About page. You are signed in.
 
-3. **Configure.** Copy the example env file and set `AUTH_SECRET` to any long random value
-   (`openssl rand -hex 32`):
+   The site is at http://localhost:4321.
 
-   ```sh
-   cp .env.example .env
-   ```
+### By hand
 
-4. **Add starter content**: the header, footer, base templates, a home page, an About page and a
-   sample event. It skips anything that already exists, so it is safe to run again.
+The same steps one at a time:
 
-   ```sh
-   npm run seed
-   ```
+```sh
+cp .env.example .env                    # then set AUTH_SECRET to a long random value (openssl rand -hex 32)
+npm run db:migrate
+npm run seed                            # the starter content; skips what exists, so safe to run again
+npx tsx --env-file=.env scripts/create-editor.ts you@example.org 'a-password' admin
+npx astro dev
+```
 
-5. **Create an admin.**
-
-   ```sh
-   npx tsx --env-file=.env scripts/create-editor.ts you@example.org 'a-password' admin
-   ```
-
-6. **Run it.**
-
-   ```sh
-   npx astro dev
-   ```
-
-   The site is at http://localhost:4321 and the editor at http://localhost:4321/admin/.
+`scripts/create-editor.ts` also makes more editors, and makes an existing account an admin.
 
 ## Optional features
 
@@ -84,8 +74,9 @@ and set `SMTP_URL=smtp://127.0.0.1:1025`. Its inbox is at http://127.0.0.1:8025.
 
 ### Events
 
-Turn them on under **Settings > Events** (admins). The default time zone is set there too. Then run
-`npm run seed` again for the event templates and a sample event. The site's config needs nothing. To
+Turn them on under **Settings > Events** (admins). The default time zone is set there too. Turning
+them on adds the event templates (an event's page and the calendar) if they aren't there; `npm run seed`
+adds a sample event and venue. The site's config needs nothing. To
 add fields or change labels and URLs, see [Extending the event types](../../features/events/#extending-the-event-types).
 
 ### Payments and tickets

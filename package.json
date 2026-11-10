@@ -11,6 +11,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "db:migrate": "tsx scripts/plugin-migrations.ts && wrangler d1 migrations apply DB --local",
+    "setup": "tsx scripts/setup.ts",
     "start": "npm run db:migrate && astro dev",
     "check": "tsc --noEmit -p .",
     "test": "vitest run",

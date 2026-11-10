@@ -12,6 +12,20 @@ everything editors can, so for pages, images, forms and publishing, see the
 
 The **?** button at the top of every admin screen brings admins here, and editors to the Editor guide.
 
+## A new site: making the first admin
+
+A site with no admin yet asks the first person to open `/admin/` to make one:
+
+1. Fill in **Your name**, **Email** and **Password** (at least 10 characters).
+2. On a site that is already online, fill in the **Setup code**. Whoever set up the site's hosting has it
+   (it is the site's `SETUP_CODE`, or its `AUTH_SECRET`).
+3. Leave **Add starter content** ticked on a new site: it adds a header, footer, the basic layouts, a home
+   page and an About page to start from.
+4. Click **Make my account**. You are signed in as an admin.
+
+After that, the sign-in screen is the way in, and you add everyone else under **People > Users** (see
+[People and access](/admins/people/)).
+
 ## What only admins see
 
 - **Settings**: the gear ⚙ at the right of the top bar. Everything that applies to the whole site:

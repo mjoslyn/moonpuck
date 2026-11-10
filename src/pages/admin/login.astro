@@ -1,6 +1,9 @@
 ---
 import { site } from '../../lib/site';
 import Admin from '../../layouts/Admin.astro';
+import { needsFirstAdmin } from '../../lib/admin/first-run';
+// A site with no admin yet makes its first one (src/lib/admin/first-run.ts).
+if (await needsFirstAdmin()) return Astro.redirect('/admin/setup/');
 const error = Astro.url.searchParams.get('error');
 const next = Astro.url.searchParams.get('next') ?? '/admin/';
 const message = error === 'forbidden' ? 'This account does not have editor access.' : error;

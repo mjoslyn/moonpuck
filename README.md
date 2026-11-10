@@ -59,58 +59,34 @@ Wrangler (Cloudflare's CLI) is a dev dependency, so `npx wrangler` needs no inst
 
 ## Local setup
 
-1. **Install**
+```
+git clone https://github.com/mjoslyn/moonpuck.git my-site
+cd my-site
+npm install
+npm run setup
+```
 
-   ```
-   git clone https://github.com/mjoslyn/moonpuck.git my-site
-   cd my-site
-   npm install
-   ```
+`npm run setup` (`scripts/setup.ts`) makes `.env` from `.env.example` with a new `AUTH_SECRET` (an
+existing `.env` is kept, only an empty `AUTH_SECRET` filled in), makes the local D1 database from
+`db/migrations/` (in `.wrangler/state`, where the local file bucket also lives) and starts the dev
+server. Add `-- --no-dev` to stop before the server; start it later with `npx astro dev`.
 
-2. **Make the local database.** This makes the local D1 database from `db/migrations/`, in
-   `.wrangler/state`, where the local file bucket also lives. Nothing else needs to run.
+Then open http://localhost:4321/admin/. While the site has no admin, it asks you to make one: your name,
+email and a password. **Add starter content** (ticked on a new site) adds the header, footer, base
+templates, a home page and an About page. You are signed in, and the site is at http://localhost:4321.
+The dev server runs as the Worker does in production (workerd), with local bindings.
 
-   ```
-   npm run db:migrate
-   ```
+To see the site's email, run a mail catcher and set `SMTP_URL=smtp://127.0.0.1:1025` in `.env` (its
+inbox is at http://127.0.0.1:8025):
 
-   To see the site's email, run a mail catcher and set `SMTP_URL=smtp://127.0.0.1:1025` in `.env`
-   (its inbox is at http://127.0.0.1:8025):
+```
+docker run -d -p 1025:1025 -p 8025:8025 axllent/mailpit
+```
 
-   ```
-   docker run -d -p 1025:1025 -p 8025:8025 axllent/mailpit
-   ```
-
-3. **Configure.** Copy the example env file:
-
-   ```
-   cp .env.example .env
-   ```
-
-   Then set `AUTH_SECRET` to any long random value (`openssl rand -hex 32`).
-
-4. **Add starter content.** This adds the header, footer, base templates, a home page, an About page
-   and a sample event. It skips anything that already exists, so it is safe to run again.
-
-   ```
-   npm run seed
-   ```
-
-5. **Create an admin.** This makes an admin user you can sign in with:
-
-   ```
-   npx tsx --env-file=.env scripts/create-editor.ts you@example.org 'a-password' admin
-   ```
-
-6. **Run it.**
-
-   ```
-   npx astro dev
-   ```
-
-   The site is at http://localhost:4321 and the editor at http://localhost:4321/admin/. It runs as the
-   Worker does in production (workerd), with local bindings: the database is the local D1, the same
-   file the scripts above use.
+**By hand**, the same steps are `cp .env.example .env` (then set `AUTH_SECRET` to a long random value,
+`openssl rand -hex 32`), `npm run db:migrate`, `npm run seed` (the starter content; safe to run again),
+`npx tsx --env-file=.env scripts/create-editor.ts you@example.org 'a-password' admin` (an admin, or
+another editor; it can also make an existing account an admin) and `npx astro dev`.
 
 ### Optional features
 
@@ -136,8 +112,9 @@ environment variables (`.env.example`). These win over saved ones.
   at http://127.0.0.1:8025).
 - **Events.** Turn them on under Settings > Events (admins): event and venue types, the calendar at
   `/events/`, event categories, `.ics` feeds and the event blocks, plus the default time zone (an event
-  can choose its own). Run `npm run seed` again afterwards for the event templates and a sample
-  event. The site config needs nothing for them. To add fields or change labels and URLs, extend them
+  can choose its own). Turning them on adds the event templates (an event's page and the calendar) if
+  they aren't there; `npm run seed` adds a sample event and venue.
+  The site config needs nothing for them. To add fields or change labels and URLs, extend them
   with `events` in `src/site/config.ts`:
 
   ```ts
@@ -241,7 +218,11 @@ follow the config. `CORE.md` describes each option.
    `STORAGE_ENDPOINT` `https://<account-id>.r2.cloudflarestorage.com`, `STORAGE_BUCKET`,
    `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY`). Put them in a copy of `.env` such as
    `.env.production`.
-3. **Seed and create an admin**, with the database settings above, by the same two commands as locally:
+3. **The first admin.** Once the Worker is deployed (step 4), open `/admin/` on the site. While it has
+   no admin, it asks you to make one, with the **Setup code**: the Worker's `SETUP_CODE` secret if you set
+   one, else its `AUTH_SECRET`, so nobody who finds the new site first can claim it. Tick **Add starter
+   content** for the header, footer, base templates and home page. Or, with the database settings above,
+   run the same commands as by hand locally:
    ```
    npx tsx --env-file=.env.production scripts/seed.ts
    npx tsx --env-file=.env.production scripts/create-editor.ts you@example.org 'a-password' admin

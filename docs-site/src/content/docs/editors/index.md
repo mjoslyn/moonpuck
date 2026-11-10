@@ -111,6 +111,7 @@ The bar across the top of every admin screen takes you to each part of the site:
 | **People** ▾ | **Mailing Lists** and **Tickets**, each only when your site uses it. Admins also see **Users** and **Members**. With only one of these, it shows as that link instead of a menu. With none, it isn't there. |
 | **Shop** ▾ | **Orders**, **Discounts**, **Stock** and **Stats**, only when your site has a shop. See [The shop](/editors/shop/). |
 | ⚙ (the gear) | **Settings**: site-wide settings, such as the menu. Admins only. |
+| 🔍 (the magnifying glass) | **Go to**: find a screen, a setting or a page by typing (see below). |
 | **?** | This guide, in a new tab. |
 | **View site** | Your public website in a new tab, to see your changes as visitors will. |
 | Your initial and name | Your email address, your role and **Sign out**. |
@@ -124,11 +125,29 @@ highlighted.
 screen, with each menu's name as a heading, then **Settings** (admins) and **View site**. On a phone, your
 name is left out beside your initial.
 
+### Go to: find anything by typing
+
+Press **Ctrl** and **K** together (on a Mac, **⌘** and **K**), or click the magnifying glass in the top
+bar. A box opens:
+
+1. Type part of what you want: a screen (such as "media" or "submissions"), a setting (such as "theme"
+   or "time zone"; admins only), or a page's title (at least two letters).
+2. Use the **↑** and **↓** arrow keys to choose, or point with the mouse. The grey words on the right say
+   where each one is (**Content**, **Settings**, or the kind of page, marked **(draft)** if it isn't
+   published).
+3. Press **Enter** to open it, or click it. Hold **Ctrl** (or **⌘**) as you press Enter to open it in a
+   new tab.
+
+Press **Escape** to close the box without going anywhere.
+
+![The Go to box](../../../assets/guide/go-to.png)
+
 **On your website**, while you are signed in, a dark editor bar appears across the top of the site's
 pages:
 
 - **Dashboard** goes to the home screen.
 - **Edit page** opens the page you are looking at in the editor (admins also get **Edit template**).
+- **Go to** opens the same Go to box (or press **Ctrl** and **K**, **⌘** and **K** on a Mac).
 - **Sign out** signs you out.
 
 ## Editors and admins
