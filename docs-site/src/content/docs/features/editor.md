@@ -18,36 +18,40 @@ Auth), in its database.
 | `admin` | Everything editors have, plus site settings, redirects and users |
 | `viewer` | No access |
 
-Admin-only pages are listed in `ADMIN_ONLY` (`src/middleware.ts`); settings writes are admin-only in
-the site's policies (`src/lib/db/policies.ts`). Admins manage users at `/admin/users/`: roles and invitations, with **Resend invitation** for anyone invited who hasn't set a password yet, and **Delete** (not your own account; what they made stays).
-Editors set their password at `/admin/set-password/`, where invitations (7 days) and password links
-(Forgot password on the sign-in page; an hour) land; setting it signs them in and signs the account
-out everywhere else. After 10 wrong passwords for an address (or 30 from one visitor) in 15 minutes,
-sign-in asks them to wait; password links go out at most 3 an hour per address.
+Admin-only pages are listed in `ADMIN_ONLY` (`src/middleware.ts`). Settings writes are admin-only in
+the site's policies (`src/lib/db/policies.ts`). Admins manage users at `/admin/users/`: roles and
+invitations, with **Resend invitation** for anyone invited who hasn't set a password yet. **Delete**
+removes a user (not your own account), and what they made stays.
+Editors set their password at `/admin/set-password/`. Invitations (7 days) and password links (Forgot
+password on the sign-in page, an hour) land there. Setting the password signs them in and signs the
+account out everywhere else. After 10 wrong passwords for an address (or 30 from one visitor) in 15
+minutes, sign-in asks them to wait. Password links go out at most 3 an hour per address.
 
 ## Admin colors and logo
 
 **Settings > Theme**, **Admin screens**, sets the admin's colors for everyone who signs in. With **Match the
-site** on (the default) they follow the site's theme: its accent (its button fill, else its accent, while white
-text reads on it), its dark color as the menu bar and its logo (`matchedAdminTheme`). Unticked, the admin
+site** on (the default), they follow the site's theme. The admin takes its accent (its button fill, else
+its accent, while white text reads on it), its dark color as the menu bar and its logo
+(`matchedAdminTheme`). Unticked, the admin
 has its own: accent, text, menu bar and
 background (`settings.site.admin_theme`, `src/lib/admin-theme.ts`), and a logo for the menu bar. The
-logo replaces the site name there, or sits beside it with **Show the site name beside it** (on phones
-only the logo shows); it is shown up to 32px tall, so pick one that reads on the menu bar's color. The
+logo replaces the site name there, or sits beside it with **Show the site name beside it**. On phones,
+only the logo shows. It is shown up to 32px tall, so pick one that reads on the menu bar's color. The
 settings API stores its media id and makes its URL from the media row. Colors and logo change on the
-screen as they are picked; Save keeps them. The admin's styles use only role tokens (`--color-admin-*` in
-`src/styles/tailwind.css`, as Tailwind colors such as `text-admin-muted` and `bg-admin-accent`), and
-every admin page writes the saved colors over them (`AdminTheme.astro`), with the shades made from
-them: a darker accent, a soft background, and the menu bar's text, dark on a light bar. Puck's own
+screen as they are picked, and Save keeps them. The admin's styles use only role tokens
+(`--color-admin-*` in `src/styles/tailwind.css`, as Tailwind colors such as `text-admin-muted` and
+`bg-admin-accent`). Every admin page writes the saved colors over them (`AdminTheme.astro`). It also
+writes the shades made from them: a darker accent, a soft background, and the menu bar's text, dark on
+a light bar. Puck's own
 blue scale is made from the accent (`src/styles/admin.css`). The accent and text carry white text, so
 the screen warns when white on them would be hard to read. The admin uses the system font. Admin
-colors and logo are part of the site settings, so a settings sync copies them (sync Files too, or
-the logo's image is missing on the other copy).
+colors and logo are part of the site settings, so a settings sync copies them. Sync Files too, or
+the logo's image is missing on the other copy.
 
 ## The page editor
 
-`src/puck/Editor.tsx` renders blocks through the same string renderer as the site, inside Puck
-(`BlockView.tsx` parses the HTML to React; slots become the block's inner wrapper element). What you
+`src/puck/Editor.tsx` renders blocks through the same string renderer as the site, inside Puck.
+`BlockView.tsx` parses the HTML to React, and slots become the block's inner wrapper element. What you
 see while editing is the site's own markup.
 
 The left rail has **Blocks** (and **Patterns**), **Outline** and an **accessibility check**. Blocks
@@ -60,15 +64,16 @@ Rich text toolbars (**Link**: page blocks and emails) and link fields (**Find**:
 field of type `url` in a type's or a site block's fields, Settings > Menu's links, a linked pattern's links)
 open the link picker (`src/puck/LinkPicker.tsx`) instead of a browser prompt:
 
-- Typing searches entries of types with pages by title (drafts marked; the latest edited when empty)
-  and links to their address.
+- Typing searches entries of types with pages by title and links to their address. Drafts are marked.
+  When the search is empty, the picker lists the latest edited.
 - An address typed in is used as is (`typedAddress`, `src/lib/link-address.ts`): web addresses (a bare
   domain gets `https://`), email addresses (`mailto:`), phone numbers (`tel:`), paths, anchors and
   merge tags.
 - **Media library** links any file.
-- In rich text, **Open in a new tab** (ticked for other sites) adds `target="_blank" rel="noopener"`;
-  with nothing selected the entry's title or file's name becomes the linked words; with the cursor in a
-  link it edits that link, with **Remove link**. Emails get full addresses for the site's own pages.
+- In rich text, **Open in a new tab** (ticked for other sites) adds `target="_blank" rel="noopener"`.
+  With nothing selected, the entry's title or file's name becomes the linked words. With the cursor in a
+  link, the picker edits that link, with **Remove link**. Emails get full addresses for the site's own
+  pages.
 
 ## Copy and paste styles
 
@@ -79,7 +84,7 @@ another page, template, part or pattern.
 - Any block takes the shared style settings (`SHARED_STYLE`: `style`, `width`, `className`, `formStyle`).
 - A block of the same type also takes its look settings (`LOOK`: alignment, gap, overlay, height, size,
   columns, display...).
-- Each setting the copy covers is set to its value or cleared; content is never copied. The paste is an
+- Each setting the copy covers is set to its value or cleared. Content is never copied. The paste is an
   ordinary, undoable edit.
 - Blocks inside a linked pattern, and the linked pattern itself, don't offer it: their styles are the
   pattern's.
@@ -93,24 +98,25 @@ another page, template, part or pattern.
   `action`).
 - **Preview** opens `/admin/preview/<id>/` with the editor's current state (POST) or the saved draft
   (GET), rendered like the site with a preview bar and noindex.
-- If someone else saved the page (or template) since you opened it, your save is refused and the
-  editor asks whether to save over their version; cancel and reload to see theirs first.
+- If someone else saved the page (or template) since you opened it, your save is refused. The
+  editor asks whether to save over their version. To see theirs first, cancel and reload.
 - **Autosave**: a page's content and settings save as a draft 3 seconds after the last edit (at most
   30 seconds after the first unsaved one), as Save draft does, so a published page's live version
   stays as it is. Autosaves don't clear the page cache, and a placeholder address stays one until a
   manual save. If someone else saved meanwhile, autosave stops and the next manual save asks.
   Templates and layout mode don't autosave: their changes apply to every page using them.
 - **Leaving with unsaved changes**: a link out of the editor (such as ← back to the list) asks
-  **Save your changes?**: save (as Save draft, or Save & apply for templates and layout mode) and go,
-  leave without saving, or stay. Reloading, closing the tab or the browser's Back get the browser's own
+  **Save your changes?**. You can save (as Save draft, or Save & apply for templates and layout mode)
+  and go, leave without saving, or stay. Reloading, closing the tab or the browser's Back get the browser's own
   prompt. Templates and layout mode show "Unsaved changes" in the header too.
 - **Revisions** (left rail): the page's saved versions, to preview or restore. Each manual save
-  (Save draft, Publish, Unpublish) is a **checkpoint**; autosaves between them keep one version per
+  (Save draft, Publish, Unpublish) is a **checkpoint**. Autosaves between them keep one version per
   ten minutes of editing (`src/lib/admin/revisions.ts`). **Checkpoints only** hides the autosaves.
-  **Restore** loads a version into the editor (Undo takes it back) with its page settings: in content
-  mode its content and the template's other content areas, then autosaved as a draft; in layout mode
-  the template as that version saved it (versions saved with another template are preview only), kept
-  with **Save & apply**, which changes every page using the template.
+  **Restore** loads a version into the editor with its page settings, and Undo takes it back. In
+  content mode, it loads the version's content and the template's other content areas, then autosaves
+  them as a draft. In layout mode, it loads the template as that version saved it. Versions saved with
+  another template are preview only. **Save & apply** keeps a restored template, and it changes every
+  page using the template.
 
 A published entry whose address changes gets a redirect from the old one automatically.
 
@@ -118,15 +124,15 @@ A published entry whose address changes gets a redirect from the old one automat
 
 `A11yPanel.tsx` lists problems on the page. Those a person has to judge (warnings, and text over an
 image, whose contrast can't be measured) can be marked as checked with a note. The marks live in the
-document's root props (`a11y`), save on their own as they are made (`PUT /api/admin/a11y`; not an
-unsaved edit), and lapse when the text or image they were about changes.
+document's root props (`a11y`). They save on their own as they are made (`PUT /api/admin/a11y`), so
+they are not an unsaved edit. A mark lapses when the text or image it was about changes.
 
-Settings > Accessibility can make publishing wait for the check: Publish and Publish changes, on an
-entry of any type with a page, first run it afresh. If anything is left open (a problem not fixed, or a
-warning not marked as checked), the publish is held and a dialog offers **Show the problems** (the A11y
+Settings > Accessibility can make publishing wait for the check. Then Publish and Publish changes, on an
+entry of any type with a page, first run it afresh. Something can be left open: a problem not fixed, or a
+warning not marked as checked. Then the publish is held. A dialog offers **Show the problems** (the A11y
 panel) or **Publish anyway** with an optional reason. A publish made anyway keeps a note in Revisions
 with that version: what was left open, and why. Bulk Publish in the content list skips entries with a
-page while this is on, since the check runs in the editor. Templates' Save & apply isn't held.
+page while this is on, because the check runs in the editor. Templates' Save & apply isn't held.
 
 ## Editor bar on the site
 

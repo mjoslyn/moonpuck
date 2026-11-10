@@ -9,18 +9,19 @@ Compose writes pages with Claude from the documents, images and links an editor 
 `/admin/compose/` and in the page editor as a panel docked beside the canvas (pin keeps it open).
 The admin bar's **Compose** menu lists everything it makes: each type with a page
 (`/admin/compose/?type=<type>`), and a form, a campaign (while Mailing is on), a template, template part
-or pattern. Those start on a page laid out like this one (`/admin/compose/new/?kind=<kind>`): say what it
-is for and Send makes it, then opens it in its own editor (the form builder, the campaign editor, or the
-page editor with the Compose panel), where Compose writes it from what you said. The same name is on every Claude button: a term's, a taxonomy's or listing's SEO,
-an excerpt, an entry's SEO, an image's alt text and the form builder's.
+or pattern. Those start on a page laid out like this one (`/admin/compose/new/?kind=<kind>`). You say
+what it is for, and Send makes it. Then Send opens it in its own editor (the form builder, the campaign
+editor, or the page editor with the Compose panel). There, Compose writes it from what you said. Every
+Claude button has the same name: a term's, a taxonomy's or listing's SEO, an excerpt, an entry's SEO,
+an image's alt text and the form builder's.
 
 The panel is also there for layouts: a page edited in layout mode (its template is what it shows) and
-a template, part or pattern edited on its own. Claude is told it is working on a layout every page
-using it shares; builds add or replace its sections and a selected block or section is changed in
-place, kept with **Save & apply**. A template's conversation is kept with it
+a template, part or pattern edited on its own. Compose tells Claude that it is working on a layout
+that every page using it shares. Builds add or replace its sections. A selected block or section is
+changed in place, and **Save & apply** keeps the change. A template's conversation is kept with it
 (`compose_sessions.template`), never creates a draft page, and has no field updates.
 
-Needs Claude connected under Settings > Connections, or `ANTHROPIC_API_KEY`. `ANTHROPIC_MODEL` overrides the model (default `claude-sonnet-5-5`).
+Compose needs Claude connected under Settings > Connections, or `ANTHROPIC_API_KEY`. `ANTHROPIC_MODEL` overrides the model (default `claude-sonnet-5-5`).
 
 ## Conversations
 
@@ -54,24 +55,24 @@ Hand edits are shown to Claude. With a block selected in the editor, the panel t
 ## Materials
 
 `src/lib/compose/materials.ts` keeps a registry with stable ids (`image-1`, `doc-1`...). PDFs go in
-the store's private `compose/` folder, link text is fetched once (private addresses refused), and images are
-re-encoded to JPEG for Claude. The whole conversation is sent with prompt caching
+the store's private `compose/` folder. Compose fetches link text once and refuses private addresses. It
+re-encodes images to JPEG for Claude. It sends the whole conversation with prompt caching
 (`src/lib/compose/claude.ts`).
 
 ## Safety
 
-Materials can carry instructions, so replacements are checked (`src/lib/compose/edit.ts`): known block
-types, kept ids, materials resolved. Markup is cut to inline formatting and links, addresses to web,
-mail, phone and site links, and raw HTML is never taken from Claude (`safe-html.ts`).
+Materials can carry instructions, so Compose checks each replacement (`src/lib/compose/edit.ts`):
+known block types, kept ids, materials resolved. It cuts markup to inline formatting and links, and
+addresses to web, mail, phone and site links. It never takes raw HTML from Claude (`safe-html.ts`).
 
 ## Jobs
 
-A build takes 30–90 seconds or more, so a turn runs as a job
+A build takes 30 to 90 seconds or more, so a turn runs as a job
 (`src/lib/compose/job.ts`, table `compose_jobs`):
 
-1. `POST /api/admin/compose` reads the materials, queues the turn, puts `{ jobId, token }` on the
-   Worker's jobs queue (`src/lib/jobs.ts`), whose consumer runs it for up to 15 minutes, and answers
-   202.
+1. `POST /api/admin/compose` reads the materials and queues the turn. It puts `{ jobId, token }` on
+   the Worker's jobs queue (`src/lib/jobs.ts`) and answers 202. The queue's consumer runs the turn for
+   up to 15 minutes.
 2. The runner claims the job with its token and writes progress, then the result or error, to the row.
 3. The panel polls `GET /api/admin/compose?job=<id>`.
 

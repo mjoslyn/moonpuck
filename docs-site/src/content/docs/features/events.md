@@ -11,23 +11,23 @@ and the event and ticket blocks. The site's config doesn't need to define anythi
 
 ## Turning events on and off
 
-Off (the default), nothing is deleted, but events, venues and event categories are hidden from the admin
-and the site shows none of them:
+Off is the default. Turning it off deletes nothing, but the admin hides events, venues and event
+categories, and the site shows none of them:
 
 - event pages, the calendar and its views, event category pages and the calendar feeds are Not found
 - collections, search and menus leave events out, and email Events blocks list none
 - event and ticket blocks show nothing, and the editor doesn't offer them
-- tickets aren't sold, and reminders, follow-ups and waitlist notices aren't sent; Tickets and Settings >
-  Tickets are hidden
+- tickets aren't sold, and reminders, follow-ups and waitlist notices aren't sent
+- Tickets and Settings > Tickets are hidden
 
 Orders already placed still complete: buyers coming back from paying and the payment webhooks work.
-Turned back on, everything returns. `npm run seed` adds the event templates, a sample event and events on
+When you turn Events back on, everything returns. `npm run seed` adds the event templates, a sample event and events on
 the home page only while Events is on (run it again after turning them on).
 
 ## Extending the event types
 
 The core supplies the `event` and `venue` types and the `event_category` taxonomy
-(`src/lib/events/types.ts`). Extend them with `events` in `src/site/config.ts`; whatever you leave out
+(`src/lib/events/types.ts`). Extend them with `events` in `src/site/config.ts`. Whatever you leave out
 stays as the core has it:
 
 ```ts
@@ -58,12 +58,13 @@ export default defineSite({
 - `category` takes the taxonomy's options (`label`, `singular`, `base`, `fields`).
 - Keep `archive: '/events/'` (the default): the calendar views live under it.
 - To replace a type whole instead, list your own `event` or `venue` in `types` (or `event_category` in
-  `taxonomies`); the core then uses yours as it is and ignores `events` for it.
+  `taxonomies`). The core then uses yours as it is and ignores `events` for it.
 
 The date, time, all-day, time zone, recurrence, featured and Tickets settings are built into the event
-sidebar and don't go in `fields`. The core reads these field keys: on events `venue`, `cost`, `website`
-and `schedule` (a repeater of days, each with items); on venues `address`, `city`, `state`, `zip`,
-`country`, `phone` and `website`.
+sidebar and don't go in `fields`. The core reads these field keys:
+
+- on events: `venue`, `cost`, `website` and `schedule` (a repeater of days, each with items)
+- on venues: `address`, `city`, `state`, `zip`, `country`, `phone` and `website`
 
 ## Data
 
@@ -109,23 +110,24 @@ An event's rule is stored in `fields.recurrence` and edited in the event sidebar
 - Occurrences are virtual entries (negative ids, their own `event_start`, `start` and `end`) at
   `/event/<slug>/<Y-m-d>/`.
 - `/event/<slug>/` redirects to the next occurrence.
-- A series is expanded up to two years ahead; of a long one, the newest 1,100 occurrences are kept
+- A series is expanded up to two years ahead. Of a long one, the newest 1,100 occurrences are kept
   (for a daily event, about a year back).
 - `Loader.query` expands series only when a recurring event exists.
-- The month and day views link no further than the first and last event; the feeds are cached like pages.
+- The month and day views link no further than the first and last event.
+- The feeds are cached like pages.
 - Saving an event rewrites the `start` and `end` fields the views read.
 
 ## Time zone
 
-The default time zone is set under **Settings > Events** (`settings.site.timezone`; the config's
-`timezone` when empty). An event can choose its own in its sidebar (`fields.timezone`); its times are in
-that zone, and visitors see its short name beside them. `SITE_TZ` is a live binding in `src/lib/site`:
-the middleware and Compose jobs refresh it from the settings (`src/lib/site/timezone.ts`, cached a
-minute), and admin pages pass it to the browser as `window.__siteTz`.
+Admins set the default time zone under **Settings > Events** (`settings.site.timezone`). When it is
+empty, the config's `timezone` applies. An event can choose its own in its sidebar (`fields.timezone`).
+Its times are then in that zone, and visitors see its short name beside them. `SITE_TZ` is a live
+binding in `src/lib/site`. The middleware and Compose jobs refresh it from the settings
+(`src/lib/site/timezone.ts`, cached a minute). Admin pages pass it to the browser as `window.__siteTz`.
 
 Changing the default moves events that were on the old time zone to the new one with their local times
 kept (`moveEventsToTimezone`). Events with their own time zone stay.
 
 ## Tickets
 
-An event can sell tickets or take free registrations: see [Tickets](../tickets/).
+An event can sell tickets or take free registrations. See [Tickets](../tickets/).
