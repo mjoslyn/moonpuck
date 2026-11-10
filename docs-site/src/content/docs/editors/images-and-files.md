@@ -14,14 +14,14 @@ any page, and anyone who edits the site can use it.
 
 Click **Media** in the top bar. You see:
 
-- how many files the site has (for example **240 files**);
-- the upload box, top right;
-- a search box;
+- how many files the site has (for example **240 files**)
+- the upload box, top right
+- a search box
 - your files, newest first, 60 to a page. Use **Previous** and **Next** at the bottom to see more.
 
 Each file shows a small preview (videos and documents show their type, such as **PDF** or **Word**), its
 file name and a line of details: a picture's size in pixels, a document's type and size. **AVIF, WebP**
-means the site has made lighter copies of the picture for fast loading, and **focal point** means someone
+means the site has made lighter copies of the picture for fast loading. **Focal point** means someone
 has chosen which part of it stays in view (see [Keeping the important part in
 view](#keeping-the-important-part-in-view)).
 
@@ -37,7 +37,7 @@ Click any file to open its details.
 3. Click **Upload**.
 
 The line under the box shows how it is going, for example **Uploading 2 of 5: garden.jpg…**. When all
-the files are done the page reloads with them at the top. If any file was refused, a message lists each
+the files are done, the page reloads with them at the top. If any file was refused, a message lists each
 one with the reason first.
 
 ### From the page editor
@@ -74,8 +74,8 @@ You don't need to resize photos before uploading. The site does it for you:
   kept as well.
 - Smaller copies are made for phones, tablets, lists and thumbnails, so visitors download no more than
   their screen needs.
-- JPEG and PNG pictures also get lighter copies in the newer AVIF and WebP formats, which browsers that
-  can use them load instead.
+- JPEG and PNG pictures also get lighter copies in the newer AVIF and WebP formats. Browsers that can
+  use these formats load them instead.
 - Photos in iPhone (HEIC), TIFF or BMP format are turned into JPEG.
 - SVG drawings, GIFs and animated pictures are kept exactly as uploaded, with no smaller copies, so an
   animation keeps moving.
@@ -90,7 +90,7 @@ small](#when-a-crop-comes-out-small)).
 
 The site tidies the file name: capitals become small letters, and spaces and other symbols become
 hyphens, so `Summer Fair 2026.JPG` is stored as `summer-fair-2026.jpg`. If a file of that name is already
-there, the new one gets a number (`summer-fair-2026-1.jpg`); nothing is ever written over. The file's
+there, the new one gets a number (`summer-fair-2026-1.jpg`). The site never writes over a file. The file's
 **Title** starts as its name without the ending, and you can change it in its details.
 
 ### When an upload is refused
@@ -128,7 +128,7 @@ the right. **Close** (top right), Escape, or a click outside the panel closes it
   the file.
 - **Caption**: a line of text about the picture, such as who took it.
 
-Then click **Save**. **Save** stays greyed out until you change something; **Saved** appears in green
+Then click **Save**. **Save** stays greyed out until you change something. **Saved** appears in green
 once it is done.
 
 The alt text you write here is used wherever the picture appears, unless a block gives it its own alt
@@ -215,7 +215,7 @@ A crop whose shape is close to one of these four (within about 15%) uses that sh
 
 Under each preview is its shape and the smallest picture that fills it sharply, such as **16:9 · 1600 ×
 900 or larger**. If it adds **(this one is smaller)**, in orange, the picture has too few pixels for that
-shape and the crop may look a little blurry on big screens. Use a larger photo, or use another image for
+shape. The crop may look a little blurry on big screens. Use a larger photo, or use another image for
 that shape (below).
 
 ### Using another image for one shape
@@ -230,9 +230,9 @@ can choose a different picture to be used only for that shape.
    set its point.
 4. Click **Save**.
 
-From then on, wherever this picture is cropped to that shape (a block set to that **Aspect ratio**, or
-the small square thumbnails), the other picture is shown instead, with the focal point you set for this
-use and its own alt text (or this picture's, if it has none). The other picture's own focal points stay
+From then on, the site shows the other picture wherever this picture is cropped to that shape (a block
+set to that **Aspect ratio**, or the small square thumbnails). It uses the focal point you set for this
+use, and the other picture's own alt text (or this picture's, if it has none). The other picture's own focal points stay
 as they were.
 
 Under the preview, **Use a different image** swaps in another one, and **Remove** goes back to cropping
@@ -254,7 +254,7 @@ page editor](/editors/page-editor/).
 
 Besides the picture, the **Image** block has:
 
-- **Alt text (describes the image)**: for this place only; it wins over the library's.
+- **Alt text (describes the image)**: for this place only. It wins over the library's.
 - **Caption**.
 - **Link**.
 - **Placement**.
@@ -283,7 +283,7 @@ when the picture's own point from **Media** isn't right in that place.
 
 A size you have set shows a dot after its name (**Phone •**). The line underneath says **Now: the
 image's own focal point, from the media library.** for a size you haven't set (or **(the centre)** when
-the picture has no point either); click **Use the image's own** to go back to it after setting one.
+the picture has no point either). After you set one, click **Use the image's own** to go back to it.
 
 - On **Hero** and **Cover**, the desktop crop is wide (16:9) and tablets and phones are tall (3:4).
   Tablet means screens up to 1024 pixels wide, phone up to 599.
@@ -338,7 +338,7 @@ A slider also has **Slider** settings:
 - **Dots**: a dot for each stop, to jump to it.
 - **Show part of the next item**, so visitors can see there is more.
 - **Advance automatically**, and how many **Seconds per item** (2 to 20). It pauses while someone hovers
-  over it or uses it, and doesn't move at all for visitors whose device is set to reduce motion.
+  over it or uses it. It doesn't move at all for visitors whose device is set to reduce motion.
 
 **Copy styles** and **Paste styles** carry these settings to another gallery (see [Copying a block's
 look](/editors/page-editor/#copying-a-blocks-look)).
@@ -394,20 +394,20 @@ Then link to them from a page in any of these ways.
 The **File** block (in **Blocks**, under **Media**) shows the document's name as a link, its type and
 size (for example **PDF · 1.4 MB**) and a **Download** button. In its settings:
 
-- **File**: **Choose** opens the media window showing only documents; **Replace** picks another;
+- **File**: **Choose** opens the media window showing only documents. **Replace** picks another.
   **Edit** opens it in **Media** in a new tab.
 - **Or an address**: instead of a file from **Media**, the address of a document kept elsewhere.
 - **Link text**: the words of the link. Empty, it uses the document's title.
 - **Show its type and size**: on unless you turn it off. (Shown only for files from **Media**.)
 - **Button**: the button's words, **Download** to start with. Empty the box for no button.
 
-The link opens the document (a PDF in the browser); the button saves it to the visitor's computer.
+The link opens the document (a PDF in the browser). The button saves it to the visitor's computer.
 
 ### A link in text or on a button
 
 - **From some words in a paragraph**: select the words, click **Link** above the text box, then **Media
-  library**, and pick the document. If no words are selected, the document's title is put in as the
-  link's words.
+  library**, and pick the document. If no words are selected, the link uses the document's title as
+  its words.
 - **From a button** (or an image or hero): click **Find** beside its **Link** box, then **Media
   library**, and pick the document.
 

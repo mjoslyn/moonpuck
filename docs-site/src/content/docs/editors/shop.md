@@ -7,10 +7,10 @@ sidebar:
 
 If your site has a shop, products appear under **Content**, **Products**, and on your site at `/shop/`.
 **Shop** in the admin bar has **Orders**, **Discounts**, **Stock** and **Stats**. If you don't see them,
-the shop is turned off; an admin can turn it on under **Settings**, **Shop**.
+the shop is turned off. An admin can turn it on under **Settings**, **Shop**.
 
-How buyers pay, shipping, pickup, tax, the order emails and your own order statuses are set up by an
-admin: see [Setting up the shop](/admins/shop/).
+An admin sets up how buyers pay, shipping, pickup, tax, the order emails and your own order
+statuses: see [Setting up the shop](/admins/shop/).
 
 ## Adding a product
 
@@ -29,7 +29,7 @@ A product without a price isn't for sale. Its other settings:
 - **Featured** (with its details): mark the products to feature. A Collection block can show featured
   ones only.
 - **Gallery images** (under **Shop**): more pictures of it, shown after its featured image by the
-  **Product gallery** block. Click **Add images** and choose one or more from the media library; the
+  **Product gallery** block. Click **Add images** and choose one or more from the media library. The
   arrows under a picture move it earlier or later, and **×** takes it out.
 - **SKU** and **Weight**: for your records, and for shipping by weight.
 - **Shipped**: untick it for things nobody posts, such as a class or a gift card.
@@ -39,7 +39,7 @@ A product without a price isn't for sale. Its other settings:
 - **Members** (when your site has Members turned on): for each member level, what they pay: The usual
   price, A percent off, or A price of their own. Members never pay more than the usual price.
   **Members only** limits who may buy it, with the levels that may. The product's page says what
-  members save or pay, with a link to sign in; for anyone who isn't one of those members, the button
+  members save or pay, with a link to sign in. For anyone who isn't one of those members, the button
   says **Members only**.
 
 ## Sizes, colors and other options
@@ -60,13 +60,15 @@ Under **Shop**, tick **On sale**, then set:
 - **Starts**: a date and time, or empty for now.
 - **Ends**: a date and time, or empty to run until you untick **On sale**.
 - **Sale price**: A price (every variant's), or A percent off each variant's price.
-- **Members pay in the sale** (for each member level, when your site has Members turned on): Their usual
-  price, or the sale price when lower; A percent off the usual price; or A sale price of their own.
+- **Members pay in the sale** (for each member level, when your site has Members turned on): one of these:
+  - Their usual price, or the sale price when lower
+  - A percent off the usual price
+  - A sale price of their own
 
 While the sale runs, the product's page and cards show the sale price with the usual price struck through
 and a **Sale** mark, and the cart charges it. Members pay the lowest of their member price, their sale
 price and the sale price. A sale price that isn't lower than the usual price isn't used. A variant can
-have its own **Sale price**. Pages can take a minute or two to show a sale starting or ending; the cart
+have its own **Sale price**. Pages can take a minute or two to show a sale starting or ending. The cart
 always charges the price at that moment.
 
 ## Stock
@@ -77,33 +79,34 @@ nobody's other changes to the product can overwrite it. Leave **Count stock** un
 **Low stock at** sets this product's own low-stock mark.
 
 On the site, what has run out says **Sold out** and can't be added to the cart. Stock comes off the
-count once an order is paid; while someone is paying, what they're buying is put aside, so two people
-can't buy the last one.
+count once an order is paid. While someone is paying, the site puts aside what they're buying, so two
+people can't buy the last one.
 
 **Shop**, then **Stock**, in the admin bar lists every product that counts stock, each size or color on
 its own line:
 
 ![The Stock screen](../../../assets/guide/shop-stock.png)
 
-- **On hand**: type a new count and press Enter (or click away); it saves at once.
-- **Held by orders**: what orders waiting to be paid, or paid and not yet taken off, are keeping.
+- **On hand**: type a new count and press Enter (or click away). It saves at once.
+- **Held by orders**: what orders are keeping: those waiting to be paid, and those paid but not yet
+  taken off.
 - **Left**: on hand less what's held, what can still be sold.
 - **Low at**: the product's own mark, or the shop's.
 - **Status**: **Low** at or under the mark, **Out of stock** at none.
 
-**Low or out** and **Out of stock** show just those; the box searches by name or SKU.
+**Low or out** and **Out of stock** show just those. The box searches by name or SKU.
 
 ## Downloads
 
 A product can be a file buyers download: an e-book, a pattern, a print-at-home ticket.
 
-1. In the product's Shop settings, under **Download**, choose the file. It uploads at once (up to 200 MB;
-   on Cloudflare's Free and Pro plans, up to 100 MB).
+1. In the product's Shop settings, under **Download**, choose the file. It uploads at once (up to 200 MB,
+   or up to 100 MB on Cloudflare's Free and Pro plans).
 2. Turn off **Shipped** if there's nothing to post.
 3. Save the product.
 
-Once an order is paid, its page and its confirmation email have a link for each file; only those links
-reach it. How many times and for how long a link works is set by an admin. Changing a product's file
+Once an order is paid, its page and its confirmation email have a link for each file. Only those links
+reach the file. An admin sets how many times and for how long a link works. Changing a product's file
 later doesn't change what earlier orders get.
 
 ## Product categories
@@ -115,7 +118,7 @@ at `/shop/category/<address>/`, and the shop at `/shop/` has filters by category
 When your site has Members turned on, a category can take a percent off for members: click **Details**
 beside it, type the percent off for each member level under **Member pricing**, and click **Save**. It
 applies to every product in the category and the categories under it. A product's own member pricing
-comes first; a product in several categories takes the largest discount.
+comes first. A product in several categories takes the largest discount.
 
 ## Showing products on your pages
 
@@ -151,7 +154,7 @@ folded behind **Show order summary**.
 5. They click **Pay**, and pay on Stripe's or Square's own page.
 6. They come back to a page with their order, and get a receipt by email.
 
-Each paid order is emailed to the shop too, and listed under **Orders**.
+The site also emails each paid order to the shop and lists it under **Orders**.
 
 ## Orders
 
@@ -169,13 +172,13 @@ Click an order to see what was bought, the totals, the buyer, where it goes and 
   **Carrier**. The buyer gets an email saying it is on its way, linking to the carrier's tracking.
 - **Buy a label…** (when your site is connected to Shippo): lists the carriers' rates for the parcel,
   the buyer's choice marked. Click one and confirm: the label is ready to print (**Print the label**)
-  and the order is marked shipped. The latest tracking news shows on the order; **Check the tracking
+  and the order is marked shipped. The latest tracking news shows on the order. **Check the tracking
   now** asks at once. When the parcel is delivered, the buyer gets an email.
 - **Mark picked up**: for an order collected from a pickup location.
 - **Status** (when your shop has order statuses, such as Being made or Ready to collect): choose one and
-  click **Set status**. A status that emails the buyer shows **Email the buyer**, ticked; untick it to
+  click **Set status**. A status that emails the buyer shows **Email the buyer**, ticked. Untick it to
   change the status without the email.
-- **Notes and history**: type a note and click **Add note**; notes are for the shop only, and the buyer
+- **Notes and history**: type a note and click **Add note**. Notes are for the shop only, and the buyer
   never sees them. Below, everything that happened to the order, newest first, with when and who: placed,
   paid, every email sent (its subject and who it went to, or why it wasn't sent), shipped or picked up,
   labels, delivered, refunds, items put back in stock, status changes, cancelled or expired, and the
@@ -184,8 +187,8 @@ Click an order to see what was bought, the totals, the buyer, where it goes and 
 - **Refund** (admins only): gives back all or part of what was paid, to their card.
 - **Cancel order**: for an order that wasn't paid for, or one with nothing left to pay back (free, or
   refunded in full).
-- **Put back in stock**: for each item, how many go back on the shelf. Fill these in before a refund or
-  cancel and they go back at the same time, or use **Put back in stock only**. An item can't go back more
+- **Put back in stock**: for each item, how many go back on the shelf. If you fill these in before a refund
+  or cancel, they go back at the same time. Or use **Put back in stock only**. An item can't go back more
   times than it was bought.
 
 ## Discounts
@@ -196,7 +199,7 @@ is running.
 
 Click **New discount**, or a discount to change it. Its settings:
 
-- **Automatic**: on, it has no code and applies by itself to orders it fits; off, buyers type its code.
+- **Automatic**: on, it has no code and applies by itself to orders it fits. Off, buyers type its code.
 - **Code**: letters and numbers, such as SUMMER10. Buyers can type it in small letters.
 - **Name**: shown in the cart. Empty: the code.
 - **It gives**: a percent off, an amount off, or free shipping.
@@ -208,11 +211,11 @@ Click **New discount**, or a discount to change it. Its settings:
 - **Members only** (while Members is on): and, with several levels, which levels may use it.
 - **On**: off, nobody can use it.
 
-Click **Make discount** or **Save discount**. **Delete** removes it; orders that used it keep its code.
+Click **Make discount** or **Save discount**. **Delete** removes it. Orders that used it keep its code.
 
 An order takes one discount: the code the buyer typed, if the order fits it, else the automatic discount
 that saves the most. A code that doesn't fit says why (too small an order, expired, used up, members
-only). The discount is shared out over the items it applies to, and tax is worked out after it.
+only). The site shares the discount out over the items it applies to, and works out tax after it.
 
 ## Shop stats
 
@@ -224,7 +227,7 @@ Click **Shop** in the admin bar, then **Stats**, for what the shop sold. Choose 
 - **Net sales**: what buyers paid, less what was refunded.
 - **Orders**: paid orders, the items in them, and checkouts started but never paid.
 - **Average order** and **Buyers** (and how many ordered more than once).
-- **Sales a day** (a week, for longer ranges); **Show as a table** lists them.
+- **Sales a day** (a week, for longer ranges). **Show as a table** lists them.
 - **Products that sold most**, **Discounts used** and **How orders were sent**.
 - **Campaigns**: sales from visits that came by a campaign link (see
   [Making a campaign link](/editors/stats/)), such as a newsletter or an advert. An order's page shows its

@@ -6,8 +6,8 @@ sidebar:
 ---
 
 Forms let visitors send you a message, sign up, apply, register or pay. You build a form once in the
-form builder, then place it on any page with the **Form** block. Everything people send is kept under
-**Submissions**, and the site can email you (and them) each time.
+form builder, then place it on any page with the **Form** block. The site keeps everything people send under
+**Submissions**, and it can email you (and them) each time.
 
 ## The Forms list
 
@@ -26,8 +26,8 @@ At the end of each row:
 - **Edit** opens the form builder.
 - **Duplicate** makes a copy named "(copy)" and opens it. The copy starts **Inactive**, so it won't
   appear anywhere until you tick **Active** in the builder and save.
-- **Delete** asks first. What people already sent through the form is kept, but pages using the form
-  stop showing it.
+- **Delete** asks first. The site keeps what people already sent through the form, but pages that use
+  the form stop showing it.
 
 ## Making a form
 
@@ -59,7 +59,7 @@ Along the top of the builder:
 - **Compose**, to have Claude write the form (see below).
 - **Submissions**, with how many there are, which opens what people have sent through this form.
 - **Active**: untick it to switch the form off. An inactive form disappears from every page it's on
-  and takes no answers, but nothing is deleted. Tick it again (and save) to bring it back.
+  and takes no answers. Nothing is deleted. Tick it again (and save) to bring it back.
 - **Save**. Beside it you'll see **Unsaved changes**, **Saving...** or **Saved**. If you try to leave
   with unsaved changes, your browser asks you first.
 
@@ -110,7 +110,7 @@ short code (such as **f3**), which the site uses to tell fields apart. Which set
 the type:
 
 - **Label**: the question, shown above the box. (For a **Hidden** field it's **Name (only you see
-  this)**; for a **Section heading** it's **Heading**.)
+  this)**. For a **Section heading** it's **Heading**.)
 - **Description**: a hint shown under the box (for a Section heading, **Text under the heading**).
 - **Checkbox text** (Consent): the words beside the tick box.
 - **HTML** (HTML content): the text or HTML to show.
@@ -126,7 +126,7 @@ the type:
   counter as they type.
 - **Minimum** (Number): the smallest number allowed.
 - **Maximum** (Number): the largest number allowed.
-- **Format** (Phone): **US: (###) ###-####** formats the number as people type and needs 10 digits;
+- **Format** (Phone): **US: (###) ###-####** formats the number as people type and needs 10 digits.
   **Any** takes any phone number, such as an international one.
 
 **Layout**:
@@ -154,15 +154,15 @@ have a list of **Choices**:
 - Type in a box to change a choice's wording.
 - The small round button or tick box in front of a choice makes it **Selected by default**. Click it
   again to clear it.
-- **Up** and **Dn** move a choice; **x** removes it (you're warned if a show or hide rule uses it).
+- **Up** and **Dn** move a choice. **x** removes it (you're warned if a show or hide rule uses it).
 - **Add choice** adds one at the end.
-- **Edit as list** shows all the choices in one box, one per line, which is quicker for long lists or
-  pasting from elsewhere. Click **Apply** when done, or **Cancel**.
+- **Edit as list** shows all the choices in one box, one per line. This is quicker for long lists or
+  for pasting from elsewhere. Click **Apply** when done, or **Cancel**.
 - **Store different values from the labels (e.g. codes)**: tick this to keep a short code for each
-  choice (for example "M" for "Medium"), which then appears in submissions and emails. A **Value** box
+  choice (for example "M" for "Medium"). The code then appears in submissions and emails. A **Value** box
   appears beside each choice. In **Edit as list**, write a line as "Label | value".
 
-If you change a choice's wording or value, show or hide rules that use it are updated to match.
+If you change a choice's wording or value, the builder updates the show or hide rules that use it.
 
 ## Showing fields only when needed
 
@@ -175,7 +175,7 @@ Any field (except Hidden) can show or hide depending on the visitor's other answ
 4. For each rule, pick the other field, how to compare (**is**, **is not**, **contains**, **starts
    with**, **ends with**, **greater than**, **less than**) and the answer. For a field with choices
    you pick the answer from its list.
-5. **Add rule** adds another; **x** removes one. **Always show** removes the logic altogether.
+5. **Add rule** adds another. **x** removes one. **Always show** removes the logic altogether.
 
 What happens to a hidden field:
 
@@ -196,14 +196,14 @@ or hide this one based on its answer.**
   or "Register".
 - **Labels**: **Above inputs**, or **Left of inputs (wide screens)**.
 - **Spam protection (hidden honeypot field)**: on for new forms. It adds a box that people never see
-  but spam robots fill in; anything sent with it filled in is quietly thrown away. Leave it on.
+  but spam robots fill in. The site quietly throws away anything sent with that box filled in. Leave it on.
 - **CSS class**: a style name for the whole form, if your site's designer gives you one.
 
 ## What people see after sending (Confirmation tab)
 
 Under **After someone submits**, choose:
 
-- **Show a message**: the form is replaced by your **Message**. Use **Insert field value...** to put an
+- **Show a message**: your **Message** replaces the form. Use **Insert field value...** to put an
   answer in it, for example "Thanks, {Name:f1}!". Paragraphs are added automatically, and HTML is
   allowed.
 - **Go to a page**: pick a page from the list. Draft pages are marked **(draft)**. While the page is a
@@ -241,8 +241,8 @@ sent.
 
 ### Merge tags
 
-The **Insert field value...** lists add tags in curly brackets, which are swapped for the real details
-when the email is sent:
+The **Insert field value...** lists add tags in curly brackets. When the site sends the email, it swaps
+each tag for the real detail:
 
 | Tag | Becomes |
 | --- | --- |
@@ -290,8 +290,8 @@ Buttons above the canvas show the email at
 In the Visual tab, answers show as highlighted stand-ins such as "Email answer", and the Payment block
 shows one of each product as a sample.
 
-**Plain text** is the version for mail apps that don't show designed emails. Leave it empty and it is
-made from your design when the email is sent. To write your own, click **Fill from the visual design**
+**Plain text** is the version for mail apps that don't show designed emails. If you leave it empty, the
+site makes it from your design when it sends the email. To write your own, click **Fill from the visual design**
 and edit it, or type it from scratch with **Insert field value...**. **Clear** empties it again. A plain
 text of your own doesn't list Events blocks' events, so leave it empty if your email has one.
 
@@ -319,14 +319,14 @@ Click **Compose** at the top of the form builder and say what the form is for, f
 we'll email the schedule a week before." Then tick what Claude should write:
 
 - **Fields**: the questions, with sensible widths, hints, choices and show or hide rules. If the form
-  already has fields, Claude rewrites the list: fields it keeps keep their answers and settings, and
+  already has fields, Claude rewrites the list. Fields it keeps keep their answers and settings.
   **Product** fields stay as they are (Claude never writes prices).
 - **Confirmation**: **A message**, or **A thank-you page (made as a draft)**. The page is built in
   your site's style and hidden from search engines and the site's search. Open it with **Edit the
   page** on the Confirmation tab, check it and publish it. Until then, people see the message.
 - **Notification emails**: the email to you, and a "thanks, we got it" email to the visitor when the
-  form asks for their email address. They replace the existing emails, but each keeps the addresses,
-  reply-to and from name of the one it replaces, and its look.
+  form asks for their email address. They replace the existing emails. Each new email keeps the
+  addresses, reply-to, from name and look of the one it replaces.
 
 Click **Write**. It says **Writing... this takes up to a minute.** When it's done, the builder shows what
 Claude wrote. Read it, change anything you like, then click **Save**: nothing is saved until you do.
@@ -338,8 +338,8 @@ If Claude couldn't do something, a note appears above the settings, for example 
 visitor wasn't added because the form has no Email field. Click **Dismiss** to hide it.
 
 You can also start a new form this way: click **Compose** in the top bar, then **Form**, give it a
-name, say what it's for, tick what to write and click **Send**. The form is made, opens in the builder
-and Claude writes it straight away. See [Writing with Claude](/editors/writing-with-claude/).
+name, say what it's for, tick what to write and click **Send**. The site makes the form and opens it in
+the builder, and Claude writes it straight away. See [Writing with Claude](/editors/writing-with-claude/).
 
 ![Compose in the form builder](../../../assets/guide/form-compose.png)
 
@@ -384,9 +384,9 @@ Leave a setting empty to keep the default. Check that text stays easy to read ag
 
 ## What visitors meet
 
-- Answers are checked when the form is sent. If something is missing or wrong, the form comes back
-  with the visitor's answers kept, a message at the top ("There was a problem with your submission...")
-  and the problem fields highlighted.
+- The site checks the answers when the form is sent. If something is missing or wrong, the form comes
+  back. It keeps the visitor's answers, shows a message at the top ("There was a problem with your
+  submission...") and highlights the problem fields.
 - Very long answers are cut at 10,000 characters.
 - Spam protection works without visitors doing anything: there's no puzzle to solve.
 - To stop floods, one form takes at most 20 submissions a minute from everyone together. Past that,
@@ -400,8 +400,8 @@ If you see a lot of junk submissions anyway, let your site's admin know.
 ## Reading what people sent
 
 Click **Forms**, then **Submissions**, in the top bar (or **Submissions** in the form builder). The
-newest are at the top, each showing its first two answers and when it was sent (and, while all forms
-are shown, which form it came from).
+newest are at the top. Each shows its first two answers and when it was sent. While all forms are
+shown, each also shows which form it came from.
 The screen shows the latest 500.
 
 ![The Submissions screen](../../../assets/guide/submissions.png)
@@ -440,10 +440,10 @@ connects Stripe or Square under Settings (see [Connections](/admins/connections/
    what the visitor pays.
 7. Click **Save**.
 
-The tab also shows a webhook address. It's for whoever set up payments; you don't need to do anything
+The tab also shows a webhook address. It's for whoever set up payments. You don't need to do anything
 with it.
 
-If the tab says **No payment provider is set up**, ask an admin: until a provider is connected the form
+If the tab says **No payment provider is set up**, ask an admin. Until a provider is connected, the form
 refuses submissions that have something to pay.
 
 ### Product fields
@@ -468,10 +468,10 @@ field is required or optional to pay for.
 3. Once they've paid, they come back to your thank-you message or page, and the notification emails go
    out.
 
-If they don't finish paying, they come back to the form with their answers kept and a note that their
-payment wasn't completed, so the form wasn't sent. If the total comes to nothing (for example nothing
-was chosen), the form is sent straight away without a checkout. A total under 50 cents (or 0.50 in
-the form's currency) is refused, because the payment providers can't take less.
+If they don't finish paying, they come back to the form. Their answers are kept, and a note says that
+their payment wasn't completed, so the form wasn't sent. If the total comes to nothing (for example nothing
+was chosen), the form is sent straight away without a checkout. The form refuses a total under 50 cents
+(or 0.50 in the form's currency), because the payment providers can't take less.
 
 In **Submissions**, each paid form shows its payment: **Unpaid** (sent to checkout but not paid),
 **Processing** (a payment that takes a few days, such as a bank debit), **Paid**, **Failed** or

@@ -12,7 +12,7 @@ cookie consent banner is a popup too: it asks visitors whether they accept cooki
 
 Admins add popups and choose where, when and how often they show (see
 [Popups and cookie consent](/admins/popups-and-cookies/) in the Admin guide). What a popup says is
-ordinary content, which editors can change.
+ordinary content. Editors can change it.
 
 ## Changing what a popup says
 
@@ -41,18 +41,18 @@ select the words, click the link button and type the address.
 
 The banner's content is the part called "Cookie consent". It has:
 
-- a heading;
-- a line about the site's cookies, with a link to the privacy policy;
+- a heading
+- a line about the site's cookies, with a link to the privacy policy
 - an **Accept** button and a **Reject** button.
 
 You can change all the words, and the buttons' colors, size and corners. Keep the buttons' links:
 **Accept** must link to `#accept-cookies` and **Reject** to `#reject-cookies`. If the **Accept** link
 goes, the site adds its own plain **Accept** and **Reject** buttons, so the banner still works.
 
-Visitors can also close the banner with its **×** or the Escape key, which counts as **Reject**. Their
-choice is remembered for six months.
+Visitors can also close the banner with its **×** or the Escape key. This counts as **Reject**. The
+site remembers their choice for six months.
 
 ## Seeing a popup as a visitor would
 
-A popup set to show once won't show again in a browser that has seen it, and signed-in editors see
-popups like everyone else. To see one again, open the site in a private (incognito) window.
+A popup set to show once won't show again in a browser that has seen it. Signed-in editors see popups
+like everyone else. To see one again, open the site in a private (incognito) window.

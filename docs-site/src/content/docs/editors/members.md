@@ -6,11 +6,11 @@ sidebar:
 ---
 
 Members are people with an account on your site who can see what you keep for them: members-only pages,
-parts of pages, and member prices. They sign in on the site's account page; they can't get into the
+parts of pages, and member prices. They sign in on the site's account page. They can't get into the
 admin screens.
 
-Editors decide what is members only. Adding, approving and removing members, and the levels, are for
-admins (see [Members](/admins/members/) in the Admin guide).
+Editors decide what is members only. Admins add, approve and remove members, and set the levels
+(see [Members](/admins/members/) in the Admin guide).
 
 :::note
 Members are a feature an admin turns on under **Settings**, **Members**. If a page's settings have no
@@ -70,4 +70,4 @@ The **Member sign-in link** block (for a header or footer) links to the account 
 - **Products**: in a product's **Shop** settings, under **Members**, set a percent off or a price of their
   own for each level, or **Members only** (see [The shop](/editors/shop/)).
 
-Everyone sees what members pay, with a sign-in link; signed-in members are charged their price.
+Everyone sees what members pay, with a sign-in link. Signed-in members are charged their price.

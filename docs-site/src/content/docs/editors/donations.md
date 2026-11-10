@@ -6,7 +6,7 @@ sidebar:
 ---
 
 Donations let people give to your organization from your site, once or every month. You place a
-**Donate** block on a page; donors choose an amount, fill in their name and email and pay on a secure
+**Donate** block on a page. Donors choose an amount, fill in their name and email and pay on a secure
 page from your payment provider (Stripe or Square). They get a receipt by email straight away.
 
 Editors put the Donate and Donation progress blocks on pages and can see every gift under **Donations**
@@ -67,7 +67,7 @@ donation page showing their gift, with **Update your card** and **Cancel my mont
 ## Showing a goal's progress
 
 The **Donation progress** block shows how much a fundraising goal has raised, against its target, as a
-bar. Goals are made by admins under Settings > Donations.
+bar. Admins make goals under Settings > Donations.
 
 1. In **Blocks**, open **Donations** and drag **Donation progress** onto the page.
 2. Choose its **Goal**.
@@ -81,8 +81,8 @@ Its settings:
 - **Button label** and **Button link**: a button under the bar, such as **Donate** linking to `/donate/`.
   No link, no button.
 
-The total counts paid gifts made towards the goal between its dates, less refunds, and not the fees
-donors covered. It updates within a minute of a gift.
+The total counts paid gifts made towards the goal between its dates, less refunds. It doesn't count
+the fees donors covered. It updates within a minute of a gift.
 
 ## The Donations screen
 
