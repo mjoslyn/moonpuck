@@ -8,6 +8,7 @@ vi.mock('../src/lib/forms/mail', async (actual) => ({ ...(await actual<object>()
 import { sessionDb, siteDb } from '../src/lib/db/site';
 import { env } from '../src/lib/env';
 import * as siteKeys from '../src/lib/site-keys';
+import { inScope } from '../src/lib/platform';
 import { keyStatus, refreshSavedKeys, saveKeys, seal, unseal } from '../src/lib/site-keys';
 import { POST as connectRoute } from '../src/pages/api/admin/connections';
 import { connect, ConnectError, MAILGUN_EVENTS, publicOrigin, STRIPE_EVENTS } from '../src/lib/connections';
@@ -316,6 +317,32 @@ describe('the second review’s fixes', () => {
     const slow = { from: () => ({ select: () => { now++; most = Math.max(most, now); return new Promise((r) => setTimeout(() => { now--; r({ data: [], error: null }); }, 5)); } }) } as any;
     await Promise.all([refreshSavedKeys(slow, true), refreshSavedKeys(slow, true), refreshSavedKeys(slow, true), refreshSavedKeys(slow)]);
     expect(most).toBe(1);
+    await refreshSavedKeys(db, true);
+  });
+
+  it('doesn’t leave requests waiting on a load whose request ended first', async () => {
+    await db.from('site_keys').insert({ name: 'ANTHROPIC_API_KEY', value: await seal('ANTHROPIC_API_KEY', 'sk-ant-later'), hint: 'ater' });
+    // A request that ends while it loads: workerd never settles its promise.
+    const never = { from: () => ({ select: () => new Promise(() => {}) }) } as any;
+    const kept: Promise<unknown>[] = [];
+    void inScope({ waitUntil: (p) => kept.push(p) }, () => refreshSavedKeys(never, true));
+    // The request is kept alive until its load has finished.
+    expect(kept).toHaveLength(1);
+    // Later requests load the keys themselves, forced or not.
+    await inScope({}, () => refreshSavedKeys(db, true));
+    expect(env('ANTHROPIC_API_KEY')).toBe('sk-ant-later');
+    await inScope({}, () => refreshSavedKeys(db));
+    await saveKeys(db, { ANTHROPIC_API_KEY: '' }, 'a');
+  });
+
+  it('keeps the keys of the load begun last, whichever finishes last', async () => {
+    const rowsOf = async (value: string) => [{ name: 'ANTHROPIC_API_KEY', value: await seal('ANTHROPIC_API_KEY', value), hint: '', updated_at: null, updated_by: null }];
+    const answering = (data: unknown[], ms: number) => ({ from: () => ({ select: () => new Promise((r) => setTimeout(() => r({ data, error: null }), ms)) }) }) as any;
+    const older = inScope({}, async () => refreshSavedKeys(answering(await rowsOf('sk-ant-older'), 20), true));
+    await new Promise((r) => setTimeout(r, 5));
+    await inScope({}, async () => refreshSavedKeys(answering(await rowsOf('sk-ant-newer'), 0), true));
+    await older;
+    expect(env('ANTHROPIC_API_KEY')).toBe('sk-ant-newer');
     await refreshSavedKeys(db, true);
   });
 

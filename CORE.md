@@ -2024,8 +2024,9 @@ no table), since a secret made then would be lost.
   keeps both), never a secret's value. The tab reads them only when it is opened.
 - `env()` (`src/lib/env.ts`) reads the environment first (`hostEnv`), then the saved keys, which the
   middleware, scheduled runs and jobs load at most once a minute per instance (`refreshSavedKeys`;
-  loads run one at a time, so the last started holds the newest keys, and requests arriving during a
-  load wait for it); a key the host sets is shown as such and can't be saved
+  the keys of the load begun last are the ones kept, and no request runs without them: until a load has
+  finished on the instance each request makes its own, never waiting on another request's, whose promise
+  workerd would leave unsettled if that request ended first); a key the host sets is shown as such and can't be saved
   over, while the service's other settings (a webhook secret) can still be saved and Connect sets it up.
   A save writes its values in one statement (`saveKeys`, which answers the names whose values changed).
 - Stripe, Square and Mailgun keys (`guarded`) need the admin's password again (`checkPassword`, its

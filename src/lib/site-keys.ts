@@ -7,6 +7,7 @@
 import type { Db } from './db/query';
 import { siteDb } from './db/site';
 import { env, hostEnv, useSavedKeys } from './env';
+import { afterAnswer, currentScope, type Scope } from './platform';
 
 export type Service = 'anthropic' | 'stripe' | 'square' | 'mailgun' | 'shippo';
 
@@ -27,18 +28,18 @@ const text = new TextEncoder();
 const b64 = (b: ArrayBuffer | Uint8Array) => btoa(String.fromCharCode(...new Uint8Array(b)));
 const unb64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 
-let cipher: { secret: string; key: Promise<CryptoKey> } | null = null;
+// Kept once made, never as a promise: workerd settles a promise only in the request that made it, so one
+// kept from a request that ended first would fail every later request (see once-ready.ts).
+let cipher: { secret: string; key: CryptoKey } | null = null;
 /** The encryption key, made from AUTH_SECRET (HKDF); changing AUTH_SECRET makes saved keys unreadable. */
-function cipherKey(): Promise<CryptoKey> {
+async function cipherKey(): Promise<CryptoKey> {
   const secret = hostEnv('AUTH_SECRET');
   if (!secret) throw new Error('AUTH_SECRET is not set, so keys can’t be saved here.');
-  if (cipher?.secret !== secret) {
-    const key = crypto.subtle
-      .importKey('raw', text.encode(secret), 'HKDF', false, ['deriveKey'])
-      .then((base) => crypto.subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt: text.encode('site-keys'), info: text.encode('v1') }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']));
-    cipher = { secret, key };
-  }
-  return cipher.key;
+  if (cipher?.secret === secret) return cipher.key;
+  const base = await crypto.subtle.importKey('raw', text.encode(secret), 'HKDF', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({ name: 'HKDF', hash: 'SHA-256', salt: text.encode('site-keys'), info: text.encode('v1') }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  cipher = { secret, key };
+  return key;
 }
 
 /** A value as stored: v1.<iv>.<ciphertext>, bound to its name. */
@@ -63,13 +64,27 @@ export async function unseal(name: string, stored: string): Promise<string | nul
 let loaded = 0;
 let unreadable: string[] = [];
 let rows: { name: string; hint: string | null; updated_at: string | null; updated_by: string | null }[] = [];
-/** Loads run one after another, so the last one started is the last to finish (and holds the newest keys). */
-let chain: Promise<void> = Promise.resolve();
-let running = 0;
+/** Whether a load has finished on this instance: until one has, no request goes on without loading. */
+let everLoaded = false;
+/**
+ * One request's loads (or one run's, or one job's), which run one after another, so the last one started
+ * is the last to finish (and holds the newest keys). A request never waits on another's: workerd settles
+ * a promise only in the request that made it, so a load whose request ended first would never finish, and
+ * every request waiting on it would fail for as long as the instance lives (see once-ready.ts).
+ */
+interface Loads { scope: Scope | undefined; chain: Promise<void>; running: number }
+let loads: Loads = { scope: undefined, chain: Promise.resolve(), running: 0 };
+/** Loads in the order they began: one that finishes after a later one's keys are in place leaves them. */
+let begun = 0;
+let applied = 0;
 
 async function load(db: Db): Promise<void> {
+  const mine = ++begun;
   const { data, error } = await db.from('site_keys').select('name, value, hint, updated_at, updated_by');
-  if (error) return; // A database without the table yet: keys come from the environment only.
+  if (error) {
+    everLoaded = true;
+    return; // A database without the table yet: keys come from the environment only.
+  }
   const keys: Record<string, string> = {};
   const bad: string[] = [];
   for (const r of data ?? []) {
@@ -78,25 +93,33 @@ async function load(db: Db): Promise<void> {
     if (v == null) bad.push(r.name);
     else keys[r.name] = v;
   }
+  everLoaded = true;
+  if (mine < applied) return;
+  applied = mine;
   unreadable = bad;
   rows = (data ?? []).map(({ name, hint, updated_at, updated_by }) => ({ name, hint, updated_at, updated_by }));
   useSavedKeys(keys);
 }
 
 /**
- * Load the saved keys into env() (at most once a minute unless `force`). Requests that arrive while a
- * load is running wait for it, so none runs without the keys, and a forced load starts after any
- * running one; a failure leaves the last keys.
+ * Load the saved keys into env() (at most once a minute unless `force`). No request runs without the
+ * keys: until a load has finished on this instance each request makes its own, and a call that arrives
+ * while its own request is loading waits for that. A forced load starts after any the request is
+ * running; a failure leaves the last keys. The request is kept alive until its load has finished.
  */
 export async function refreshSavedKeys(db: Db = siteDb(), force = false): Promise<void> {
+  const scope = currentScope();
+  if (loads.scope !== scope) loads = { scope, chain: Promise.resolve(), running: 0 };
+  const mine = loads;
   if (!force) {
-    if (running) return chain;
-    if (Date.now() - loaded < 60_000) return;
+    if (mine.running) return mine.chain;
+    if (everLoaded && Date.now() - loaded < 60_000) return;
   }
   loaded = Date.now();
-  running++;
-  const next = chain.then(() => load(db)).finally(() => running--);
-  chain = next.catch(() => {});
+  mine.running++;
+  const next = mine.chain.then(() => load(db)).finally(() => mine.running--);
+  mine.chain = next.catch(() => {});
+  afterAnswer(mine.chain);
   return next;
 }
 
