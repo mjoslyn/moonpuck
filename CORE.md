@@ -1750,6 +1750,9 @@ and the site's links. Outside `astro dev` the cookie is always Secure, as `__Sec
 whatever `SITE_URL` is (`useSecureCookies`).
 Pages' scripts can't read it, so signing in also sets `site.signed_in=1` (no secret; `redirectWith`, cleared
 on signing out), which the editor bar and the member sign-in link check before asking who is signed in.
+Better Auth's instance is shared between requests only once its context is ready (`onceReady`,
+`src/lib/once-ready.ts`): workerd settles a promise only in the request that made it, so a request that
+ended while making it would otherwise leave sign-in failing until the Worker's instance was replaced.
 Every account has a profile, made with it (`databaseHooks`); sign-ins set `users.last_sign_in_at`.
 Failed sign-ins are limited to 10 per address and 30 per visitor in 15 minutes, and password links to 3
 per address and 20 per visitor an hour (`src/lib/auth/attempts.ts`, rows in `verifications`); over a

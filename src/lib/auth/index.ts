@@ -12,6 +12,7 @@ import { randomBytes } from 'node:crypto';
 import { lazyD1 } from '../db/d1';
 import { siteDb } from '../db/site';
 import { env } from '../env';
+import { onceReady } from '../once-ready';
 import { clearAttempts, overLimit, recordAttempt } from './attempts';
 
 /** The signed-in person, as the site reads them. */
@@ -98,8 +99,8 @@ function makeAuth() {
   });
 }
 
-let instance: ReturnType<typeof makeAuth> | null = null;
-export const auth = () => (instance ??= makeAuth());
+// Shared between requests once its context is ready (it reads the database first): see once-ready.ts.
+export const auth = onceReady(makeAuth, (a) => a.$context);
 const context = () => auth().$context;
 
 const userOf = (u: { id: string; email: string; name?: string | null; emailVerified?: boolean }): AuthUser => ({ id: u.id, email: u.email, name: u.name ?? '', emailVerified: !!u.emailVerified });
