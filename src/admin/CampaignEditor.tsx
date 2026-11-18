@@ -369,7 +369,7 @@ export default function CampaignEditor({ campaign, lists, levels, stats, links, 
         )}
       </div>
 
-      {stats && stats.recipients + stats.dropped > 0 && <Numbers stats={stats} links={links} showMachine={showMachine} setShowMachine={setShowMachine} campaignId={c.id} admin={admin} mailgun={mailgun} tracked={c.track_links} />}
+      {stats && stats.recipients + stats.dropped > 0 && <Numbers stats={stats} links={links} showMachine={showMachine} setShowMachine={setShowMachine} campaignId={c.id} admin={admin} mailgun={mailgun} />}
 
       {confirming && (
         <div className="fixed inset-0 z-[950] flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label="Confirm">
@@ -421,19 +421,9 @@ export default function CampaignEditor({ campaign, lists, levels, stats, links, 
   );
 }
 
-function Numbers({ stats: s, links, showMachine, setShowMachine, campaignId, mailgun, tracked }: { stats: CampaignStats; links: LinkRow[]; showMachine: boolean; setShowMachine: (v: boolean) => void; campaignId: number; admin: boolean; mailgun: boolean; tracked: boolean }) {
-  // The site's own counts: shown when the campaign's link tracking is on, or when they are the only numbers there are.
-  const showSite = tracked || !mailgun;
-  // Mailgun's totals for the campaign's tag, the main numbers while Mailgun is set up.
+function Numbers({ stats: s, links, showMachine, setShowMachine, campaignId, admin, mailgun }: { stats: CampaignStats; links: LinkRow[]; showMachine: boolean; setShowMachine: (v: boolean) => void; campaignId: number; admin: boolean; mailgun: boolean }) {
   const [mg, setMg] = useState<Record<string, number> | null>(null);
   const [err, setErr] = useState('');
-  useEffect(() => {
-    if (!mailgun) return;
-    post({ action: 'reconcile', id: campaignId }).then(
-      (r) => setMg(r.totals ?? {}),
-      (e) => setErr((e as Error).message),
-    );
-  }, [mailgun, campaignId]);
   const tile = (title: string, value: string | number, note?: string) => (
     <div className="rounded bg-white p-3 shadow-[0_0_0_1px_rgba(26,26,46,0.08)]">
       <div className="text-xs text-admin-muted">{title}</div>
@@ -446,34 +436,6 @@ function Numbers({ stats: s, links, showMachine, setShowMachine, campaignId, mai
   return (
     <section className="mt-8">
       <h2 className="mb-3 text-xl">Numbers</h2>
-      {mailgun && (
-        <>
-          <h3 className="mb-2 text-lg">From Mailgun</h3>
-          {err ? (
-            <p className="mb-4 text-xs text-[#c4592a]">Mailgun's numbers couldn't be loaded: {err}</p>
-          ) : !mg ? (
-            <p className="mb-4 text-xs text-admin-muted">Loading Mailgun's numbers…</p>
-          ) : !Object.keys(mg).length ? (
-            <p className="mb-4 text-xs text-admin-muted">Mailgun has nothing for this campaign yet. Its numbers can take a few minutes to appear.</p>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                {tile('Sent', mg.accepted ?? 0)}
-                {tile('Delivered', mg.delivered ?? 0, rate(mg.delivered ?? 0, mg.accepted ?? 0))}
-                {tile('Opened', rate(mg.opened ?? 0, mg.delivered ?? 0), `${mg.opened ?? 0} people`)}
-                {tile('Clicked', rate(mg.clicked ?? 0, mg.delivered ?? 0), `${mg.clicked ?? 0} people`)}
-                {tile('Bounced', rate(mg.bounced ?? 0, mg.accepted ?? 0), `${mg.bounced ?? 0}`)}
-                {tile('Spam complaints', rate(mg.complained ?? 0, mg.delivered ?? 0), `${mg.complained ?? 0}`)}
-                {tile('Unsubscribed', rate(mg.unsubscribed ?? 0, mg.delivered ?? 0), `${mg.unsubscribed ?? 0}`)}
-              </div>
-              <p className="mt-2 mb-4 text-xs text-admin-muted">Mailgun's own counts for this campaign, as in its dashboard. Opens and clicks count each person once.</p>
-            </>
-          )}
-          {showSite && <h3 className="mb-2 text-lg">Tracked by this site</h3>}
-        </>
-      )}
-      {showSite && (
-        <>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {tile('Sent', s.sent, s.queued ? `${s.queued} still to go` : s.dropped ? `${s.dropped} unsubscribed before their batch` : undefined)}
         {tile('Delivered', s.delivered, rate(s.delivered, s.sent))}
@@ -520,7 +482,25 @@ function Numbers({ stats: s, links, showMachine, setShowMachine, campaignId, mai
           {showMachine && trap && <p className="mt-1 text-xs text-admin-muted">The hidden link (followed only by machines) was followed {trap.machine + trap.likely + trap.human} times.</p>}
         </>
       )}
-        </>
+      {admin && mailgun && (
+        <div className="mt-4 text-xs">
+          <button
+            type="button"
+            className="underline hover:text-admin-accent"
+            onClick={async () => {
+              setErr('');
+              try {
+                setMg((await post({ action: 'reconcile', id: campaignId })).totals);
+              } catch (e) {
+                setErr((e as Error).message);
+              }
+            }}
+          >
+            Compare with Mailgun's totals
+          </button>
+          {err && <span className="ml-2 text-[#c4592a]">{err}</span>}
+          {mg && <span className="ml-2 text-admin-muted">{Object.entries(mg).map(([k, v]) => `${k} ${v}`).join(' · ') || 'Mailgun has nothing for this campaign yet.'}</span>}
+        </div>
       )}
     </section>
   );

@@ -320,9 +320,10 @@ emails before you click **Resume now**.
 
 ### After it is sent
 
-The campaign shows its numbers (Mailgun's own first, then the site's), each link's clicks and every
-recipient (see [After a campaign is sent](/editors/mailing-lists/#after-a-campaign-is-sent-its-numbers) in
-the Editor guide).
+The campaign shows its numbers, each link's clicks and every recipient (see
+[After a campaign is sent](/editors/mailing-lists/#after-a-campaign-is-sent-its-numbers) in the Editor
+guide). Admins also have **Compare with Mailgun's totals**, which shows Mailgun's own counts for the
+campaign beside the site's.
 
 **Delete** removes drafts, and campaigns that were cancelled, skipped or failed before they started
 sending. A campaign that started sending stays, with its numbers.

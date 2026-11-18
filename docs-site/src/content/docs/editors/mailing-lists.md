@@ -261,27 +261,6 @@ only admins can change it. Editors can still open it and use **See the email**. 
 Once a campaign has gone out, its page shows **Numbers**. While it is sending, the page refreshes itself
 every 15 seconds.
 
-### From Mailgun
-
-When the site sends through Mailgun, **Numbers** starts with **From Mailgun**: Mailgun's own counts for the
-campaign, the same as in Mailgun's dashboard. They can take a few minutes to appear after sending.
-
-| Number | What it means |
-| --- | --- |
-| **Sent** | How many emails Mailgun accepted to send. |
-| **Delivered** | How many reached the reader's mail server, as a share of those sent. |
-| **Opened** | The share of delivered emails that were opened, with how many people opened it. |
-| **Clicked** | The share of delivered emails whose reader followed a link, with how many people. |
-| **Bounced** | Emails that couldn't be delivered, as a share of those sent. |
-| **Spam complaints** | Readers who marked it as spam. |
-| **Unsubscribed** | Readers who unsubscribed from this email. |
-
-### Tracked by this site
-
-Under **Tracked by this site** are the site's own counts. They tell people from mail scanners, and they are
-what segments and each person's page use. When the site sends through Mailgun, this part shows only for campaigns with
-**Track links** ticked.
-
 | Number | What it means |
 | --- | --- |
 | **Sent** | How many emails went out. Underneath: how many are still to go, or how many people unsubscribed before their turn came. |
@@ -322,6 +301,8 @@ link was followed.
 when they **Opened** it and when they **Clicked** (or **Confirmed**). The buttons above narrow the list:
 **Everyone**, **Delivered**, **Opened**, **Clicked**, **Bounced**, **Marked as spam**, **Unsubscribed** and
 **Not sent**. Click an address to open that person's page.
+
+Admins also have **Compare with Mailgun's totals**, which shows Mailgun's own counts for the campaign.
 
 ## The weekly digest
 

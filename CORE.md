@@ -1342,13 +1342,9 @@ never subscribes anyone again); the settings are, with the others. Migration `*_
   scanner's user agent or address range, 3 different links within 5 seconds, or a click within 10
   seconds of delivery with no later sign of a person; human with an interaction; likely human
   otherwise. Each verdict keeps its reasons. Addresses are kept as their /24 or /48 network only.
-  A campaign's numbers: while Mailgun is set up, first Mailgun's own (From Mailgun, loaded with the page
-  through the campaigns API's `reconcile`: `tagStats`, the campaign tag's totals over 90 days from
-  Mailgun's Metrics API, `POST /v1/analytics/metrics` filtered by domain and tag, `TAG_METRICS`: sent,
-  delivered, bounced, unique opens and clicks, complaints, unsubscribes; the tags API's stats are
-  deprecated), then the site's (Tracked by this site, `campaign_stats`; with Mailgun set up, only for a campaign whose links are tracked, `track_links`): delivered, bounce and complaint
-  rates, opens (indicative), people who clicked (human and likely human), confirmed, machine clicks,
-  unsubscribes, and each link's.
+  A campaign's numbers (`campaign_stats`): delivered, bounce and complaint rates, opens (indicative),
+  people who clicked (human and likely human), confirmed, machine clicks, unsubscribes, and each link's;
+  Compare with Mailgun's totals reads the campaign tag's totals over 90 days from Mailgun's Metrics API (`tagStats`: `POST /v1/analytics/metrics` filtered by domain and tag; the tags API's stats are deprecated).
 - **Subscribers** (the Subscribers tab: every contact; admins change, editors read): search and
   filters (status, list, tag), a list's subscribers (Lists > View subscribers), a campaign's recipients
   with how each email went (its page, filtered by delivered, opened, clicked, bounced...), each contact's consent, lists,
