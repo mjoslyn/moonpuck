@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { tagStats } from '../src/lib/mailing/mailgun';
 
-// "Compare with Mailgun's totals" reads Mailgun's Metrics API: the tags API's stats are deprecated and
+// A campaign's Numbers read Mailgun's Metrics API: the tags API's stats are deprecated and
 // answered 404 "Tag not found" for a campaign's tag on a live account.
 describe('tagStats', () => {
   afterEach(() => {
@@ -41,8 +41,8 @@ describe('tagStats', () => {
   });
 
   it('adds up the days when there are no aggregates', async () => {
-    setup({ items: [{ metrics: { delivered_count: 2, unique_clicked_count: 1 } }, { metrics: { delivered_count: 3, unsubscribed_count: 1 } }] });
-    expect(await tagStats('campaign-2')).toEqual({ delivered: 5, clicked: 1, unsubscribed: 1 });
+    setup({ items: [{ metrics: { delivered_count: 2, unique_clicked_count: 1 } }, { metrics: { delivered_count: 3, unsubscribed_count: 1, permanent_failed_count: 1, temporary_failed_count: 4 } }] });
+    expect(await tagStats('campaign-2')).toEqual({ delivered: 5, clicked: 1, unsubscribed: 1, bounced: 1 });
   });
 
   it('nothing at Mailgun is no totals', async () => {

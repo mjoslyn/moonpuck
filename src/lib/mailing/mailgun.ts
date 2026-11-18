@@ -169,11 +169,11 @@ export async function addUnsubscribe(address: string): Promise<void> {
   await call(`${domainPath()}/unsubscribes`, { method: 'POST', body: form });
 }
 
-/** The totals "Compare with Mailgun's totals" shows, each from its metric in Mailgun's Metrics API. */
-const TAG_METRICS = {
+/** The totals a campaign's Numbers show from Mailgun, each from its metric in Mailgun's Metrics API. */
+export const TAG_METRICS = {
   accepted: 'accepted_count',
   delivered: 'delivered_count',
-  failed: 'failed_count',
+  bounced: 'permanent_failed_count',
   opened: 'unique_opened_count',
   clicked: 'unique_clicked_count',
   complained: 'complained_count',
@@ -181,8 +181,8 @@ const TAG_METRICS = {
 } as const;
 
 /**
- * A tag's totals at Mailgun over the last 90 days ("Compare with Mailgun's totals"): accepted, delivered,
- * failed, opened and clicked (each recipient once), complained, unsubscribed. Read from the Metrics API
+ * A tag's totals at Mailgun over the last 90 days (a campaign's Numbers): accepted, delivered, bounced
+ * (failed for good), opened and clicked (each recipient once), complained, unsubscribed. Read from the Metrics API
  * (POST /v1/analytics/metrics, filtered by the sending domain and the tag, by day: kept a year), which
  * replaced the tags API's stats (deprecated; a tag there can answer 404 "Tag not found").
  */
