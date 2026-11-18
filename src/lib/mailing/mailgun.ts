@@ -169,19 +169,50 @@ export async function addUnsubscribe(address: string): Promise<void> {
   await call(`${domainPath()}/unsubscribes`, { method: 'POST', body: form });
 }
 
-/** A tag's totals at Mailgun ("Reconcile with Mailgun"): accepted, delivered, failed, opened, clicked, complained, unsubscribed. */
-export async function tagStats(tag: string): Promise<Record<string, number>> {
+/** The totals "Compare with Mailgun's totals" shows, each from its metric in Mailgun's Metrics API. */
+const TAG_METRICS = {
+  accepted: 'accepted_count',
+  delivered: 'delivered_count',
+  failed: 'failed_count',
+  opened: 'unique_opened_count',
+  clicked: 'unique_clicked_count',
+  complained: 'complained_count',
+  unsubscribed: 'unsubscribed_count',
+} as const;
+
+/**
+ * A tag's totals at Mailgun over the last 90 days ("Compare with Mailgun's totals"): accepted, delivered,
+ * failed, opened and clicked (each recipient once), complained, unsubscribed. Read from the Metrics API
+ * (POST /v1/analytics/metrics, filtered by the sending domain and the tag, by day: kept a year), which
+ * replaced the tags API's stats (deprecated; a tag there can answer 404 "Tag not found").
+ */
+export async function tagStats(tag: string, now = new Date()): Promise<Record<string, number>> {
   if (!mailgunStatus().configured) return {};
-  const q = new URLSearchParams({ duration: '90d' });
-  for (const e of ['accepted', 'delivered', 'failed', 'opened', 'clicked', 'complained', 'unsubscribed']) q.append('event', e);
-  const out = await call(`${domainPath()}/tags/${encodeURIComponent(tag)}/stats?${q}`);
+  const metrics = Object.values(TAG_METRICS);
+  const out = await call('/v1/analytics/metrics', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      start: new Date(now.getTime() - 90 * 86_400_000).toUTCString(),
+      end: now.toUTCString(),
+      resolution: 'day',
+      metrics,
+      filter: {
+        AND: [
+          { attribute: 'domain', comparator: '=', values: [{ label: env('MAILGUN_DOMAIN') ?? '', value: env('MAILGUN_DOMAIN') ?? '' }] },
+          { attribute: 'tag', comparator: '=', values: [{ label: tag, value: tag }] },
+        ],
+      },
+      include_aggregates: true,
+    }),
+  });
+  // The aggregates when Mailgun gives them, else the sum of the days.
+  const agg = out?.aggregates?.metrics ?? out?.aggregates;
+  const rows: Record<string, unknown>[] = agg && typeof agg === 'object' && metrics.some((m) => m in agg) ? [agg] : (Array.isArray(out?.items) ? out.items : []).map((it: any) => it?.metrics ?? {});
   const totals: Record<string, number> = {};
-  for (const s of Array.isArray(out.stats) ? out.stats : []) {
-    for (const [k, v] of Object.entries(s)) {
-      if (k === 'time' || !v || typeof v !== 'object') continue;
-      const n = Number((v as any).total ?? ((v as any).permanent?.total ?? 0) + ((v as any).temporary?.total ?? 0));
-      totals[k] = (totals[k] ?? 0) + (Number.isFinite(n) ? n : 0);
-    }
+  for (const [name, metric] of Object.entries(TAG_METRICS)) {
+    const n = rows.reduce((sum, r) => sum + (Number(r[metric]) || 0), 0);
+    if (n) totals[name] = n;
   }
   return totals;
 }
