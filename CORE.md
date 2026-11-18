@@ -1323,7 +1323,7 @@ never subscribes anyone again); the settings are, with the others. Migration `*_
 - **Webhook** (`POST /api/mailgun/webhook`, `src/lib/mailing/webhook.ts`): the signature (HMAC-SHA256 of
   timestamp and token, within 5 minutes; each token once, `mailgun_tokens`), every event logged once by
   Mailgun's event id (`mail_events`), then: delivered, opened (people's only: `openVerdict` leaves out
-  mail scanners and privacy proxies such as Apple's), failed (permanent: bounced, suppressed),
+  mail scanners and privacy proxies such as Apple's; Gmail's image proxy, which fetches on a person's open, counts), failed (permanent: bounced, suppressed),
   complained (suppressed, never mailed again), unsubscribed. Bounces, complaints and unsubscribes (and
   the nightly reconcile) set the contact's lists to unsubscribed too. If an event's writes fail, its row
   and token are deleted and the answer is 500, so Mailgun's retry is applied. A bounce or complaint runs

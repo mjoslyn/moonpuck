@@ -138,9 +138,15 @@ export function judge(clicks: Click[], delivered: string | null): Judged[] {
   });
 }
 
-/** An open's verdict from Mailgun's client info: a scanner, a privacy proxy (Apple's), or likely a person. */
+/**
+ * An open's verdict from Mailgun's client info: a scanner, a privacy proxy (Apple's), or likely a person.
+ * Gmail's image proxy fetches the images when a person opens the email, from Google's addresses that
+ * also carry its link scanners, so its user agent counts as a person before the address is looked at.
+ */
 export function openVerdict(ip: string, ua: string, clientType = ''): 'machine' | 'privacy' | 'likely_human' {
   if (privacyProxy(ip, ua)) return 'privacy';
-  if (scannerAddress(ip) || /robot|bot/i.test(clientType) || (ua && SCANNER_UA.test(ua) && !/googleimageproxy/i.test(ua))) return 'machine';
+  if (/robot|bot/i.test(clientType)) return 'machine';
+  if (/googleimageproxy/i.test(ua)) return 'likely_human';
+  if (scannerAddress(ip) || (ua && SCANNER_UA.test(ua))) return 'machine';
   return 'likely_human';
 }

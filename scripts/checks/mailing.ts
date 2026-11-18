@@ -103,6 +103,7 @@ want('the hidden link takes nearby clicks with it, not later ones', verdicts(tra
 want('an interaction confirms a person', verdicts(judge([click(1, 1, 5, { confirmed_at: at(9) })], at(0))) === 'human');
 want('network prefixes', ipPrefix('203.0.113.77') === '203.0.113.0/24' && ipPrefix('2001:db8:1:2::5') === '2001:db8:1::/48' && ipPrefix('::ffff:203.0.113.9') === '203.0.113.0/24');
 want('Apple’s proxy opens are privacy', openVerdict('17.58.1.2', 'Mozilla/5.0') === 'privacy' && openVerdict('203.0.113.4', 'Mozilla/5.0 (Windows NT 10.0)') === 'likely_human' && openVerdict('66.249.66.1', 'Mozilla/5.0') === 'machine');
+want('Gmail’s image proxy opens are a person’s, from Google’s addresses too', openVerdict('66.102.8.194', 'Mozilla/5.0 (Windows NT 5.1; rv:11.0) Gecko Firefox/11.0 (via ggpht.com GoogleImageProxy)', 'unknown') === 'likely_human' && openVerdict('66.102.8.194', 'Mozilla/5.0') === 'machine');
 
 // Digest due times, in New York across the DST change (Sunday November 1, 2026).
 const tz = 'America/New_York';
