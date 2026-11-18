@@ -149,6 +149,19 @@ h3 {
 .c-page > * {
   margin-block: 0;
 }
+/* On the site (not the editor's canvas), the footer stays at the bottom of the screen on a short page. */
+body > .c-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+}
+body > .c-page > * {
+  flex-shrink: 0;
+}
+body > .c-page > .is-footer {
+  margin-top: auto;
+}
 
 /* Columns: stacked below 782px, side by side above. */
 .c-columns {

@@ -156,10 +156,10 @@ export async function resolve(url: URL, loader: Loader): Promise<Queried> {
   const entry = (await loader.entry(rootTypes(), slug)) ?? (await loader.lockedEntry(rootTypes(), slug));
   if (entry) return { ...base, kind: 'singular', entry };
   // The members' account page, unless a page has its address.
-  if (`/${parts.join('/')}/` === ACCOUNT_PATH && memberSettings(settings.site).enabled) return { ...base, kind: 'singular', entry: accountPage() };
+  if (`/${parts.join('/')}/` === ACCOUNT_PATH && memberSettings(settings.site).enabled) return { ...base, kind: 'singular', entry: inColumn(accountPage(), 640) };
   // Mailing's pages (signing up, unsubscribing, email preferences), unless a page has the address.
   const mailing = MAILING_PAGES[`/${parts.join('/')}/`];
-  if (mailing && mailingOn(settings.site)) return { ...base, kind: 'singular', entry: builtInPage(mailing.slug, mailing.title, mailing.block) };
+  if (mailing && mailingOn(settings.site)) return { ...base, kind: 'singular', entry: inColumn(builtInPage(mailing.slug, mailing.title, mailing.block), 640) };
   // The shop's cart, unless a page has its address.
   if (`/${parts.join('/')}/` === CART_PATH && shopOn(settings.site)) return { ...base, kind: 'singular', entry: cartPage() };
   // The donation page, unless a page has its address.
@@ -190,12 +190,23 @@ function builtInPage(slug: string, title: string, block: { type: string; attrs: 
   };
 }
 
+/** The space built-in pages keep from the header, the footer and the screen's edges. */
+const BUILT_IN_PADDING = { top: 'var(--space-70)', right: 'var(--space-50)', bottom: 'var(--space-80)', left: 'var(--space-50)' };
+
+/** A built-in page's blocks in a padded column of the given width, as a page made in the editor would be. */
+function inColumn(page: Entry, width: number): Entry {
+  const blocks = (page.content as any).content;
+  (page.content as any).content = [
+    { type: 'section', props: { id: `${page.slug}-page`, attrs: { layout: { type: 'constrained', contentSize: `${width}px` }, style: { padding: BUILT_IN_PADDING }, gap: 'var(--space-50)' }, children: blocks } },
+  ];
+  return page;
+}
+
 /** The cart when no page has its address: a heading and a Cart block, in a padded column. */
 function cartPage(): Entry {
   const page = builtInPage(CART_PATH.split('/').filter(Boolean).pop()!, 'Your cart', { type: 'cart', attrs: {} });
-  const pad = { top: 'var(--space-70)', right: 'var(--space-50)', bottom: 'var(--space-80)', left: 'var(--space-50)' };
   (page.content as any).content = [
-    { type: 'section', props: { id: 'cart-page', attrs: { layout: { type: 'constrained', contentSize: '960px' }, style: { padding: pad }, gap: 'var(--space-50)' }, children: [
+    { type: 'section', props: { id: 'cart-page', attrs: { layout: { type: 'constrained', contentSize: '960px' }, style: { padding: BUILT_IN_PADDING }, gap: 'var(--space-50)' }, children: [
       { type: 'heading', props: { id: 'cart-title', attrs: { content: 'Your cart', level: 1 } } },
       { type: 'cart', props: { id: 'cart', attrs: {} } },
     ] } },
@@ -206,9 +217,8 @@ function cartPage(): Entry {
 /** The donation page when no page has its address: a heading and a Donate block, in a padded column. */
 function donatePage(): Entry {
   const page = builtInPage(DONATE_PATH.split('/').filter(Boolean).pop()!, 'Donate', { type: 'donate', attrs: {} });
-  const pad = { top: 'var(--space-70)', right: 'var(--space-50)', bottom: 'var(--space-80)', left: 'var(--space-50)' };
   (page.content as any).content = [
-    { type: 'section', props: { id: 'donate-page', attrs: { layout: { type: 'constrained', contentSize: '640px' }, style: { padding: pad }, gap: 'var(--space-50)' }, children: [
+    { type: 'section', props: { id: 'donate-page', attrs: { layout: { type: 'constrained', contentSize: '640px' }, style: { padding: BUILT_IN_PADDING }, gap: 'var(--space-50)' }, children: [
       { type: 'heading', props: { id: 'donate-title', attrs: { content: 'Donate', level: 1 } } },
       { type: 'donate', props: { id: 'donate', attrs: {} } },
     ] } },

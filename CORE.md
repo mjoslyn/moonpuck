@@ -711,7 +711,8 @@ conversation.
   whole output (smart quotes, dashes).
 - `src/lib/text/` (texturize, autop, entities), `src/lib/date-format.ts` (PHP-style date formats stored
   in content), `src/lib/media/image.ts` (image markup), `src/lib/permalink.ts`.
-- CSS: `src/styles/site.css` (Tailwind, no preflight) imports the site's `tokens.css` and `theme.css`,
+- CSS: `src/styles/site.css` (Tailwind, no preflight; on the site's pages `body > .c-page` is a column at
+  least the screen's height whose footer part, `.is-footer`, sits at the bottom) imports the site's `tokens.css` and `theme.css`,
   `forms.css` and `events.css`; the page shell links the compiled file. Swiper (sliders)
   and Leaflet (maps) are served from the site, in versioned folders under `public/assets/vendor/`
   (`src/render/vendor.ts`), not a CDN, whose connection would hold up the page; their stylesheets are
@@ -1254,7 +1255,7 @@ never subscribes anyone again); the settings are, with the others. Migration `*_
   unsubscribes.
 - **Pages**: `/subscribe/` (a Subscribe block), `/unsubscribe/` and `/email-preferences/` (the **Email
   preferences** block, `mail-preferences`, `view` unsubscribe or preferences): a page with one of these
-  addresses takes its place (`MAILING_PAGES` in `src/render/page.ts`). The preferences block shows whose
+  addresses takes its place (`MAILING_PAGES` in `src/render/page.ts`; the built-in ones, like the account page's, hold their block in a padded 640px column, `inColumn`). The preferences block shows whose
   subscription the signed link (`?t=`, `?confirm=`) is for, or the signed-in visitor's; it loads through
   a server hook (`src/render/hooks.ts`, registered by `src/lib/mailing/page-data.ts`, which the
   middleware imports) because the render code also runs in the editor's browser bundle. Its pages are
