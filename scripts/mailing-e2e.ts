@@ -188,7 +188,18 @@ try {
   html = await page('/account/');
   ok('member sign-up offers the list', html.includes('name="mail_optin"'));
   r = await form('/api/members/signup', { name: 'Mem Ber', email: member, password: 'member-password-1', confirm: 'member-password-1', mail_optin: '1' }, { Origin: base });
-  const memberCookie = r.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+  // Sign-up signs them in at once only with AUTH_CONFIRM_EMAIL=false; otherwise the emailed link
+  // (/account/?confirm=) confirms the address and signs them in.
+  let memberCookie = r.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+  if (!memberCookie) {
+    const confirmMail = await inbox(member, 'Confirm');
+    const confirmLink = confirmMail?.HTML.match(/href="([^"]*\/account\/\?[^"]*confirm=[^"]+)"/)?.[1]?.replace(/&amp;/g, '&');
+    if (confirmLink) {
+      r = await fetch(new URL(confirmLink, base).toString().replace(/^https?:\/\/[^/]+/, base), { redirect: 'manual' });
+      memberCookie = r.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+    }
+    ok('the account confirmation link signs the member in', !!memberCookie, confirmMail?.Subject ?? 'no confirmation email');
+  }
   const { data: mc } = await db.from('contacts').select('id, status, consent_source, first_name, last_name').eq('email', member).maybeSingle();
   ok('the opt-in signs them up, waiting for confirmation, their name split', mc?.status === 'pending' && mc.consent_source === 'members:signup' && mc.first_name === 'Mem' && mc.last_name === 'Ber', JSON.stringify(mc));
   const { data: mu } = await db.from('members').select('user_id').eq('email', member).maybeSingle();
