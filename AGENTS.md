@@ -30,7 +30,11 @@ renamed things come out of the docs too.
   Editor guide links to it. Change them when a screen they use changes: plain words, the labels as
   they appear on screen, steps, and settings one per line (a list item each, with its choices after a
   colon), never run together in a sentence or a table cell. Its screenshots (`docs-site/src/assets/guide/`)
-  are taken from the example site at 1280 by 800 with Playwright, with Astro's dev toolbar hidden; each
+  are taken from the example site at 1280 by 800 with Playwright, with Astro's dev toolbar hidden. Its
+  screencasts (`docs-site/public/video/editors/<page>.mp4` and a `.jpg` poster, one per page but Common
+  questions, embedded under each page's intro) are recorded the same way by `scripts/screencasts/`: once,
+  `demo-setup.ts` then `reset.sh --save` (the demo content and the editor in `.env`); then `run.ts [page]`.
+  Re-record a page's clip when its screens change. Each
   block in the Editor guide's list of blocks has its own heading and, where it shows something, a picture
   of it on a page (`guide/blocks/`, cropped to the block).
 

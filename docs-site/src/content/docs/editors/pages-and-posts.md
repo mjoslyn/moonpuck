@@ -12,6 +12,10 @@ your site has, such as **Pages**, **Posts** or **Events**, then pick one to see 
 
 ![The Content screen, showing posts](../../../assets/guide/content-list.png)
 
+<video controls preload="none" poster="/video/editors/pages-and-posts.jpg" width="1344" height="908" style="width: 100%; height: auto;">
+  <source src="/video/editors/pages-and-posts.mp4" type="video/mp4" />
+</video>
+
 ## The content list
 
 The heading names the kind of content, and the line under it says how many there are (for example

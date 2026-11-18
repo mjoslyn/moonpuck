@@ -11,6 +11,10 @@ the right.
 
 ![The page editor: blocks on the left, the page in the middle, settings on the right](../../../assets/guide/editor.png)
 
+<video controls preload="none" poster="/video/editors/page-editor.jpg" width="1344" height="908" style="width: 100%; height: auto;">
+  <source src="/video/editors/page-editor.mp4" type="video/mp4" />
+</video>
+
 ## The editor's layout
 
 The editor has four parts.

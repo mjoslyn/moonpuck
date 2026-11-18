@@ -15,6 +15,10 @@ An admin turns them on under **Settings**, **Events** (see [Turning features on]
 While events are off, the site shows no events, calendar or ticket sales.
 :::
 
+<video controls preload="none" poster="/video/editors/events-and-tickets.jpg" width="1344" height="908" style="width: 100%; height: auto;">
+  <source src="/video/editors/events-and-tickets.mp4" type="video/mp4" />
+</video>
+
 ## Adding an event
 
 1. Click **Content**, then **Events**, then **New Event**.

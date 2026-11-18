@@ -36,3 +36,6 @@ deno.lock
 # Wrangler and the Cloudflare dev server: local state, generated deploy config
 .wrangler/
 .dev.vars
+
+# screencast recordings: clean local state (scripts/screencasts/reset.sh)
+.screencast-state/

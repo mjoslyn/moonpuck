@@ -10,6 +10,10 @@ any page, and anyone who edits the site can use it.
 
 ![The Media library](../../../assets/guide/media.png)
 
+<video controls preload="none" poster="/video/editors/images-and-files.jpg" width="1344" height="908" style="width: 100%; height: auto;">
+  <source src="/video/editors/images-and-files.mp4" type="video/mp4" />
+</video>
+
 ## The Media screen
 
 Click **Media** in the top bar. You see:

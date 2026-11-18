@@ -19,6 +19,10 @@ Donations are a feature an admin turns on under **Settings**, **Donations**. If 
 (see [Turning features on](/admins/features/#donations)).
 :::
 
+<video controls preload="none" poster="/video/editors/donations.jpg" width="1344" height="908" style="width: 100%; height: auto;">
+  <source src="/video/editors/donations.mp4" type="video/mp4" />
+</video>
+
 ## The donation page
 
 Your site has a donation page at `/donate/` as soon as donations are on: a heading and a Donate block.

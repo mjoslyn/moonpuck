@@ -12,6 +12,10 @@ about websites or code to follow it. Each page walks through one job, step by st
 The **?** button at the top of every admin screen brings you back here (it opens in a new tab). Admins
 have a guide of their own for site-wide settings: the [Admin guide](/admins/).
 
+<video controls preload="none" poster="/video/editors/index.jpg" width="1344" height="908" style="width: 100%; height: auto;">
+  <source src="/video/editors/index.mp4" type="video/mp4" />
+</video>
+
 ## Signing in
 
 1. Go to your site's address and add `/admin/` to the end, for example `www.yoursite.org/admin/`.
