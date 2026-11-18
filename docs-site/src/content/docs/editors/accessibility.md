@@ -9,6 +9,10 @@ An accessible page works for everyone: people who are blind and hear pages read 
 reader, people who can't use a mouse, and people who find small or faint text hard to read. The editor
 checks for the most common problems as you work, so you can fix them before visitors meet them.
 
+<video controls preload="none" poster="/video/editors/accessibility.jpg" width="1344" height="908" style="width: 100%; height: auto;">
+  <source src="/video/editors/accessibility.mp4" type="video/mp4" />
+</video>
+
 ## The A11y check
 
 Click **A11y** on the left side of the editor (below **Blocks**, **Patterns** and **Outline**). It checks

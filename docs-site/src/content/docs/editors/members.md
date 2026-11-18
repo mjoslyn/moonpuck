@@ -18,6 +18,10 @@ Members are a feature an admin turns on under **Settings**, **Members**. If a pa
 [Turning features on](/admins/features/#members)).
 :::
 
+<video controls preload="none" poster="/video/editors/members.jpg" width="1344" height="908" style="width: 100%; height: auto;">
+  <source src="/video/editors/members.mp4" type="video/mp4" />
+</video>
+
 ## Levels
 
 Your site can have several kinds of membership, called levels (such as **Friend** and **Patron**).

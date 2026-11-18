@@ -14,6 +14,10 @@ A page you are working on is always saved. It changes for visitors only when you
 
 ![The buttons at the top of the editor](../../../assets/guide/editor-header.png)
 
+<video controls preload="none" poster="/video/editors/saving-and-publishing.jpg" width="1344" height="908" style="width: 100%; height: auto;">
+  <source src="/video/editors/saving-and-publishing.mp4" type="video/mp4" />
+</video>
+
 ## The top of the editor
 
 From left to right, the top of the editor has:

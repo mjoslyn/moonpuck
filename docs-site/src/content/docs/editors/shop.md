@@ -12,6 +12,10 @@ the shop is turned off. An admin can turn it on under **Settings**, **Shop**.
 An admin sets up how buyers pay, shipping, pickup, tax, the order emails and your own order
 statuses: see [Setting up the shop](/admins/shop/).
 
+<video controls preload="none" poster="/video/editors/shop.jpg" width="1344" height="908" style="width: 100%; height: auto;">
+  <source src="/video/editors/shop.mp4" type="video/mp4" />
+</video>
+
 ## Adding a product
 
 1. Click **Content**, then **Products**, then **New Product**.

@@ -14,6 +14,10 @@ Admins add popups and choose where, when and how often they show (see
 [Popups and cookie consent](/admins/popups-and-cookies/) in the Admin guide). What a popup says is
 ordinary content. Editors can change it.
 
+<video controls preload="none" poster="/video/editors/popups.jpg" width="1344" height="908" style="width: 100%; height: auto;">
+  <source src="/video/editors/popups.mp4" type="video/mp4" />
+</video>
+
 ## Changing what a popup says
 
 A popup's content is a **template part**, named after the popup (such as "Popup 1" or "Cookie consent").

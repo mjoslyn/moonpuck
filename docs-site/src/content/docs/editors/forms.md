@@ -9,6 +9,10 @@ Forms let visitors send you a message, sign up, apply, register or pay. You buil
 form builder, then place it on any page with the **Form** block. The site keeps everything people send under
 **Submissions**, and it can email you (and them) each time.
 
+<video controls preload="none" poster="/video/editors/forms.jpg" width="1344" height="908" style="width: 100%; height: auto;">
+  <source src="/video/editors/forms.mp4" type="video/mp4" />
+</video>
+
 ## The Forms list
 
 Click **Forms** in the top bar, then **Forms**. Each form is listed with:

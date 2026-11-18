@@ -18,6 +18,10 @@ Compose needs Claude to be connected. An admin connects it under Settings (see
 [Connections](/admins/connections/)). Until then, Compose screens say **Claude isn't connected yet**.
 :::
 
+<video controls preload="none" poster="/video/editors/writing-with-claude.jpg" width="1344" height="908" style="width: 100%; height: auto;">
+  <source src="/video/editors/writing-with-claude.mp4" type="video/mp4" />
+</video>
+
 ## Starting from the home screen
 
 The admin's home screen (click the site's name at the top left) asks **What would you like to make?**

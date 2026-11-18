@@ -20,6 +20,10 @@ service called Mailgun, which an admin connects. If you don't see **Mailing List
 **People** in the top bar, the feature is off (see [Turning features on](/admins/features/#mailing-lists)).
 :::
 
+<video controls preload="none" poster="/video/editors/mailing-lists.jpg" width="1344" height="908" style="width: 100%; height: auto;">
+  <source src="/video/editors/mailing-lists.mp4" type="video/mp4" />
+</video>
+
 ## The Mailing Lists screen
 
 Click **People** in the top bar, then **Mailing Lists**. The screen has five tabs:

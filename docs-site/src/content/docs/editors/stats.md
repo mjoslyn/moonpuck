@@ -13,6 +13,10 @@ The line under the heading says how visitors are counted on your site: without c
 Stats cookie (see [How visitors are counted](#how-visitors-are-counted)). Admins also see a **Stats
 settings** link there.
 
+<video controls preload="none" poster="/video/editors/stats.jpg" width="1344" height="908" style="width: 100%; height: auto;">
+  <source src="/video/editors/stats.mp4" type="video/mp4" />
+</video>
+
 ## Choosing the dates
 
 At the top right:
