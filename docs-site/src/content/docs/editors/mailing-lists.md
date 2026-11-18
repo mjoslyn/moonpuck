@@ -279,7 +279,8 @@ campaign, the same as in Mailgun's dashboard. They can take a few minutes to app
 ### Tracked by this site
 
 Under **Tracked by this site** are the site's own counts. They tell people from mail scanners, and they are
-what segments and each person's page use.
+what segments and each person's page use. When the site sends through Mailgun, this part shows only for campaigns with
+**Track links** ticked.
 
 | Number | What it means |
 | --- | --- |

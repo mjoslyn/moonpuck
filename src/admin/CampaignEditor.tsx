@@ -369,7 +369,7 @@ export default function CampaignEditor({ campaign, lists, levels, stats, links, 
         )}
       </div>
 
-      {stats && stats.recipients + stats.dropped > 0 && <Numbers stats={stats} links={links} showMachine={showMachine} setShowMachine={setShowMachine} campaignId={c.id} admin={admin} mailgun={mailgun} />}
+      {stats && stats.recipients + stats.dropped > 0 && <Numbers stats={stats} links={links} showMachine={showMachine} setShowMachine={setShowMachine} campaignId={c.id} admin={admin} mailgun={mailgun} tracked={c.track_links} />}
 
       {confirming && (
         <div className="fixed inset-0 z-[950] flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-label="Confirm">
@@ -421,7 +421,9 @@ export default function CampaignEditor({ campaign, lists, levels, stats, links, 
   );
 }
 
-function Numbers({ stats: s, links, showMachine, setShowMachine, campaignId, admin, mailgun }: { stats: CampaignStats; links: LinkRow[]; showMachine: boolean; setShowMachine: (v: boolean) => void; campaignId: number; admin: boolean; mailgun: boolean }) {
+function Numbers({ stats: s, links, showMachine, setShowMachine, campaignId, mailgun, tracked }: { stats: CampaignStats; links: LinkRow[]; showMachine: boolean; setShowMachine: (v: boolean) => void; campaignId: number; admin: boolean; mailgun: boolean; tracked: boolean }) {
+  // The site's own counts: shown when the campaign's link tracking is on, or when they are the only numbers there are.
+  const showSite = tracked || !mailgun;
   // Mailgun's totals for the campaign's tag, the main numbers while Mailgun is set up.
   const [mg, setMg] = useState<Record<string, number> | null>(null);
   const [err, setErr] = useState('');
@@ -467,9 +469,11 @@ function Numbers({ stats: s, links, showMachine, setShowMachine, campaignId, adm
               <p className="mt-2 mb-4 text-xs text-admin-muted">Mailgun's own counts for this campaign, as in its dashboard. Opens and clicks count each person once.</p>
             </>
           )}
-          <h3 className="mb-2 text-lg">Tracked by this site</h3>
+          {showSite && <h3 className="mb-2 text-lg">Tracked by this site</h3>}
         </>
       )}
+      {showSite && (
+        <>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {tile('Sent', s.sent, s.queued ? `${s.queued} still to go` : s.dropped ? `${s.dropped} unsubscribed before their batch` : undefined)}
         {tile('Delivered', s.delivered, rate(s.delivered, s.sent))}
@@ -514,6 +518,8 @@ function Numbers({ stats: s, links, showMachine, setShowMachine, campaignId, adm
             </tbody>
           </table>
           {showMachine && trap && <p className="mt-1 text-xs text-admin-muted">The hidden link (followed only by machines) was followed {trap.machine + trap.likely + trap.human} times.</p>}
+        </>
+      )}
         </>
       )}
     </section>

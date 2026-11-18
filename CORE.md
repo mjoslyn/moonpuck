@@ -1346,7 +1346,7 @@ never subscribes anyone again); the settings are, with the others. Migration `*_
   through the campaigns API's `reconcile`: `tagStats`, the campaign tag's totals over 90 days from
   Mailgun's Metrics API, `POST /v1/analytics/metrics` filtered by domain and tag, `TAG_METRICS`: sent,
   delivered, bounced, unique opens and clicks, complaints, unsubscribes; the tags API's stats are
-  deprecated), then the site's (Tracked by this site, `campaign_stats`): delivered, bounce and complaint
+  deprecated), then the site's (Tracked by this site, `campaign_stats`; with Mailgun set up, only for a campaign whose links are tracked, `track_links`): delivered, bounce and complaint
   rates, opens (indicative), people who clicked (human and likely human), confirmed, machine clicks,
   unsubscribes, and each link's.
 - **Subscribers** (the Subscribers tab: every contact; admins change, editors read): search and
