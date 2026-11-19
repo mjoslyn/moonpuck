@@ -38,6 +38,14 @@ export const SCHEMA: Record<string, TableSchema> = {
     defaults: {"label":"","position":0,"kind":"content"},
     touch: false,
   },
+  campaign_revisions: {
+    pk: ["id"],
+    columns: {"id":"int8","campaign_id":"int8","name":"text","subject":"text","design":"jsonb","text":"text","author_id":"uuid","note":"text","created_at":"timestamptz"},
+    generated: [],
+    fks: [[["author_id"],"users",["id"]],[["campaign_id"],"campaigns",["id"]]],
+    defaults: {"name":"","subject":"","text":""},
+    touch: false,
+  },
   campaign_sends: {
     pk: ["campaign_id","contact_id"],
     columns: {"campaign_id":"int8","contact_id":"int8","batch_id":"int8","email":"text","status":"text","delivered_at":"timestamptz","opened_at":"timestamptz","clicked_at":"timestamptz","machine_clicked_at":"timestamptz","human_confirmed_at":"timestamptz","bounced_at":"timestamptz","complained_at":"timestamptz","unsubscribed_at":"timestamptz"},
@@ -281,9 +289,9 @@ export const SCHEMA: Record<string, TableSchema> = {
   },
   share_links: {
     pk: ["id"],
-    columns: {"id":"int8","token":"text","entry_id":"int8","mode":"text","access":"text","password_hash":"text","label":"text","expires_at":"timestamptz","revoked_at":"timestamptz","uses":"int8","last_used_at":"timestamptz","created_by":"uuid","created_at":"timestamptz","updated_at":"timestamptz"},
+    columns: {"id":"int8","token":"text","entry_id":"int8","campaign_id":"int8","mode":"text","access":"text","password_hash":"text","label":"text","expires_at":"timestamptz","revoked_at":"timestamptz","uses":"int8","last_used_at":"timestamptz","created_by":"uuid","created_at":"timestamptz","updated_at":"timestamptz"},
     generated: [],
-    fks: [[["created_by"],"users",["id"]],[["entry_id"],"entries",["id"]]],
+    fks: [[["campaign_id"],"campaigns",["id"]],[["created_by"],"users",["id"]],[["entry_id"],"entries",["id"]]],
     defaults: {"mode":"view","access":"login","label":"","uses":0},
     touch: true,
   },

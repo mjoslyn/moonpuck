@@ -9,8 +9,9 @@ export interface Ctx {
   role: Role;
   /** The signed-in person (their auth user id). */
   uid?: string;
-  /** A guest's entry: the one their share link is for. */
+  /** A guest's entry or campaign: the one their share link is for. */
   entryId?: number;
+  campaignId?: number;
 }
 
 /** A write rule with conditions: the rows it reaches (`using`) and what the written rows must be (`check`). */
@@ -47,4 +48,4 @@ export const adminsOrEditorsWhen = (filter: Filter, editorRow: (row: Record<stri
  * the editor's canvas can show the page as it is. Writes are never a guest's: a guest's save goes through
  * the entry's own API, as the server, after it checks what a guest may save.
  */
-export const editorsOrGuests = (guestRows: (c: Ctx) => boolean | Filter): ReadAccess => (c) => (editors(c) ? true : c.role === 'guest' && c.entryId ? guestRows(c) : false);
+export const editorsOrGuests = (guestRows: (c: Ctx) => boolean | Filter): ReadAccess => (c) => (editors(c) ? true : c.role === 'guest' && (c.entryId || c.campaignId) ? guestRows(c) : false);

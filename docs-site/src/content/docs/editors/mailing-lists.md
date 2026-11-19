@@ -249,6 +249,49 @@ At the bottom of a campaign, **Duplicate** makes a copy named "(copy)" as a new 
 email, lists and settings, and opens it. This is the easiest way to start this month's newsletter from last
 month's. **Delete** removes a draft (it asks first).
 
+### Going back to an earlier version
+
+Each time a campaign is saved with a changed name, subject, email or plain text, the version is kept.
+**History**, under the campaign, lists them, newest first, with when they were saved and who saved them. A
+version saved through a share link says **Saved through a share link** and the link's name.
+
+- **View** shows the email of that version as a sample subscriber would get it.
+- **Restore** puts that version's name, subject, email and plain text back in the campaign. Nothing changes
+  until you click **Save**, so you can look it over first. Restore is there while the campaign can still be
+  changed.
+
+The last 100 versions are kept.
+
+### Sharing a newsletter draft
+
+**Share**, at the top of a draft campaign, makes a private link to it, so someone can read it, or work on
+it, before it goes out.
+
+1. Click **Share**.
+2. Under **People with the link can**, choose one:
+   - **View the email**: they see the email as a subscriber would, with a sample subscriber's name in it.
+   - **Edit it as a draft**: they change the subject, the email, its preview text and its plain text, and
+     click **Save**. Only editors choose the lists and send it.
+3. Under **Who can open it**, choose one:
+   - **Signed-in editors and admins**: only people who look after the site.
+   - **Anyone with the link and the password**: type a password of at least 6 characters, and give it to
+     them separately.
+   - **Anyone with the link**: no account or password needed. Keep the link private.
+4. Optional: give it a **Name**, and set **Expires** to a date and time.
+5. Click **Make link**. The link is copied, ready to paste into an email.
+
+Someone editing through a link without an account can't change:
+
+- The lists, audience, segment, sender, reply-to address or link tracking.
+- The email's colours, fonts and width (they can change its preview text).
+- Email templates (the Templates panel isn't there for them).
+
+They can't send tests or send the campaign. Their saves show in **History**.
+
+A link works only while the campaign is a draft: once it is scheduled or sent, the link stops working. The
+**Share** box lists the campaign's links, with **Copy** and **Turn off**, as for pages (see
+[Sharing a private link](/editors/saving-and-publishing/#sharing-a-private-link)).
+
 ### Sending is for admins
 
 Editors write and test campaigns. An admin sends or schedules them: the campaign shows **An admin

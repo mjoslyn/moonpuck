@@ -125,10 +125,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const user = await sessionUser(context.request);
   const { data: profile } = user ? await siteDb().from('profiles').select('role, display_name').eq('id', user.id).maybeSingle() : { data: null };
   if (!user || !profile || !['editor', 'admin'].includes(profile.role)) {
-    // Someone without an editor's account, with a share link's cookie: its entry's editor or preview only.
+    // Someone without an editor's account, with a share link's cookie: its entry's or newsletter's editor or preview only.
     const link = await guestLink(context.request, pathname);
     if (link && guestMay(link, context.request.method, pathname)) {
-      context.locals.db = sessionDb({ role: 'guest', entryId: link.entry_id });
+      context.locals.db = sessionDb({ role: 'guest', ...(link.campaign_id ? { campaignId: link.campaign_id } : { entryId: link.entry_id ?? undefined }) });
       context.locals.user = { id: '', email: '', role: 'guest', name: link.label ? `Guest (${link.label})` : 'Guest' };
       context.locals.share = link;
       // Links followed from the editor or preview don't tell other sites where they came from (same-origin, not
