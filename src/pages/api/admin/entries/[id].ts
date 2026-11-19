@@ -10,6 +10,7 @@ import { uniqueAreas } from '../../../../lib/content/areas';
 import { taxonomiesOf } from '../../../../lib/site';
 import { recordRevision } from '../../../../lib/admin/revisions';
 import { guestContent, guestEntry } from '../../../../lib/share/guest-content';
+import { entryState } from '../../../../lib/share/guest-state';
 
 /**
  * Save an entry. Body: { action, content?, entry?, template? }.
@@ -56,7 +57,9 @@ async function guestSave(id: number, body: any, label: string): Promise<Response
   const checked = guestContent(body.content, kept?.draft?.content ?? current.content);
   if (!checked.ok) return new Response(checked.error, { status: 400 });
   return {
-    body: { ...body, content: checked.content, entry: guestEntry(body.entry, kept?.draft?.entry ?? null, current) },
+    // A published page's changes go aside: on the settings kept aside, else on the page's full settings,
+    // so the draft an editor opens has its template, tags, terms and featured image as they are.
+    body: { ...body, content: checked.content, entry: guestEntry(body.entry, kept?.draft?.entry ?? (current.status === 'publish' ? await entryState(id) : null), current) },
     note: `Saved through a share link${label ? ` (${label.slice(0, 120)})` : ''}`,
   };
 }

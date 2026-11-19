@@ -1,19 +1,14 @@
 // An entry's share links (src/lib/share/links.ts), for editors: the editor's Share dialog.
 // GET ?entry=<id>: its links. POST { action: 'create', entry, mode, access, password?, label?, expires? }
-// makes one; { action: 'revoke', id } turns one off. The links' address uses SITE_URL, else the request's.
+// makes one; { action: 'revoke', id } turns one off. The links' address is this copy's (the request's).
 import type { APIRoute } from 'astro';
 import { PAGELESS_TYPES } from '../../../lib/site';
 import { siteDb } from '../../../lib/db/site';
-import { env } from '../../../lib/env';
 import { createShare, revokeShare, sharePath, sharesOf } from '../../../lib/share/links';
 
-const origin = (url: URL) => {
-  try {
-    return new URL(env('SITE_URL') ?? url.origin).origin;
-  } catch {
-    return url.origin;
-  }
-};
+// The address of the copy answering: links are this copy's own (share_links isn't synced), so SITE_URL,
+// which may name another copy, would lead nowhere.
+const origin = (url: URL) => url.origin;
 
 /** The entry a link may be made for: one with a page, not in the trash, that this editor can read. */
 async function shareable(db: App.Locals['db'], id: number): Promise<string | null> {

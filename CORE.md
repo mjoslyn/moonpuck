@@ -427,17 +427,25 @@ editors and admins, others sent to sign in; `password`: scrypt `password_hash`, 
 link and visitor, `share-password` in `src/lib/auth/attempts.ts`; `anyone`), an optional `label` and
 `expires_at`, and counts its uses (`uses`, `last_used_at`). Revoking (`revoked_at`), expiry and the entry
 going to the trash end it (`liveLink`). Login links send editors to `/admin/preview/<id>/` or
-`/admin/edit/<id>/`. Password and anyone links set a guest's cookie (`site.share`, HttpOnly, a week or
-until the link expires) signed with a key made from `AUTH_SECRET` over the token, access and password
-hash (`cookieValue`), so a new password or protection ends it too; the middleware reads the link again on
-each request (`guestLink`) and, for someone without an editor's session, lets it reach only that entry's
-preview and, for edit links, its editor, `/api/admin/db`, its `PUT /api/admin/entries/<id>` and
-`/api/admin/me` (`guestMay`), as the `guest` role (`locals.user.role`, `locals.share`).
+`/admin/edit/<id>/`. Password and anyone links set a guest's cookie, one per entry (`site.share.<entry id>`,
+so links to several pages work side by side; HttpOnly, a week or until the link expires) signed with a key
+made from `AUTH_SECRET` over the token, access and password hash (`cookieValue`), so a new password or
+protection ends it too. The middleware finds the entry a request is about from its address, else from
+the editor page that made it (its Referer, same origin only; `requestEntry`), reads that entry's cookie
+and link again on each request (`guestLink`) and, for someone without an editor's session, lets it reach
+only that entry's preview and, for edit links, its editor, `/api/admin/db`, its `PUT
+/api/admin/entries/<id>`, `/api/admin/me` and `/api/admin/share-data` (`guestMay`), as the `guest` role
+(`locals.user.role`, `locals.share`), without clearing the page cache (a guest saves drafts only). Links
+are made on the address of the copy answering (`share_links` isn't synced). Uses are counted over the
+count read (`countUse`), so opens at once all count.
 
 The `guest` role (`src/lib/db/access.ts`, `editorsOrGuests`) reads its entry (and its unpublished changes
 and revisions), published entries that aren't members-only, terms, media, templates and the `site` and
-`options` settings, and writes nothing; it calls no functions. Its preview renders as visitors see the
-site (`renderPreview`, `src/lib/admin/preview.ts`, `guest`). The editor (`guest` prop) shows Save draft
+`options` settings, and writes nothing; it calls no functions. Its preview renders the page with the rest of the site read as
+visitors see it, through the server (`renderPreview`, `src/lib/admin/preview.ts`, `guest`; `renderRequest`'s
+`asVisitor`), so forms, totals, lists and stock show; its editor's canvas gets those from `GET
+/api/admin/share-data` (`guestCanvasData`, `src/lib/share/guest-state.ts`: active forms' definitions,
+goals' totals, public mailing lists, products' stock). The editor (`guest` prop) shows Save draft
 only (no Publish, Discard, Unpublish, Compose, Share or Duplicate), the entry form's title, excerpt,
 featured image, an event's dates and the type's fields (`EntryForm`'s `guest`), no HTML or Embed blocks
 to insert (those on the page can be moved or removed, not edited); a page in layout mode isn't editable.
@@ -448,7 +456,8 @@ that isn't letters, digits, `-` and `_` (`GUEST_ID`; renderers put ids in markup
 writes a setting or id unescaped is not covered: escape it), and cleans every value the guest
 changed (inline formatting and safe links, `cleanInlineHtml`; addresses in `*href`, `*url`, `*src`,
 `*link`, `*poster`, `*website` settings, `isSafeUrl`); `guestEntry` keeps the address, template, terms and
-tags as they were, and of the fields takes only the type's own (`guestFieldKeys`: `fieldsFor` less `seo`,
+tags as they were (on a published page with no changes kept aside, the guest's changes go on the page's
+full settings, `entryState`, so an editor opening the draft finds them), and of the fields takes only the type's own (`guestFieldKeys`: `fieldsFor` less `seo`,
 `access`, `ticket`, `tickets`, `shop`, `featured`, `template`, `imported_from`; an event's `timezone` and
 `recurrence` too), the rest as they were; the entry form shows a guest only those. The same checks apply to a guest's
 unsaved preview. Its revisions have no author and the note `Saved through a share link (<label>)`.

@@ -126,14 +126,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const { data: profile } = user ? await siteDb().from('profiles').select('role, display_name').eq('id', user.id).maybeSingle() : { data: null };
   if (!user || !profile || !['editor', 'admin'].includes(profile.role)) {
     // Someone without an editor's account, with a share link's cookie: its entry's editor or preview only.
-    const link = await guestLink(context.request);
+    const link = await guestLink(context.request, pathname);
     if (link && guestMay(link, context.request.method, pathname)) {
       context.locals.db = sessionDb({ role: 'guest', entryId: link.entry_id });
       context.locals.user = { id: '', email: '', role: 'guest', name: link.label ? `Guest (${link.label})` : 'Guest' };
       context.locals.share = link;
       // Links followed from the editor or preview don't tell other sites where they came from (same-origin, not
       // no-referrer: that makes browsers send Origin: null on form posts, which the same-site check refuses).
-      return purgeAfter(context, async () => withHeaders(await noindex(next()), (h) => h.set('Referrer-Policy', 'same-origin')));
+      // Not purgeAfter: a guest saves drafts only, which change no public page.
+      return withHeaders(await noindex(next()), (h) => h.set('Referrer-Policy', 'same-origin'));
     }
   }
   if (!user) {

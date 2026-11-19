@@ -1,8 +1,9 @@
 // Share links (server only): a private address for one entry (/share/<token>/), to view it as it is
 // saved (unpublished changes included) or to edit it as a draft. Each is protected one of three ways
 // (`access`): login (signed-in editors and admins only), password, or anyone with the link. Guests
-// (password and anyone links) get a signed cookie naming the link (SHARE_COOKIE), which the middleware
-// turns into the `guest` role for that one entry (src/lib/db/policies.ts). Revoking a link, its expiry,
+// (password and anyone links) get a signed cookie naming the link, one per entry (`site.share.<entry id>`,
+// so links to several pages work side by side), which the middleware turns into the `guest` role for that
+// one entry (src/lib/db/policies.ts). Revoking a link, its expiry,
 // a new password or a changed protection ends every guest's access at once: the cookie is signed over
 // the link's token, protection and password hash, and the link is read again on each request.
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
@@ -39,8 +40,8 @@ const COOKIE_DAYS = 7;
 const COLUMNS = 'id, token, entry_id, mode, access, password_hash, label, expires_at, revoked_at, uses, last_used_at, created_by, created_at';
 
 export const SHARE_COOKIE = 'site.share';
-/** The cookie's name as set: __Secure- outside astro dev, as the session cookie (src/lib/auth). */
-export const shareCookieName = () => (import.meta.env?.DEV ? SHARE_COOKIE : `__Secure-${SHARE_COOKIE}`);
+/** A guest's cookie for an entry, as set: __Secure- outside astro dev, as the session cookie (src/lib/auth). */
+export const shareCookieName = (entryId: number) => `${import.meta.env?.DEV ? '' : '__Secure-'}${SHARE_COOKIE}.${entryId}`;
 
 /** The path a link opens at. */
 export const sharePath = (token: string) => `/share/${token}/`;
@@ -72,9 +73,10 @@ const signature = (link: Pick<ShareLink, 'token' | 'access' | 'password_hash'>) 
 /** The cookie value letting a guest in through a link. */
 export const cookieValue = (link: Pick<ShareLink, 'token' | 'access' | 'password_hash'>) => `${link.token}.${signature(link)}`;
 
-/** The token a guest's cookie names, if it has one (not yet checked). */
-export function cookieToken(request: Request): { token: string; sig: string } | null {
-  const raw = (request.headers.get('cookie') ?? '').split(/;\s*/).find((c) => c.startsWith(`${SHARE_COOKIE}=`) || c.startsWith(`__Secure-${SHARE_COOKIE}=`));
+/** The token a guest's cookie for an entry names, if it has one (not yet checked). */
+export function cookieToken(request: Request, entryId: number): { token: string; sig: string } | null {
+  const name = `${SHARE_COOKIE}.${entryId}=`;
+  const raw = (request.headers.get('cookie') ?? '').split(/;\s*/).find((c) => c.startsWith(name) || c.startsWith(`__Secure-${name}`));
   const value = raw?.slice(raw.indexOf('=') + 1) ?? '';
   const dot = value.lastIndexOf('.');
   return dot > 0 ? { token: value.slice(0, dot), sig: value.slice(dot + 1) } : null;
@@ -88,12 +90,34 @@ export function cookieFits(link: Pick<ShareLink, 'token' | 'access' | 'password_
   return want.length === got.length && timingSafeEqual(want, got);
 }
 
-/** The live link a guest's cookie lets them use, or null. */
-export async function guestLink(request: Request): Promise<ShareLink | null> {
-  const c = cookieToken(request);
+const ENTRY_PATH = /^\/(?:admin\/(?:edit|preview)|api\/admin\/entries)\/(\d+)\/?$/;
+
+/**
+ * The entry a guest's request is about: the one in its address (the editor, the preview, the save), else,
+ * for the editor's other calls (its queries, who is signed in), the one in the address of the editor page
+ * that made them (its Referer, sent for the site's own requests: Referrer-Policy same-origin).
+ */
+export function requestEntry(request: Request, pathname: string): number | null {
+  const own = pathname.match(ENTRY_PATH);
+  if (own) return Number(own[1]);
+  try {
+    const from = new URL(request.headers.get('referer') ?? '');
+    if (from.origin !== new URL(request.url).origin) return null;
+    const m = from.pathname.match(/^\/admin\/(?:edit|preview)\/(\d+)\/?$/);
+    return m ? Number(m[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The live link a guest's cookie lets them use for the entry the request is about, or null. */
+export async function guestLink(request: Request, pathname = new URL(request.url).pathname): Promise<ShareLink | null> {
+  const entry = requestEntry(request, pathname);
+  if (!entry) return null;
+  const c = cookieToken(request, entry);
   if (!c) return null;
   const link = await liveLink(c.token);
-  return link && cookieFits(link, c.sig) ? link : null;
+  return link && link.entry_id === entry && cookieFits(link, c.sig) ? link : null;
 }
 
 /** The Set-Cookie header letting a guest in through `link`, for a week or until the link expires. */
@@ -101,7 +125,7 @@ export function guestCookie(link: ShareLink): string {
   const week = COOKIE_DAYS * 86400;
   const left = link.expires_at ? Math.floor((Date.parse(link.expires_at) - Date.now()) / 1000) : week;
   const secure = import.meta.env?.DEV ? '' : '; Secure';
-  return `${shareCookieName()}=${cookieValue(link)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.max(60, Math.min(week, left))}${secure}`;
+  return `${shareCookieName(link.entry_id)}=${cookieValue(link)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.max(60, Math.min(week, left))}${secure}`;
 }
 
 /** Whether a password opens a link. */
@@ -123,13 +147,21 @@ export function guestMay(link: Pick<ShareLink, 'entry_id' | 'mode'>, method: str
   if (new RegExp(`^/admin/edit/${id}/?$`).test(pathname)) return read;
   if (new RegExp(`^/api/admin/entries/${id}/?$`).test(pathname)) return method === 'PUT';
   if (pathname === '/api/admin/db') return method === 'POST';
-  if (pathname === '/api/admin/me') return read;
+  if (pathname === '/api/admin/me' || pathname === '/api/admin/share-data') return read;
   return false;
 }
 
-/** Count a link's use (opening its address). */
-export async function countUse(link: ShareLink): Promise<void> {
-  await siteDb().from('share_links').update({ uses: link.uses + 1, last_used_at: new Date().toISOString() }).eq('id', link.id);
+/** Count a link's use (opening its address): written only over the count it read, so two opens at once
+ * both count (the loser reads again; a few tries). */
+export async function countUse(link: Pick<ShareLink, 'id' | 'uses'>): Promise<void> {
+  let uses = link.uses;
+  for (let i = 0; i < 5; i++) {
+    const { data } = await siteDb().from('share_links').update({ uses: uses + 1, last_used_at: new Date().toISOString() }).eq('id', link.id).eq('uses', uses).select('id');
+    if (data?.length) return;
+    const { data: now } = await siteDb().from('share_links').select('uses').eq('id', link.id).maybeSingle();
+    if (!now) return;
+    uses = now.uses;
+  }
 }
 
 export interface NewShare {
