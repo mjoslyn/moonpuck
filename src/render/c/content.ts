@@ -1,4 +1,4 @@
-// Content blocks: sections, columns, text, headings, images, buttons, lists, quotes, separators,
+// Content blocks: sections, columns, text, headings, images, buttons, lists, quotes, details, separators,
 // spacers, covers, galleries, embeds, raw HTML, media & text. Props are documented in
 // src/lib/content/types.ts; styles in ./style.ts; container layouts in ./layout.ts.
 import type { Renderer, Env } from '../env';
@@ -148,6 +148,15 @@ export const listItem: Renderer = (b, env, inner) => {
   const a = b.attrs;
   const rest = attrs([a.className], styleDecls(a.style));
   return `<li${rest ? ` ${rest}` : ''}>${a.content ?? ''}${inner()}</li>`;
+};
+
+/**
+ * Details: a summary line that opens to show the blocks inside (a question and its answer). The
+ * browser's own <details>, so it works without script and its text is found by the page's search.
+ */
+export const details: Renderer = (b, env, inner) => {
+  const a = b.attrs;
+  return `<details ${root(a, ['c-details'], [], { open: a.open ? 'open' : undefined })}><summary class="c-details__summary">${a.summary ?? ''}</summary><div class="c-details__body c-flow">${inner()}</div></details>`;
 };
 
 export const quote: Renderer = (b, env, inner) => {
@@ -386,6 +395,7 @@ export const CONTENT_RENDERERS: Record<string, Renderer> = {
   list,
   'list-item': listItem,
   quote,
+  details,
   separator,
   spacer,
   cover,

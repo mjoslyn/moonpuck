@@ -192,7 +192,8 @@ export function buildPage(plan: PagePlan, m: BuildMaterials, prefix = `c${Date.n
       case 'faq':
         return band(s, TEXT_WIDTH, [
           ...header(s, dark),
-          ...(s.items ?? []).flatMap((q) => [node('heading', { level: 3, content: inline(q.question), style: { fontFamily: HEADING_FONT, fontSize: 'var(--text-large)', ...(dark ? { color: ON_DARK } : {}) } }), ...body(q.answer, dark)]),
+          // Each question opens to show its answer (the Details block).
+          ...(s.items ?? []).map((q) => node('details', { summary: inline(q.question), style: { fontFamily: HEADING_FONT, ...(dark ? { color: ON_DARK } : {}) } }, body(q.answer, dark))),
         ]);
       case 'stats':
         return band(s, WIDE_WIDTH, [

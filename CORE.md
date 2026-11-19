@@ -163,7 +163,7 @@ and event descriptions. Site-wide values are in `settings` (`site`, `options`). 
 
 Content is Puck data (`entries.content`, `templates.content`): items `{ type, props: { id, attrs,
 children } }`, rendered by `src/render/c/`: content blocks (`section`, `columns`, `text`, `heading`,
-`image`, `buttons`, `list`, `quote`, `cover`, `hero`, `gallery`, `video-gallery`, `embed`, `html`,
+`image`, `buttons`, `list`, `quote`, `details`, `cover`, `hero`, `gallery`, `video-gallery`, `embed`, `html`,
 `media-text`, `file`...), entry fields (`entry-title`, `entry-image`, ...), collections (`collection`,
 `collection-items`, `pagination`...), events (`event-date`, `events-calendar`, `event-calendar`,
 `event-details`), `form`, and structure (`part`, `pattern`, `reusable`). A site's blocks come from its
@@ -187,6 +187,9 @@ item's caption (`itemCaptions`: below, over the image, hidden) and `hover` (zoom
 `interval` (2 to 20 seconds); classes `has-*` and custom properties `--gallery-*` (`galleryOf`).
 Props are clean values: styles as CSS with design tokens (`var(--color-*)`, `var(--space-*)`,
 `var(--text-*)`), layouts as `{ type: flow|constrained|row|stack|grid }`.
+
+`details` is the browser's `<details>`: its `summary` (the line visitors click), the blocks inside shown
+once it is open, and `open` to start open; Compose's FAQ sections are made of them.
 
 Patterns (`templates` of type `pattern`) are reusable groups of blocks, inserted from the Patterns tab;
 their thumbnails come from `/admin/pattern-preview?slug=`. Any block's settings end with **Save as

@@ -371,6 +371,13 @@ export const CONTENT_PANELS: Record<string, Panel> = {
       <StyleControls a={a} set={set} parts={{ typography: true }} />
     </>
   ),
+  details: (a, set) => (
+    <>
+      <RichText title="Summary" value={a.summary ?? ''} onChange={(v) => set({ summary: v || undefined })} />
+      <Toggle title="Open at first" value={!!a.open} onChange={(v) => set({ open: v || undefined })} />
+      <StyleControls a={a} set={set} parts={{ typography: true }} />
+    </>
+  ),
   separator: (a, set) => (
     <>
       <Select title="Style" value={a.variant} options={[['long', 'Full width line'], ['dots', 'Dots']]} onChange={(v) => set({ variant: v })} />
@@ -668,6 +675,7 @@ export const CONTENT_LABELS: Record<string, string> = {
   list: 'List',
   'list-item': 'List item',
   quote: 'Quote',
+  details: 'Details',
   separator: 'Separator',
   spacer: 'Spacer',
   cover: 'Cover',
@@ -717,7 +725,7 @@ export const CONTENT_DEFAULTS: Record<string, Attrs> = {
   html: { html: '' },
 };
 
-export const CONTENT_CONTAINERS = ['section', 'columns', 'column', 'buttons', 'quote', 'cover', 'gallery', 'video-gallery', 'media-text', 'collection', 'collection-items', 'collection-empty', 'pagination'];
+export const CONTENT_CONTAINERS = ['section', 'columns', 'column', 'buttons', 'quote', 'details', 'cover', 'gallery', 'video-gallery', 'media-text', 'collection', 'collection-items', 'collection-empty', 'pagination'];
 
 type GalleryItem = { type: 'image' | 'video' | 'embed'; attrs: Attrs };
 

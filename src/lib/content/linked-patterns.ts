@@ -24,6 +24,7 @@ export const CONTENT_FIELDS: Record<string, ContentField[]> = {
   heading: [f('content', 'Heading', 'rich')],
   'list-item': [f('content', 'Item', 'rich')],
   quote: [f('citation', 'Citation', 'text')],
+  details: [f('summary', 'Summary', 'rich')],
   button: [f('text', 'Label', 'text'), f('href', 'Link', 'link')],
   image: [f('mediaId', 'Image', 'media'), f('alt', 'Alt text', 'text'), f('caption', 'Caption', 'rich'), f('href', 'Link', 'link')],
   cover: [f('mediaId', 'Image', 'media'), f('alt', 'Alt text', 'text')],

@@ -125,6 +125,7 @@ Some blocks hold other blocks:
 - **Columns** and **Column**: blocks side by side.
 - **Buttons**: a row of **Button** blocks.
 - **Quote**: the quoted words, as **Paragraph** blocks.
+- **Details**: what shows once it is opened.
 - **Cover**: blocks laid over a picture.
 - **Media & text**: blocks beside a picture.
 - **Image gallery** and **Video gallery**: their pictures and videos.
@@ -337,6 +338,22 @@ Its settings:
 
 - **Citation**: who said it.
 - All the styles.
+
+#### Details
+
+A line that visitors click to open, showing more below it: a question and its answer, for example.
+Put the blocks that show once it is open inside it, such as **Paragraph** blocks. Several in a row
+make a list of questions and answers.
+
+![The Details block on a page, one open](../../../assets/guide/blocks/details.png)
+
+Its settings:
+
+- **Summary**: the line visitors click, such as the question.
+- **Open at first**: shows it open when the page loads.
+- **Text**: the text styles.
+
+When **Compose** writes a section of questions and answers, it uses **Details** blocks.
 
 #### Button
 
@@ -1205,6 +1222,7 @@ the pattern.** What you can change:
 | **Paragraph**, **Heading** | The text. |
 | **List** items | Each item's text. |
 | **Quote** | **Citation**. |
+| **Details** | **Summary**. |
 | **Button** | **Label** and **Link**. |
 | **Image** | **Image**, **Alt text**, **Caption** and **Link**. |
 | **Cover**, **Media & text** | **Image** and **Alt text**. |

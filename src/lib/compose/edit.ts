@@ -22,7 +22,7 @@ export const EDIT_SCHEMA = {
         type: 'object',
         required: ['type', 'props'],
         properties: {
-          type: { type: 'string', description: 'Component type, e.g. section, heading, text, image, buttons, button, list, list-item, columns, column, cover, gallery, video-gallery, quote, separator, embed, video, collection.' },
+          type: { type: 'string', description: 'Component type, e.g. section, heading, text, image, buttons, button, list, list-item, columns, column, cover, gallery, video-gallery, quote, details, separator, embed, video, collection.' },
           props: { type: 'object', description: '{"id": keep the id of blocks you keep, omit for new blocks; "attrs": {...}; "children": [blocks] for containers}.' },
         },
       },
@@ -32,14 +32,14 @@ export const EDIT_SCHEMA = {
 
 /** How the components are described to Claude (it also sees the real data of the selected block). */
 /** How components are written, with the site's palette names (its theme's colors, Settings > Theme). */
-export const componentGuide = (colors: string[]) => `Component data: {"type", "props": {"id", "attrs", "children"?}}. Containers (section, columns, column, buttons, quote, cover, gallery, video-gallery, media-text, collection) hold blocks in "children"; gallery holds image blocks and video-gallery embed/video blocks, both with "display" ("grid", "masonry", "slider"), "columns" and "gap"; a gallery may set "ratio" (e.g. "3/2", images cropped to it; not with masonry) and, as a slider, "autoplay": true.
+export const componentGuide = (colors: string[]) => `Component data: {"type", "props": {"id", "attrs", "children"?}}. Containers (section, columns, column, buttons, quote, details ("summary": the line that opens it, e.g. a question), cover, gallery, video-gallery, media-text, collection) hold blocks in "children"; gallery holds image blocks and video-gallery embed/video blocks, both with "display" ("grid", "masonry", "slider"), "columns" and "gap"; a gallery may set "ratio" (e.g. "3/2", images cropped to it; not with masonry) and, as a slider, "autoplay": true.
 A hero is one block with no children: attrs {"material" (an image id) or "mediaId"/"src", "eyebrow", "title", "text" (plain text, no HTML), "primaryLabel", "primaryHref", "secondaryLabel", "secondaryHref", "height": "screen"|"large"|"medium", "level": 1|2}.
 A list is one block: attrs {"items": [{"content": inline HTML, "icon"?}], "marker": "bullet"|"number"|"icon"|"none", "icon" (check, check-circle, arrow-right, chevron, dot, dash, plus, star, heart, map-pin, clock, calendar, phone, mail, info, snowflake, sun, mountain, leaf), "iconColor", "itemGap", "style"}.
 Common attrs: text/heading "content" (inline HTML: <strong>, <em>, <a href>); heading "level" (1-6); button "text", "href", "variant" ("outline"); image/cover "material" (an image id like "image-2") or keep "mediaId"/"src"; embed/video "material" (a video id); section "layout" ({"type": "flow"|"constrained"|"row"|"stack"|"grid", "contentSize"}) and "gap"; "style" holds CSS values with the site's tokens: colors var(--color-${colors.join('|') || 'name'}), spacing var(--space-10..80), font sizes var(--text-small|medium|large|x-large|xx-large|heading-2|heading-1|hero), fonts var(--font-display|body); style keys like color, background, fontSize, fontFamily, fontWeight, lineHeight, textAlign, padding {top,right,bottom,left}, margin, radius.
 A collection lists site content: attrs {"query": {"postType": ${LISTABLE_TYPES.map((t) => `"${t}"`).join('|')}, "perPage", "include": [entry ids], "upcoming"}, "display": "grid"|"list"|"slider", "columns" (also "columnsTablet", "columnsMobile"), "itemGap", "shuffle": true (a random selection on each visit), "card": ${CARD_IDS.map((c) => `"${c}"`).join('|')}} with no children (the card design fills them); columns and spacing always go on the collection, never on its items.
 Match the styles of the block and page you are editing.`;
 
-const CONTAINERS = new Set(['section', 'columns', 'column', 'buttons', 'quote', 'cover', 'gallery', 'video-gallery', 'media-text', 'collection', 'collection-items', 'collection-empty', 'pagination']);
+const CONTAINERS = new Set(['section', 'columns', 'column', 'buttons', 'quote', 'details', 'cover', 'gallery', 'video-gallery', 'media-text', 'collection', 'collection-items', 'collection-empty', 'pagination']);
 
 /** Ids used anywhere in a tree. */
 function ids(items: PuckItem[] | undefined, out = new Set<string>()) {
