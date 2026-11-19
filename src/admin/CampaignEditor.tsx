@@ -51,9 +51,16 @@ const secondary = 'rounded-sm border border-admin-ink/20 px-3 py-1.5 text-xs fon
 
 const EDITABLE = ['draft', 'review', 'scheduled', 'paused', 'failed'];
 
+/** An answer that isn't ok, with its status (409: someone else saved the campaign since it was loaded). */
+class PostError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+  }
+}
+
 async function post(body: Record<string, unknown>) {
   const res = await fetch('/api/admin/mailing/campaigns', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) throw new PostError(await res.text(), res.status);
   return res.json();
 }
 
@@ -82,6 +89,8 @@ export default function CampaignEditor({ campaign, lists, levels, stats, links, 
   const [versions, setVersions] = useState(0);
   const latest = useRef(c);
   latest.current = c;
+  // The stored version this form is based on (its updated_at), sent with each save.
+  const base = useRef(campaign.updated_at);
   const dirty = JSON.stringify(c) !== saved;
   const editable = EDITABLE.includes(c.status) && (admin || c.status === 'draft');
   const set = (patch: Partial<Campaign>) => setC((x) => ({ ...x, ...patch }));
@@ -129,18 +138,26 @@ export default function CampaignEditor({ campaign, lists, levels, stats, links, 
       setBusy(false);
     }
   };
-  const save = () =>
-    run(async () => {
-      await post({ action: 'save', id: c.id, campaign: latest.current });
-      setSaved(JSON.stringify(latest.current));
-      setVersions((v) => v + 1);
-    }, `Saved ${new Date().toLocaleTimeString()}`);
-  const saveFirst = async () => {
-    if (dirty && editable) {
-      await post({ action: 'save', id: c.id, campaign: latest.current });
-      setSaved(JSON.stringify(latest.current));
-      setVersions((v) => v + 1);
+  /**
+   * Save, based on the version loaded or last saved here (`base`): if someone else saved since (an editor,
+   * or a guest through a share link), ask before saving over theirs, which History keeps either way.
+   */
+  const persist = async () => {
+    const now = latest.current;
+    let saved: { updated_at: string };
+    try {
+      saved = await post({ action: 'save', id: c.id, campaign: now, base: base.current });
+    } catch (e) {
+      if (!(e instanceof PostError && e.status === 409) || !window.confirm(`${e.message} Save over their version? Theirs stays in History.`)) throw e;
+      saved = await post({ action: 'save', id: c.id, campaign: now });
     }
+    base.current = saved.updated_at;
+    setSaved(JSON.stringify(now));
+    setVersions((v) => v + 1);
+  };
+  const save = () => run(persist, `Saved ${new Date().toLocaleTimeString()}`);
+  const saveFirst = async () => {
+    if (dirty && editable) await persist();
   };
   /** A saved version back in the form, as an unsaved change. */
   const restore = (v: CampaignVersionRow) => {
@@ -389,7 +406,7 @@ export default function CampaignEditor({ campaign, lists, levels, stats, links, 
 
       {sharing && <ShareDialog target={{ campaign: c.id }} title={c.name || c.subject || 'Newsletter'} onClose={() => setSharing(false)} />}
 
-      <CampaignHistory campaignId={c.id} version={versions} tz={tz} editable={editable} onRestore={restore} />
+      <CampaignHistory campaignId={c.id} version={versions} tz={tz} editable={editable} dirty={dirty} onRestore={restore} />
 
       {stats && stats.recipients + stats.dropped > 0 && <Numbers stats={stats} links={links} showMachine={showMachine} setShowMachine={setShowMachine} campaignId={c.id} admin={admin} mailgun={mailgun} />}
 

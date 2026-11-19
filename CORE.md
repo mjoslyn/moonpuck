@@ -428,7 +428,9 @@ Each has a `mode` (`view`: the preview; `edit`: the editor, drafts only), an `ac
 editors and admins, others sent to sign in; `password`: scrypt `password_hash`, wrong tries limited per
 link and visitor, `share-password` in `src/lib/auth/attempts.ts`; `anyone`), an optional `label` and
 `expires_at`, and counts its uses (`uses`, `last_used_at`). Revoking (`revoked_at`), expiry and the entry
-going to the trash, or the campaign leaving `draft` (scheduled, sent), end it (`liveLink`). Login links send editors to `/admin/preview/<id>/` or
+going to the trash, or the campaign leaving `draft` or Mailing Lists being off, end it (`liveLink`);
+scheduling, sending, approving or cancelling a campaign revokes its links (`revokeCampaignShares`), so
+going back to a draft doesn't bring them back. Login links send editors to `/admin/preview/<id>/` or
 `/admin/edit/<id>/`. Password and anyone links set a guest's cookie, one per entry or campaign (`site.share.<entry id>`,
 `site.share.c<campaign id>`, so several links work side by side; HttpOnly, a week or until the link expires) signed with a key
 made from `AUTH_SECRET` over the token, access and password hash (`cookieValue`), so a new password or
@@ -1350,8 +1352,11 @@ never subscribes anyone again); the settings are, with the others. Migration `*_
   `*_campaign_revisions.sql`, editors read, the server writes; `recordCampaignRevision` in
   `src/lib/mailing/revisions.ts`): each save that changes the name, subject, design or plain text keeps a
   version (an editor's with its author; a share link's with none and the note `Saved through a share link
-  (<label>)`), the newest `KEEP_VERSIONS` (100) kept; View renders one through the preview, Restore puts it in
-  the form, kept on Save. Not synced or backed up. **Share** on a draft: see Share links.
+  (<label>)`), the newest `KEEP_VERSIONS` (100) kept, none when the email is the same as the last (designs
+  compared whatever their keys' order, `stableJson`); View renders one through the preview, Restore puts it
+  in the form, kept on Save (the latest too while the form has unsaved changes). A save carries `base`, the
+  `updated_at` the form is based on: when someone else (an editor, a share link's guest) saved since, it is
+  refused with 409 and the screen asks before saving over theirs. Not synced or backed up. **Share** on a draft: see Share links.
 - **Rendering** (`src/lib/mailing/render.ts`): the email builder's renderer, each tag a Mailgun
   recipient variable (`%recipient.v1%`, escaped for HTML as `v1_h`, plain in the subject and text;
   values escaped once, by the site), and a footer under the design that it can't remove: why they get

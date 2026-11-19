@@ -295,6 +295,13 @@ describe('what a guest sees', async () => {
   });
 });
 
+/** Mailing Lists on or off (settings.site.mailing.enabled), keeping the site's other settings. */
+async function setMailing(enabled: boolean) {
+  const { data } = await siteDb().from('settings').select('value').eq('key', 'site').maybeSingle();
+  const value = (data?.value ?? {}) as Record<string, any>;
+  await siteDb().from('settings').upsert({ key: 'site', value: { ...value, mailing: { ...(value.mailing ?? {}), enabled } } });
+}
+
 describe('newsletter drafts', async () => {
   const { PUT: guestSave } = await import('../src/pages/api/admin/shared-email/[id]');
   const { POST: campaigns } = await import('../src/pages/api/admin/mailing/campaigns');
@@ -308,6 +315,7 @@ describe('newsletter drafts', async () => {
     await svc.from('users').insert({ id: editorId, email: 'news-editor@example.org', name: 'Nell Editor' });
     await svc.from('profiles').update({ display_name: 'Nell Editor', role: 'editor' }).eq('id', editorId);
     id = (await svc.from('campaigns').insert({ name: 'November news', subject: 'Hello', design, text: '', status: 'draft' }).select('id').single()).data!.id;
+    await setMailing(true);
     pub = (await svc.from('entries').insert({ type: 'page', slug: 'news-pub', title: 'Pub', status: 'publish' }).select('id').single()).data!.id;
     draft = (await svc.from('entries').insert({ type: 'page', slug: 'news-draft', title: 'Draft', status: 'draft' }).select('id').single()).data!.id;
   });
@@ -393,5 +401,63 @@ describe('newsletter drafts', async () => {
     await svc.from('campaigns').update({ status: 'sent' }).eq('id', id);
     expect(await (await make()).text()).toMatch(/drafts/);
     await svc.from('campaigns').update({ status: 'draft' }).eq('id', id);
+  });
+});
+
+describe('newsletter drafts: editors and links', async () => {
+  const { POST: campaigns } = await import('../src/pages/api/admin/mailing/campaigns');
+  const { stableJson } = await import('../src/lib/mailing/revisions');
+  const svc = siteDb();
+  const adminId = '00000000-0000-0000-0000-0000000000a9';
+  const design = { root: { props: {} }, content: [{ type: 'Text', props: { id: 'Text-1', html: '<p>Hi</p>' } }] };
+  let id = 0;
+  beforeAll(async () => {
+    await svc.from('users').insert({ id: adminId, email: 'news-admin@example.org', name: 'Ada Admin' });
+    await svc.from('profiles').update({ display_name: 'Ada Admin', role: 'admin' }).eq('id', adminId);
+    id = (await svc.from('campaigns').insert({ name: 'December news', subject: 'Hi', design, text: '', status: 'draft' }).select('id').single()).data!.id;
+    await setMailing(true);
+  });
+  afterAll(async () => {
+    await svc.from('campaigns').delete().eq('id', id);
+    await svc.from('users').delete().eq('id', adminId);
+  });
+  const call = (body: Record<string, any>) =>
+    campaigns({ request: new Request('http://x/api/admin/mailing/campaigns', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, ...body }) }), locals: { db: sessionDb({ role: 'admin', uid: adminId }), user: { id: adminId, email: 'news-admin@example.org', role: 'admin', name: 'Ada Admin' } }, redirect: () => new Response(null) } as any);
+  const stamp = async () => (await svc.from('campaigns').select('updated_at').eq('id', id).single()).data!.updated_at;
+
+  it('refuses an editor’s save based on a version someone else has saved over', async () => {
+    const base = await stamp();
+    await new Promise((r) => setTimeout(r, 5));
+    await svc.from('campaigns').update({ subject: 'Guest subject' }).eq('id', id);
+    const res = await call({ action: 'save', base, campaign: { name: 'December news', subject: 'Editor subject', design, text: '' } });
+    expect(res.status).toBe(409);
+    expect((await svc.from('campaigns').select('subject').eq('id', id).single()).data!.subject).toBe('Guest subject');
+    expect((await call({ action: 'save', base: await stamp(), campaign: { name: 'December news', subject: 'Editor subject', design, text: '' } })).status).toBe(200);
+  });
+
+  it('adds no version for the same email with its keys in another order', async () => {
+    const count = async () => (await svc.from('campaign_revisions').select('id', { count: 'exact', head: true }).eq('campaign_id', id)).count;
+    const before = await count();
+    const reordered = { content: [{ props: { html: '<p>Hi</p>', id: 'Text-1' }, type: 'Text' }], root: { props: {} } };
+    expect((await call({ action: 'save', campaign: { name: 'December news', subject: 'Editor subject', design: reordered, text: '' } })).status).toBe(200);
+    expect(await count()).toBe(before);
+    expect(stableJson({ b: 1, a: [{ d: 2, c: 3 }] })).toBe(stableJson({ a: [{ c: 3, d: 2 }], b: 1 }));
+  });
+
+  it('a newsletter’s links stop while Mailing Lists is off', async () => {
+    const link = await createShare({ campaign: id, mode: 'view', access: 'anyone' }, null);
+    expect(await liveLink(link.token)).not.toBeNull();
+    await setMailing(false);
+    expect(await liveLink(link.token)).toBeNull();
+    await setMailing(true);
+    expect(await liveLink(link.token)).not.toBeNull();
+  });
+
+  it('cancelling turns its links off, so going back to a draft doesn’t bring them back', async () => {
+    const link = await createShare({ campaign: id, mode: 'edit', access: 'anyone' }, null);
+    expect((await call({ action: 'cancel' })).status).toBe(200);
+    await svc.from('campaigns').update({ status: 'draft' }).eq('id', id);
+    expect(await liveLink(link.token)).toBeNull();
+    expect((await svc.from('share_links').select('revoked_at').eq('id', link.id).single()).data!.revoked_at).not.toBeNull();
   });
 });

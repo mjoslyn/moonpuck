@@ -10,6 +10,8 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { hashPassword, verifyPassword } from 'better-auth/crypto';
 import { siteDb } from '../db/site';
+import type { Db } from '../db/query';
+import { mailingOn } from '../mailing/config';
 import { env } from '../env';
 
 export type ShareMode = 'view' | 'edit';
@@ -66,13 +68,19 @@ export function isLive(link: Pick<ShareLink, 'revoked_at' | 'expires_at'>, now =
   return !link.revoked_at && (!link.expires_at || Date.parse(link.expires_at) > now);
 }
 
+/** Whether Mailing Lists is on (Settings): a newsletter's links work only then, as its screens do. */
+async function mailingIsOn(): Promise<boolean> {
+  const { data } = await siteDb().from('settings').select('value').eq('key', 'site').maybeSingle();
+  return mailingOn(data?.value);
+}
+
 /** A live link by its token, or null (unknown, revoked, expired, its entry in the trash, or its campaign
- * no longer a draft: a newsletter is shared while it is being written). */
+ * no longer a draft: a newsletter is shared while it is being written, and while Mailing Lists is on). */
 export async function liveLink(token: string | null | undefined): Promise<ShareLink | null> {
   if (!token || !TOKEN.test(token)) return null;
   const { data } = await siteDb().from('share_links').select(`${COLUMNS}, entries(status), campaigns(status)`).eq('token', token).maybeSingle();
   if (!data || !isLive(data)) return null;
-  const open = data.campaign_id ? data.campaigns?.status === 'draft' : !!data.entries && data.entries.status !== 'trash';
+  const open = data.campaign_id ? data.campaigns?.status === 'draft' && (await mailingIsOn()) : !!data.entries && data.entries.status !== 'trash';
   if (!open) return null;
   const { entries: _e, campaigns: _c, ...link } = data;
   return link as ShareLink;
@@ -235,6 +243,13 @@ export async function createShare(s: NewShare, by: string | null): Promise<Share
   const { data, error } = await siteDb().from('share_links').insert(row).select(COLUMNS).single();
   if (error) throw new Error(error.message);
   return data as ShareLink;
+}
+
+/** Turn off a campaign's links (it was scheduled, sent, approved or cancelled), so going back to a draft
+ * doesn't bring them back: new links are made for a new round of review. */
+export async function revokeCampaignShares(db: Db, campaignId: number): Promise<void> {
+  const { error } = await db.from('share_links').update({ revoked_at: new Date().toISOString() }).eq('campaign_id', campaignId).is('revoked_at', null);
+  if (error) console.error(`campaign ${campaignId}: share links not turned off: ${error.message}`);
 }
 
 /** Revoke a link of an entry: it stops working at once. */

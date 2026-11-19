@@ -1,7 +1,8 @@
 // A campaign's saved versions (src/lib/mailing/revisions.ts, table campaign_revisions), newest first, on
 // its screen: when, who saved it (or the share link it came through), View (the email as a sample
 // subscriber gets it, /api/admin/mailing/preview) and, while the campaign can be changed, Restore (its name,
-// subject, email and plain text into the form, kept when Save is clicked).
+// subject, email and plain text into the form, kept when Save is clicked; the latest too while the form has
+// unsaved changes).
 import { useEffect, useState } from 'react';
 import { browserClient } from '../lib/db/browser';
 
@@ -16,7 +17,8 @@ export interface CampaignVersionRow {
   created_at: string;
 }
 
-export default function CampaignHistory({ campaignId, version, tz, editable, onRestore }: { campaignId: number; version: number; tz: string; editable: boolean; onRestore: (v: CampaignVersionRow) => void }) {
+/** `dirty`: the form has unsaved changes, so the latest version can be restored too (to drop them). */
+export default function CampaignHistory({ campaignId, version, tz, editable, dirty = false, onRestore }: { campaignId: number; version: number; tz: string; editable: boolean; dirty?: boolean; onRestore: (v: CampaignVersionRow) => void }) {
   const [rows, setRows] = useState<CampaignVersionRow[] | null>(null);
   const [names, setNames] = useState<Record<string, string>>({});
   const [viewing, setViewing] = useState<{ row: CampaignVersionRow; html?: string; error?: string } | null>(null);
@@ -57,7 +59,7 @@ export default function CampaignHistory({ campaignId, version, tz, editable, onR
               <button type="button" className="underline hover:text-admin-accent" onClick={() => view(r)}>
                 View
               </button>
-              {editable && i > 0 && (
+              {editable && (i > 0 || dirty) && (
                 <button type="button" className="underline hover:text-admin-accent" onClick={() => onRestore(r)}>
                   Restore
                 </button>

@@ -13,7 +13,14 @@ export interface CampaignVersion {
   text: string;
 }
 
-const sameVersion = (a: CampaignVersion, b: CampaignVersion) => a.name === b.name && a.subject === b.subject && a.text === b.text && JSON.stringify(a.design ?? null) === JSON.stringify(b.design ?? null);
+/** JSON with every object's keys in order: the database gives back a design's keys in its own order. */
+export function stableJson(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(stableJson).join(',')}]`;
+  if (v && typeof v === 'object') return `{${Object.keys(v as object).filter((k) => (v as Record<string, unknown>)[k] !== undefined).sort().map((k) => `${JSON.stringify(k)}:${stableJson((v as Record<string, unknown>)[k])}`).join(',')}}`;
+  return JSON.stringify(v ?? null);
+}
+
+const sameVersion = (a: CampaignVersion, b: CampaignVersion) => a.name === b.name && a.subject === b.subject && a.text === b.text && stableJson(a.design) === stableJson(b.design);
 
 /** Keep a version of a campaign, unless it is the same as the last one kept; then drop those past KEEP_VERSIONS. */
 export async function recordCampaignRevision(db: Db, campaignId: number, v: CampaignVersion, by: { author: string | null; note?: string | null }): Promise<{ error: { message: string } | null }> {
