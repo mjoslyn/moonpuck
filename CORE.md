@@ -743,7 +743,8 @@ doc-1...; PDFs in the store's `compose/` folder, link text fetched once with pri
 reads IPv4 addresses written as IPv6; `scripts/checks/private-address.ts`),
 images re-encoded to JPEG for Claude); `claude.ts` sends the whole conversation (prompt-cached for an hour: the system prompt and the conversation up to the latest message; the page's current sections and fields follow the cache breakpoint) and
 Claude either replies or calls `build_page` with the complete page plan (`spec.ts`); `build.ts` turns
-the plan into components in the house style. Blocks built by a conversation carry its id prefix, so
+the plan into components in the house style (each band full width, `width: 'full'`, so a template's content
+column doesn't box its background in). Blocks built by a conversation carry its id prefix, so
 each update replaces only those, in place; hand edits are shown to Claude. With a block selected in the
 editor (in the page's content or a template's other content area: `locateInDoc`, `replaceInDoc`), the
 panel targets it (or its whole section): Claude answers with `edit_block`;
@@ -1940,7 +1941,9 @@ picked. A look saved before matching existed counts as its own. Admin styles use
 `--color-admin-*` (`src/styles/tailwind.css`; Tailwind colors like `text-admin-muted`), never hex
 values; `src/layouts/AdminTheme.astro` writes the saved colors and the shades made from them (darker
 accent, soft background, the bar's text) on every admin page, and Puck's blue scale is made from the
-accent (`src/styles/admin.css`). The admin uses the system font (`--font-admin`).
+accent (`src/styles/admin.css`). The admin uses the system font (`--font-admin`). Admin pages' tabs show the
+site icon (Settings > Social, `adminIconLinks`, read with the admin theme); without one, the core's
+`public/favicon.svg` and `favicon.ico` (the moonpuck crescent), as on the site.
 
 Saving: **Save draft** keeps changes to a published page aside (table `entry_drafts`, editors only:
 like everything else, they're read as the editor, `locals.db`) with the live page

@@ -113,8 +113,9 @@ export function buildPage(plan: PagePlan, m: BuildMaterials, prefix = `c${Date.n
     return [node('section', { layout: { type: 'flow' }, gap: 'var(--space-30)' }, kids)];
   }
 
+  // A band spans the page (width: full), its background edge to edge inside a template's content column.
   const band = (s: PlanSection, width: string, children: PuckItem[], fallback = 'plain') =>
-    node('section', { style: { background: BG[bandOf(s.background) ?? fallback] ?? BG.plain, padding: PAD }, layout: { type: 'constrained', contentSize: width }, gap: 'var(--space-50)' }, children);
+    node('section', { width: 'full', style: { background: BG[bandOf(s.background) ?? fallback] ?? BG.plain, padding: PAD }, layout: { type: 'constrained', contentSize: width }, gap: 'var(--space-50)' }, children);
 
   const img = (ref: string | undefined, attrs: Record<string, any> = {}) => {
     const i = ref ? m.images.get(ref) : undefined;

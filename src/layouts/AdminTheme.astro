@@ -1,9 +1,9 @@
 ---
 // The admin colors chosen under Settings > Appearance (src/lib/admin-theme.ts), and what every admin page
-// shares: a focused number field ignores the scroll wheel, which would otherwise change its value (from
+// shares: the site icon in the browser tab (Settings > Social); a focused number field ignores the scroll wheel, which would otherwise change its value (from
 // empty, down to its minimum: a ticket's capacity of 0, sold out) while the page scrolls; and the admin's own
 // confirm, message and question boxes in place of the browser's (src/lib/admin/dialogs.ts).
-import { adminThemeCss, loadAdminTheme, type AdminTheme } from '../lib/admin-theme';
+import { adminIconLinks, adminThemeCss, loadAdminTheme, type AdminTheme } from '../lib/admin-theme';
 import { siteDb } from '../lib/db/site';
 
 interface Props {
@@ -11,7 +11,9 @@ interface Props {
   theme?: AdminTheme;
 }
 const css = adminThemeCss(Astro.props.theme ?? (await loadAdminTheme(Astro.locals.db ?? siteDb())));
+const icons = await adminIconLinks(Astro.locals.db ?? siteDb());
 ---
+<Fragment set:html={icons} />
 {css && <style is:inline id="admin-theme" set:html={css} />}
 <script is:inline>
   addEventListener('wheel', (e) => {

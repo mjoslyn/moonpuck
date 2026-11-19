@@ -34,3 +34,19 @@ describe('admin screens', () => {
     expect(effectiveAdminTheme({ theme, admin_theme: { accent: '#123456' } })?.accent).toBe('#123456');
   });
 });
+
+describe('admin pages', () => {
+  it("link the site icon in the browser tab, and nothing without one", async () => {
+    const { siteDb } = await import('../src/lib/db/site');
+    const { adminIconLinks, loadAdminTheme } = await import('../src/lib/admin-theme');
+    const db = siteDb();
+    await db.from('settings').upsert({ key: 'site', value: { name: 'S' } });
+    await loadAdminTheme(db, true);
+    expect(await adminIconLinks(db)).toBe('');
+    await db.from('settings').upsert({ key: 'site', value: { name: 'S', icons: { '32': '/media/site-icon/9-32.png?v=a', '180': '/media/site-icon/9-180.png?v=a', '192': '/media/site-icon/9-192.png?v=a' } } });
+    await loadAdminTheme(db, true);
+    const links = await adminIconLinks(db);
+    expect(links).toContain('<link rel="icon" href="/media/site-icon/9-32.png?v=a" sizes="32x32" />');
+    expect(links).toContain('<link rel="apple-touch-icon" href="/media/site-icon/9-180.png?v=a" />');
+  });
+});

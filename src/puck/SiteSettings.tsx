@@ -241,7 +241,7 @@ export default function SiteSettings({ section, site: initialSite, options: init
           Add link
         </button>
         <MediaPicker title="Site icon (favicon)" url={site.icon_preview ?? site.icons?.['192']} mediaId={site.icon_media_id} onSelect={(m) => setSite({ ...site, icon_media_id: m.id ?? m.mediaId ?? null, icon_preview: m.url })} />
-        <p className="-mt-2 mb-3 text-xs text-admin-muted">A square image at least 512px wide works best (it's cropped square around its focal point). Shown in browser tabs, on phone home screens and in the site header; made into the icon files when you save.</p>
+        <p className="-mt-2 mb-3 text-xs text-admin-muted">A square image at least 512px wide works best (it's cropped square around its focal point). Shown in browser tabs (the admin's too), on phone home screens and in the site header; made into the icon files when you save.</p>
         {(site.icon_media_id || site.icons?.['192']) && (
           <button type="button" className="mb-4 block text-xs text-[#b3261e]" onClick={() => setSite({ ...site, icon_media_id: null, icon_preview: undefined, icons: undefined })}>
             Remove site icon

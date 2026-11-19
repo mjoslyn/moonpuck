@@ -129,12 +129,31 @@ export function adminThemeCss(theme: AdminTheme | undefined): string {
   return vars.length ? `html:root{${vars.map(([k, v]) => `${k}:${v}`).join(';')}}` : '';
 }
 
-let cached: { at: number; theme: AdminTheme | undefined } | null = null;
+let cached: { at: number; theme: AdminTheme | undefined; icons: Record<string, string> } | null = null;
+
+async function load(db: Db, force: boolean) {
+  if (!force && cached && Date.now() - cached.at < 60_000) return cached;
+  const { data } = await db.from('settings').select('value').eq('key', 'site').maybeSingle();
+  const icons = data?.value?.icons;
+  cached = { at: Date.now(), theme: effectiveAdminTheme(data?.value), icons: icons && typeof icons === 'object' ? icons : {} };
+  return cached;
+}
 
 /** The admin's look (its own, else matched to the site's theme), read at most once a minute per server instance (at once after a save: `force`). */
 export async function loadAdminTheme(db: Db, force = false): Promise<AdminTheme | undefined> {
-  if (!force && cached && Date.now() - cached.at < 60_000) return cached.theme;
-  const { data } = await db.from('settings').select('value').eq('key', 'site').maybeSingle();
-  cached = { at: Date.now(), theme: effectiveAdminTheme(data?.value) };
-  return cached.theme;
+  return (await load(db, force)).theme;
+}
+
+/** The site icon's links for an admin page's head (Settings > Social), read with the admin theme; '' without one
+ *  (the tab then shows the default /favicon.svg). */
+export async function adminIconLinks(db: Db): Promise<string> {
+  const icons = (await load(db, false)).icons;
+  const at = (size: string) => (typeof icons[size] === 'string' && icons[size].startsWith('/media/') ? icons[size].replace(/"/g, '&quot;') : '');
+  return [
+    at('32') && `<link rel="icon" href="${at('32')}" sizes="32x32" />`,
+    at('192') && `<link rel="icon" href="${at('192')}" sizes="192x192" />`,
+    at('180') && `<link rel="apple-touch-icon" href="${at('180')}" />`,
+  ]
+    .filter(Boolean)
+    .join('\n');
 }

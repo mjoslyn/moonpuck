@@ -42,7 +42,7 @@ An item can also open a larger drop-down panel: add **Links** under a **Links he
 | **Types** | The kinds of content the site has, which layout (template) each uses, and which kinds can be marked featured (see [Kinds of content and taxonomies](/admins/content-types/)). Usually set up once. |
 | **Search** | Which kinds of content the site search covers. |
 | **Theme** | The site's colors, fonts, text sizes, spacing, widths and logo, and the look of these admin screens (see [The site's theme](#the-sites-theme)). |
-| **Social** | Your social media profiles (shown as icons), share cards (see [Share cards](#share-cards)) and the picture used when a page without its own image is shared. |
+| **Social** | Your social media profiles (shown as icons), the site icon (in browser tabs, the admin's included, and on phone home screens), share cards (see [Share cards](#share-cards)) and the picture used when a page without its own image is shared. |
 | **Popups** | Popups over the site's pages and the cookie consent banner (see [Popups and cookie consent](/admins/popups-and-cookies/)). |
 | **Stats** | Whether Stats recognises returning visitors with a cookie (see [The Stats cookie](/admins/popups-and-cookies/#the-stats-cookie)). |
 | **Code snippets** | Code to put on every page: paste a tag from an analytics, chat or advertising service, or a site verification tag, into **Header**, **Body start** or **Footer**, as the service's instructions say. Paste only code from a service you trust. Tick **Only after visitors accept cookies** for tracking tags. |
