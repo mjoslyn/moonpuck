@@ -430,7 +430,14 @@ others sent to sign in), `password` (scrypt `password_hash`, wrong tries limited
 `share-password` in `src/lib/auth/attempts.ts`) or `anyone`; an edit link is always `login`
 (`shareProblem`; one made otherwise doesn't open, `liveLink`), since only editors and admins edit. A link
 has an optional `label` and `expires_at` (`SHARE_DEFAULT_DAYS`, 30 days, when it isn't given; null for
-none). Without a `mode` the access decides it (`modeFor`): `login` edits, the others view and comment; the
+none). Without a `mode` the access decides it (`modeFor`): `login` edits, the others view and comment. A
+view link shows a `version` (migration `*_share_links_versions.sql`): `latest` (the saved version with its
+unpublished changes, as it is when opened), `live` (a published page without them, `renderPreview`'s `live`)
+or `revision`, one saved version frozen in the link (`revisionSnapshot`: a page's revision, content,
+settings and layout template, or a newsletter's `campaign_revisions` row, kept in `snapshot` with
+`revision_id` and `version_at`, so an autosave rewriting that row changes nothing); comments may be on its
+blocks too. The dialog's Version list (`GET /api/admin/shares?versions`: whether the page is live and its 40
+newest versions) and the Revisions panel's **Share** (the dialog with that version chosen) pick it; the
 Share dialog offers only the access (three cards), with a name and expiry under More options and Turn off
 asked in `ConfirmModal`, and counts its uses (`uses`, `last_used_at`, `countUse`, over the
 count read, so opens at once all count). Revoking (`revoked_at`), expiry, the entry going to the trash, or

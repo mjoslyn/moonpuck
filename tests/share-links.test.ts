@@ -438,3 +438,67 @@ describe('@mentions and profiles', async () => {
     expect((await mentionablePeople()).find((p) => p.id === ids[0])?.handle).toBe('dana');
   });
 });
+
+describe('sharing a version', async () => {
+  const { GET: preview } = await import('../src/pages/admin/preview/[id]');
+  const { sharesOf } = await import('../src/lib/share/links');
+  const svc = siteDb();
+  let page = 0;
+  let rev = 0;
+  let campaign = 0;
+  let crev = 0;
+  beforeAll(async () => {
+    await svc.from('templates').insert({ kind: 'template', slug: 'versioned-test', title: 'Versioned test', content: doc(block('entry-content', 'vpc')) });
+    page = (await svc.from('entries').insert({ type: 'page', slug: 'versioned', title: 'Versioned', status: 'publish', template: 'versioned-test', content: doc(block('heading', 'vh-live', { content: 'Live words', level: 2 })) }).select('id').single()).data!.id;
+    rev = (await svc.from('revisions').insert({ entry_id: page, title: 'Versioned', content: doc(block('heading', 'vh-old', { content: 'Old words', level: 2 })), action: 'draft' }).select('id').single()).data!.id;
+    await svc.from('entry_drafts').insert({ entry_id: page, draft: { content: doc(block('heading', 'vh-draft', { content: 'Draft words', level: 2 })) } });
+    campaign = (await svc.from('campaigns').insert({ name: 'Versioned news', subject: 'Now', design: { root: { props: {} }, content: [] }, text: '', status: 'draft' }).select('id').single()).data!.id;
+    crev = (await svc.from('campaign_revisions').insert({ campaign_id: campaign, name: 'Versioned news', subject: 'Then', design: { root: { props: {} }, content: [{ type: 'Text', props: { id: 'Text-old', html: '<p>Old</p>' } }] }, text: 'old' }).select('id').single()).data!.id;
+  });
+  afterAll(async () => {
+    await svc.from('entries').delete().eq('id', page);
+    await svc.from('campaigns').delete().eq('id', campaign);
+    await svc.from('templates').delete().eq('slug', 'versioned-test');
+  });
+  const guestView = async (link: Awaited<ReturnType<typeof createShare>>) =>
+    (await preview({ params: { id: String(page) }, url: new URL(`https://site.test/admin/preview/${page}/`), locals: { db: sessionDb({ role: 'guest' }), user: { id: '', email: '', role: 'guest', name: 'Guest' }, share: link } } as any)).text();
+
+  it('shows the latest saved version, the live page, or a saved version frozen', async () => {
+    const latest = await guestView(await createShare({ entry: page, access: 'anyone' }, null));
+    expect(latest).toContain('Draft words');
+    const live = await guestView(await createShare({ entry: page, access: 'anyone', version: 'live' }, null));
+    expect(live).toContain('Live words');
+    expect(live).not.toContain('Draft words');
+    expect(live).toContain('the live page');
+    const old = await createShare({ entry: page, access: 'anyone', version: 'revision', revision: rev }, null);
+    // The revision row changing afterwards (an autosave writing over it) doesn't change the link.
+    await svc.from('revisions').update({ content: doc(block('heading', 'vh-new', { content: 'Rewritten', level: 2 })) }).eq('id', rev);
+    const html = await guestView(old);
+    expect(html).toContain('Old words');
+    expect(html).not.toContain('Rewritten');
+    expect(html).toContain('the version saved');
+    expect((await sharesOf({ kind: 'entry', id: page })).find((l) => l.id === old.id)).toMatchObject({ version: 'revision', snapshot: null });
+  });
+
+  it('refuses a version that isn’t this page’s, a live version of a draft, or a version for an editor link', async () => {
+    await expect(createShare({ entry: page, access: 'anyone', version: 'revision', revision: crev }, null)).rejects.toThrow();
+    await expect(createShare({ entry: page, access: 'login', version: 'revision', revision: rev }, null)).rejects.toThrow(/latest/);
+    await svc.from('entries').update({ status: 'draft' }).eq('id', page);
+    await expect(createShare({ entry: page, access: 'anyone', version: 'live' }, null)).rejects.toThrow(/published/);
+    await svc.from('entries').update({ status: 'publish' }).eq('id', page);
+  });
+
+  it('takes comments on a saved version’s blocks', async () => {
+    const link = await createShare({ entry: page, access: 'anyone', version: 'revision', revision: rev }, null);
+    // The revision holds vh-new now (the test above rewrote it): only this version has that block.
+    expect(await addComment({ subject: { kind: 'entry', id: page }, block: 'vh-new', body: 'Why did this go?', name: 'G' }, { link })).toMatchObject({ ok: true });
+    const latest = await createShare({ entry: page, access: 'anyone' }, null);
+    expect(await addComment({ subject: { kind: 'entry', id: page }, block: 'vh-new', body: 'x', name: 'G' }, { link: latest })).toMatchObject({ ok: false, code: 'block' });
+  });
+
+  it('freezes a newsletter’s saved version for its link', async () => {
+    const link = await createShare({ campaign, access: 'anyone', version: 'revision', revision: crev }, null);
+    expect(link.snapshot).toMatchObject({ subject: 'Then', text: 'old' });
+    expect(await addComment({ subject: { kind: 'campaign', id: campaign }, block: 'Text-old', body: 'Hm', name: 'G' }, { link })).toMatchObject({ ok: true });
+  });
+});

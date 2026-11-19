@@ -297,10 +297,10 @@ export const SCHEMA: Record<string, TableSchema> = {
   },
   share_links: {
     pk: ["id"],
-    columns: {"id":"int8","token":"text","entry_id":"int8","campaign_id":"int8","mode":"text","access":"text","password_hash":"text","label":"text","expires_at":"timestamptz","revoked_at":"timestamptz","uses":"int8","last_used_at":"timestamptz","created_by":"uuid","created_at":"timestamptz","updated_at":"timestamptz"},
+    columns: {"id":"int8","token":"text","entry_id":"int8","campaign_id":"int8","mode":"text","access":"text","password_hash":"text","label":"text","expires_at":"timestamptz","revoked_at":"timestamptz","uses":"int8","last_used_at":"timestamptz","created_by":"uuid","created_at":"timestamptz","updated_at":"timestamptz","version":"text","revision_id":"int8","version_at":"timestamptz","snapshot":"jsonb"},
     generated: [],
     fks: [[["campaign_id"],"campaigns",["id"]],[["created_by"],"users",["id"]],[["entry_id"],"entries",["id"]]],
-    defaults: {"mode":"view","access":"login","label":"","uses":0},
+    defaults: {"mode":"view","access":"login","label":"","uses":0,"version":"latest"},
     touch: true,
   },
   shop_discounts: {

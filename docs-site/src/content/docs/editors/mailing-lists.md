@@ -276,9 +276,11 @@ on it, before it goes out.
    - **With a password**: they see the email as a subscriber would, with a sample subscriber's name in it,
      and can comment. Type a password of at least 6 characters, and give it to them separately.
    - **Anyone with the link**: the same, with no account or password. Keep the link private.
-3. Optional: under **More options**, give it a **Name**, and change **Expires** (30 days unless you choose
+3. For a password or anyone link, choose the **Version**: **Latest saved** (it changes as you save), or a
+   saved version from **History**, which stays as it was.
+4. Optional: under **More options**, give it a **Name**, and change **Expires** (30 days unless you choose
    otherwise, or **Never**).
-4. Click **Create link**. The link is copied, ready to paste into an email.
+5. Click **Create link**. The link is copied, ready to paste into an email.
 
 A link works only while the campaign is a draft and Mailing Lists is turned on. Scheduling, sending,
 approving or cancelling the campaign turns its links off for good: if it goes back to being a draft, make new

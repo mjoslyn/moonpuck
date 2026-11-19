@@ -10,7 +10,24 @@ import type { PuckItem } from '../../../lib/puck/types';
 
 /** A guest's preview (a share link) shows the page as visitors would, without the editor's extras. */
 const optionsFor = (locals: App.Locals): PreviewOptions => (locals.user.role === 'guest' ? { guest: true, label: locals.share?.label ?? '' } : {});
+const when = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: SITE_TZ, dateStyle: 'medium', timeStyle: 'short' });
+
+/** A guest's preview of the version their link shows: the latest saved, the live page, or a saved version. */
+function guestPreview(locals: App.Locals, id: number, origin: string): Promise<Response> {
+  const link = locals.share!;
+  const label = link.label ? ` (${link.label})` : '';
+  if (link.version === 'live') return renderPreview(locals.db, id, origin, undefined, undefined, { guest: true, live: true, note: `Shared preview of the live page${label}: only people with this link can see it` });
+  const snap = link.version === 'revision' ? (link.snapshot as { content?: unknown; entry?: any; template?: PuckItem[] } | null) : null;
+  if (snap && 'content' in snap)
+    return renderPreview(locals.db, id, origin, { content: snap.content, entry: snap.entry ?? undefined, template: snap.template }, undefined, {
+      guest: true,
+      note: `Shared preview of the version saved ${link.version_at ? when(link.version_at) : 'earlier'}${label}: only people with this link can see it`,
+    });
+  return renderPreview(locals.db, id, origin, undefined, undefined, optionsFor(locals));
+}
+
 export const GET: APIRoute = async ({ params, locals, url }) => {
+  if (locals.user.role === 'guest') return guestPreview(locals, Number(params.id), url.origin);
   const revisionId = Number(url.searchParams.get('revision')) || 0;
   if (!revisionId) return renderPreview(locals.db, Number(params.id), url.origin, undefined, undefined, optionsFor(locals));
   const { data: rev } = await locals.db.from('revisions').select('entry_id, title, content, fields, entry, template, created_at, saved_at').eq('id', revisionId).single();
@@ -18,7 +35,7 @@ export const GET: APIRoute = async ({ params, locals, url }) => {
   const entry = rev.entry ?? { title: rev.title, fields: rev.fields };
   // A version saved in layout mode shows its template as it was then.
   const template = Array.isArray(rev.template?.content?.content) ? (rev.template.content.content as PuckItem[]) : undefined;
-  return renderPreview(locals.db, Number(params.id), url.origin, { content: rev.content, entry, template }, `the version saved ${new Date(rev.saved_at ?? rev.created_at).toLocaleString('en-US', { timeZone: SITE_TZ, dateStyle: 'medium', timeStyle: 'short' })}`, optionsFor(locals));
+  return renderPreview(locals.db, Number(params.id), url.origin, { content: rev.content, entry, template }, `the version saved ${when(rev.saved_at ?? rev.created_at)}`, optionsFor(locals));
 };
 
 export const POST: APIRoute = async ({ params, locals, request, url }) => {

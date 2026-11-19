@@ -21,6 +21,8 @@ export interface PreviewOptions {
   label?: string;
   /** The bar's words in place of the editor's. */
   note?: string;
+  /** The published version only, without unpublished changes (a share link's `live` version). */
+  live?: boolean;
 }
 
 const BAR_STYLE = 'position:sticky;top:0;z-index:100000;display:flex;gap:1rem;align-items:center;justify-content:center;padding:.5rem 1rem;background:#b87333;color:#fff;font:600 13px/1.4 system-ui,sans-serif';
@@ -32,7 +34,7 @@ export async function renderPreview(dbIn: Db, id: number, origin: string, overri
   const settings = await loader.settings();
   const base = await loader.entryById(id, true);
   if (!base) return new Response('Not found', { status: 404 });
-  const { data: d } = await db.from('entry_drafts').select('draft').eq('entry_id', id).maybeSingle();
+  const { data: d } = opts.live ? { data: null } : await db.from('entry_drafts').select('draft').eq('entry_id', id).maybeSingle();
   const e: Entry = { ...base };
   const content = override?.content ?? d?.draft?.content;
   const form = override?.entry ?? d?.draft?.entry;
