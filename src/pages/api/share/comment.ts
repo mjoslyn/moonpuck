@@ -7,7 +7,7 @@ import type { APIRoute } from 'astro';
 import { sessionUser } from '../../../lib/auth';
 import { sessionDb, siteDb } from '../../../lib/db/site';
 import { cookieFits, cookieToken, liveLink, subjectOf, type ShareSubject } from '../../../lib/share/links';
-import { addComment, type Commenter } from '../../../lib/share/comments';
+import { COMMENT_ERRORS, addComment, type CommentError, type Commenter } from '../../../lib/share/comments';
 
 const NO_STORE = { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' };
 
@@ -34,14 +34,17 @@ export const POST: APIRoute = async ({ request }) => {
   const isForm = /form/.test(request.headers.get('content-type') ?? '');
   const body: Record<string, any> = isForm ? Object.fromEntries((await request.formData()).entries()) : await request.json().catch(() => ({}));
   const back = isForm && /^\/share\/[A-Za-z0-9_-]+\/$/.test(String(body.back ?? '')) ? String(body.back) : null;
-  const answer = (status: number, out: Record<string, unknown>) =>
-    back ? new Response(null, { status: 303, headers: { ...NO_STORE, Location: `${back}?${out.ok ? 'commented=1' : `comment_error=${encodeURIComponent(String(out.error ?? 'Not sent'))}`}#comments` } }) : Response.json(out, { status, headers: NO_STORE });
+  // A form post goes back to the share page with a code (the page has the words for it).
+  const answer = (status: number, out: { ok: true; comment: unknown } | { ok: false; code: CommentError }) =>
+    back
+      ? new Response(null, { status: 303, headers: { ...NO_STORE, Location: `${back}?${out.ok ? 'commented=1' : `comment_error=${out.code}`}#comments` } })
+      : Response.json(out.ok ? out : { ok: false, code: out.code, error: COMMENT_ERRORS[out.code] }, { status, headers: NO_STORE });
   const kind = body.kind === 'campaign' ? 'campaign' : body.kind === 'entry' ? 'entry' : null;
   const id = Number(body.id);
-  if (!kind || !Number.isInteger(id) || id <= 0) return answer(400, { ok: false, error: 'Which page or newsletter?' });
+  if (!kind || !Number.isInteger(id) || id <= 0) return answer(400, { ok: false, code: 'which' });
   const subject: ShareSubject = { kind, id };
   const who = await commenter(request, subject);
-  if (!who) return answer(403, { ok: false, error: 'This link can’t be used to comment. Open it again.' });
+  if (!who) return answer(403, { ok: false, code: 'link' });
   const r = await addComment({ subject, block: String(body.block ?? ''), body: String(body.body ?? ''), name: String(body.name ?? '') }, who);
-  return r.ok ? answer(200, { ok: true, comment: r.comment }) : answer(r.status, { ok: false, error: r.error });
+  return r.ok ? answer(200, { ok: true, comment: r.comment }) : answer(r.status, { ok: false, code: r.code });
 };

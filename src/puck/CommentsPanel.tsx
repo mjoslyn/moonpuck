@@ -27,7 +27,8 @@ interface Row {
 /** A block type as the editor names it (as share-comments.js does on the preview). */
 const LABELS: Record<string, string> = { text: 'Paragraph', 'media-text': 'Media and text', 'entry-content': 'Page content', 'video-gallery': 'Video gallery' };
 const typeLabel = (t: string) => (t ? (LABELS[t] ?? t.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase())) : 'Whole page');
-const when = (s: string) => new Date(s).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+/** A time in the site's time zone (as the campaign screen's comments show it). */
+const when = (s: string) => new Date(s).toLocaleString('en-US', { timeZone: (globalThis as any).__siteTz || undefined, dateStyle: 'medium', timeStyle: 'short' });
 
 export function CommentsPanel() {
   const { entryId } = useContext(CommentsContext);

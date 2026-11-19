@@ -38,10 +38,14 @@ export function renderItem(item: PuckItem, env: Env): string {
   return out;
 }
 
-/** A block's output with its id and type on its first element, for comments on it (RenderCtx.markBlocks). */
+/** A block's output with its id and type on its first element, for comments on it (RenderCtx.markBlocks);
+ * output that doesn't start with an element is wrapped in one. */
 function markBlock(html: string, item: PuckItem): string {
   const attr = (s: string) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  return html.replace(/^(\s*<[a-zA-Z][\w-]*)(?=[\s>/])/, `$1 data-block="${attr(item.props.id)}" data-block-type="${attr(item.type)}"`);
+  const marks = `data-block="${attr(item.props.id)}" data-block-type="${attr(item.type)}"`;
+  if (/^\s*<[a-zA-Z][\w-]*[\s>/]/.test(html)) return html.replace(/^(\s*<[a-zA-Z][\w-]*)(?=[\s>/])/, `$1 ${marks}`);
+  // Output that starts with text or a comment (an HTML block's, say) is wrapped (previews only).
+  return html.trim() ? `<div ${marks}>${html}</div>` : html;
 }
 
 /** Record the block types in a subtree whose output is not shown, so their assets still load. */

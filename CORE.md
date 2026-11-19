@@ -452,15 +452,15 @@ builder's Preview tab uses too), in a sandboxed frame, with its plain text.
 editors read, the server writes; not synced or backed up): guests on a view link and signed-in editors and
 admins leave comments on one block or section of a page or newsletter, or on the whole of it. A preview,
 an editor's or a guest's, marks the page's own blocks (not its template's: `blockIdsOf`, `RenderCtx.markBlocks`,
-the renderer adding `data-block` and `data-block-type` to each one's first element, `markBlock` in
-`src/render/engine.ts`), and `public/assets/js/share-comments.js` adds a **Comment** button: in comment mode
+the renderer adding `data-block` and `data-block-type` to each one's first element, or wrapping output that
+doesn't start with one in a `div`, `markBlock` in `src/render/engine.ts`), and `public/assets/js/share-comments.js` adds a **Comment** button: in comment mode
 the block under the pointer is outlined, and a click on it (or Enter on a focused one) opens a form (a
 guest's name, kept in the browser, and the comment). A newsletter's share page has a form under the email:
 a block of the email (Sections, Columns, Spacers and Dividers left out) or the whole email, a name and the
 comment. Both post to `POST /api/share/comment` (JSON, or a form with `back`, a `/share/` address it
-returns to with `?commented=1` or `?comment_error=`): a signed-in editor or admin who can read it comments
+returns to with `?commented=1` or `?comment_error=<code>`, whose words the page has, `COMMENT_ERRORS`, so a link can't put text on it): a signed-in editor or admin who can read it comments
 as themselves (`author_id`); a guest needs that page's or newsletter's cookie fitting a live view link that
-isn't `login` (`link_id`, with the name given; `GUEST_COMMENTS_PER_HOUR`, 30, per link). The block must be
+isn't `login` (`link_id`, with the name given; `GUEST_COMMENTS_PER_HOUR`, 30, per link, checked again after the insert so comments sent at once can't pass it together). The block must be
 in what is stored (the content, its unpublished changes, the design: `blocksOf`); the comment keeps its
 type and a few of its words (`quote`), up to `COMMENT_MAX` (2,000) characters of plain text, shown escaped.
 Editors see them in the page editor's **Comments** panel (`src/puck/CommentsPanel.tsx`: open first, Show

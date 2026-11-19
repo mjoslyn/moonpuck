@@ -1,9 +1,9 @@
 ---
 // A share link (src/lib/share/links.ts): /share/<token>/. Login links send signed-in editors and admins to
 // the page's preview or editor, or the newsletter's editor (others sign in first); password links ask for
-// the password; links open to anyone go straight in. A guest gets a cookie naming the link, then the
-// page's preview (view) or editor (edit), or the newsletter's guest editor (edit). A newsletter's view link
-// shows its email here, as a sample subscriber gets it, in a sandboxed frame.
+// the password; links open to anyone go straight in. A guest (a view link only: editing is for editors) gets
+// a cookie naming the link, then the page's preview. A newsletter's view link shows its email here, as a
+// sample subscriber gets it, in a sandboxed frame, with a form to comment on it.
 import { site } from '../../lib/site';
 import Admin from '../../layouts/Admin.astro';
 import { siteDb } from '../../lib/db/site';
@@ -12,18 +12,18 @@ import { clearAttempts, overLimit, recordAttempt } from '../../lib/auth/attempts
 import { cookieFits, cookieToken, countUse, guestCookie, liveLink, passwordOpens, sharePath, subjectOf, type ShareLink } from '../../lib/share/links';
 import { previewCampaign, type CampaignPreview } from '../../lib/mailing/preview';
 import { mailOrigin } from '../../lib/mailing/contacts';
-import { COMMENT_MAX, NAME_MAX, blocksOf } from '../../lib/share/comments';
+import { COMMENT_MAX, NAME_MAX, blocksOf, commentErrorText } from '../../lib/share/comments';
 const commented = Astro.url.searchParams.has('commented');
-const commentError = Astro.url.searchParams.get('comment_error')?.slice(0, 200) ?? '';
+// Only the words for a known code: a link can't put text of its own on the page.
+const commentError = commentErrorText(Astro.url.searchParams.get('comment_error'));
 
 const token = Astro.params.token ?? '';
 const headers = { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex', 'Referrer-Policy': 'same-origin' };
 for (const [k, v] of Object.entries(headers)) Astro.response.headers.set(k, v);
 
 const link = await liveLink(token);
-/** Where a link leads: a page's preview or editor; a newsletter's editor (the campaign screen for editors). */
-const target = (l: ShareLink, editor: boolean) =>
-  l.campaign_id ? (editor ? `/admin/mailing-lists/campaigns/${l.campaign_id}/` : `/admin/shared-email/${l.campaign_id}/`) : l.mode === 'edit' ? `/admin/edit/${l.entry_id}/` : `/admin/preview/${l.entry_id}/`;
+/** Where a link leads: a page's preview or editor; a newsletter's campaign screen (its edit link, editors only). */
+const target = (l: ShareLink) => (l.campaign_id ? `/admin/mailing-lists/campaigns/${l.campaign_id}/` : l.mode === 'edit' ? `/admin/edit/${l.entry_id}/` : `/admin/preview/${l.entry_id}/`);
 /** A newsletter's email, when its view link is opened. */
 const shown: { email?: CampaignPreview; name?: string; id?: number; blocks?: { id: string; label: string }[]; editor?: boolean } = {};
 /** In through the link: counted, the guest's cookie set (not for login links), on to the page; a
@@ -43,7 +43,7 @@ async function enter(l: ShareLink, cookie: boolean, editor = false): Promise<Res
       return null;
     }
   }
-  const h = new Headers({ ...headers, Location: target(l, editor) });
+  const h = new Headers({ ...headers, Location: target(l) });
   if (cookie) h.append('Set-Cookie', guestCookie(l));
   return new Response(null, { status: 303, headers: h });
 }

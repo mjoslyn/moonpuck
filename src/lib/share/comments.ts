@@ -14,6 +14,23 @@ export const QUOTE_MAX = 200;
 /** Comments a guest's link may leave in an hour (all its guests together). */
 export const GUEST_COMMENTS_PER_HOUR = 30;
 
+/** Why a comment wasn't taken, as a code (a form post's return address carries the code, never the words,
+ * so a link can't put text on the share page) and in words. */
+export const COMMENT_ERRORS = {
+  empty: 'Write a comment first.',
+  long: `A comment can be at most ${COMMENT_MAX} characters.`,
+  missing: 'Not found',
+  block: 'That block isn’t in the saved version. Save the page, then comment.',
+  name: 'Add your name, so the editors know who wrote it.',
+  limit: 'Too many comments for now. Please wait a while and try again.',
+  link: 'This link can’t be used to comment. Open it again.',
+  which: 'Which page or newsletter?',
+  failed: 'Your comment couldn’t be saved. Try again.',
+} as const;
+export type CommentError = keyof typeof COMMENT_ERRORS;
+/** The words for a code from a return address, or none for anything else. */
+export const commentErrorText = (code: string | null | undefined): string => (code && Object.hasOwn(COMMENT_ERRORS, code) ? COMMENT_ERRORS[code as CommentError] : '');
+
 export interface ShareComment {
   id: number;
   link_id: number | null;
@@ -101,23 +118,24 @@ export type Commenter = { link: ShareLink; name?: string } | { editor: { id: str
 
 /** Leave a comment: checked (the block is one of what is shared, the text not too long, a guest's link
  * under its hourly limit) and kept. The answer is the comment, or why not. */
-export async function addComment(c: NewComment, by: Commenter): Promise<{ ok: true; comment: ShareComment } | { ok: false; error: string; status: number }> {
+export async function addComment(c: NewComment, by: Commenter): Promise<{ ok: true; comment: ShareComment } | { ok: false; code: CommentError; error: string; status: number }> {
+  const no = (code: CommentError, status: number) => ({ ok: false as const, code, error: COMMENT_ERRORS[code], status });
   const body = String(c.body ?? '').trim();
-  if (!body) return { ok: false, error: 'Write a comment first.', status: 400 };
-  if (body.length > COMMENT_MAX) return { ok: false, error: `A comment can be at most ${COMMENT_MAX} characters.`, status: 400 };
+  if (!body) return no('empty', 400);
+  if (body.length > COMMENT_MAX) return no('long', 400);
   const blocks = await sharedBlocks(c.subject);
-  if (!blocks) return { ok: false, error: 'Not found', status: 404 };
+  if (!blocks) return no('missing', 404);
   const block = String(c.block ?? '');
   const found = block ? blocks.get(block) : undefined;
-  if (block && !found) return { ok: false, error: 'That block isn’t in the saved version. Save the page, then comment.', status: 400 };
+  if (block && !found) return no('block', 400);
   const db = siteDb();
   let author: string;
   if ('link' in by) {
     author = String(by.name ?? c.name ?? '').trim().slice(0, NAME_MAX);
-    if (!author) return { ok: false, error: 'Add your name, so the editors know who wrote it.', status: 400 };
+    if (!author) return no('name', 400);
     const since = new Date(Date.now() - 3600_000).toISOString();
     const { count } = await db.from('share_comments').select('id', { count: 'exact', head: true }).eq('link_id', by.link.id).gt('created_at', since);
-    if ((count ?? 0) >= GUEST_COMMENTS_PER_HOUR) return { ok: false, error: 'Too many comments for now. Please wait a while and try again.', status: 429 };
+    if ((count ?? 0) >= GUEST_COMMENTS_PER_HOUR) return no('limit', 429);
   } else author = by.editor.name;
   const row = {
     link_id: 'link' in by ? by.link.id : null,
@@ -131,7 +149,17 @@ export async function addComment(c: NewComment, by: Commenter): Promise<{ ok: tr
     author,
   };
   const { data, error } = await db.from('share_comments').insert(row).select(COLUMNS).single();
-  if (error) return { ok: false, error: error.message, status: 400 };
+  if (error || !data) return no('failed', 400);
+  if ('link' in by) {
+    // The count above and the insert are two statements, so comments sent at once could all pass it: the
+    // link's comments of the hour up to this one decide, and one past the limit is taken out again.
+    const since = new Date(Date.now() - 3600_000).toISOString();
+    const { count } = await db.from('share_comments').select('id', { count: 'exact', head: true }).eq('link_id', by.link.id).gt('created_at', since).lte('id', data.id);
+    if ((count ?? 0) > GUEST_COMMENTS_PER_HOUR) {
+      await db.from('share_comments').delete().eq('id', data.id);
+      return no('limit', 429);
+    }
+  }
   return { ok: true, comment: data as ShareComment };
 }
 
