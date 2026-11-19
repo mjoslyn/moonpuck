@@ -39,7 +39,7 @@ describe('event organizers', () => {
       content: doc([]),
     });
     const html = (await renderRequest(new URL('http://localhost/event/class/'), db)).html;
-    expect(html).toContain('>Organizer</h2>');
+    expect(html).toContain('>Organizer</h2>'); // the type's singular name
     expect(html).toContain('Jo Smith');
     expect(html).toContain('href="mailto:jo@example.org"');
     expect(html).toContain('href="tel:7165550100"');

@@ -948,8 +948,8 @@ cents, which amounts assume).
 `src/lib/events/model.ts` loads events (occurrences included) as `CalEvent`s;
 `src/render/events/calendar.ts` renders the `events-calendar` block, `event-calendar.ts` the month
 grid / list block for any page (`public/assets/js/event-calendar.js`) and `single.ts` the
-`event-details` block (styles `src/styles/events.css`; its sidebar shows the date, venue, organizer, tickets
-or cost, website and categories). URLs: `/events/` (upcoming list),
+`event-details` block (styles `src/styles/events.css`; its sidebar shows the date, venue, organizer (headed by
+the organizer type's singular name), tickets or cost, website and categories). URLs: `/events/` (upcoming list),
 `/events/past/`, `/events/month/<Y-m>/`, `/events/day/<Y-m-d>/`, with `?q=` search and `?from=<Y-m-d>`.
 Feeds (`src/lib/events/ical.ts`): `/events.ics` (same `q`, `month`, `past` filters) and
 `/event/<slug>/[<Y-m-d>/]event.ics`; they describe `SITE_TZ` from the runtime's time zone data

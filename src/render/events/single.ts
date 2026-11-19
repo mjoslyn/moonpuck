@@ -10,7 +10,7 @@ import { entryTitle } from '../c/entry';
 import { localToUtc } from '../../lib/recurrence';
 import { zoneLabel } from '../../lib/events/timezone';
 import { termPagesOn } from '../../lib/templates';
-import { taxonomiesOf } from '../../lib/site';
+import { taxonomiesOf, typeDef } from '../../lib/site';
 import { pageTicketsAnchor, ticketPriceSummary, ticketsSection } from '../c/tickets';
 import { lockedContent } from '../c/members';
 
@@ -101,7 +101,8 @@ function details(env: Env, e: Entry): string {
     );
   }
   const organizer = organizerOf(env, e);
-  if (organizer) out += box('Organizer', organizerBox(organizer));
+  // Headed by the type's own name (a site may call organizers hosts or practitioners).
+  if (organizer) out += box(esc(typeDef('organizer')?.singular ?? 'Organizer'), organizerBox(organizer));
   // Tickets sold here: their prices and a link to the form below the content.
   const tickets = ticketPriceSummary(env);
   if (tickets) out += box('Tickets', `<p>${esc(tickets)}</p><p class="c-event__map"><a href="${pageTicketsAnchor(env.ctx)}">Get tickets</a></p>`);
