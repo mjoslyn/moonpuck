@@ -1116,6 +1116,8 @@ keeps the default.
 A **Collection** lists your content automatically: the latest posts on the home page, upcoming events,
 a team. Its settings are in groups.
 
+<video controls preload="none" poster="/video/editors/collections.jpg" width="1344" height="908" style="width: 100%; height: auto;"><source src="/video/editors/collections.mp4" type="video/mp4" /></video>
+
 **Content**
 
 - **Show**:

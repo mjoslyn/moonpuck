@@ -32,7 +32,7 @@ renamed things come out of the docs too.
   colon), never run together in a sentence or a table cell. Its screenshots (`docs-site/src/assets/guide/`)
   are taken from the example site at 1280 by 800 with Playwright, with Astro's dev toolbar hidden. Its
   screencasts (`docs-site/public/video/editors/<page>.mp4` and a `.jpg` poster, one per page but Common
-  questions, embedded under each page's intro) are recorded the same way by `scripts/screencasts/`: once,
+  questions, embedded under each page's intro, and `collections.mp4` under the page editor's Collections) are recorded the same way by `scripts/screencasts/`: once,
   `demo-setup.ts` then `reset.sh --save` (the demo content and the editor in `.env`); then `run.ts [page]`.
   Re-record a page's clip when its screens change. Each
   block in the Editor guide's list of blocks has its own heading and, where it shows something, a picture
