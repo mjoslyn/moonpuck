@@ -5,6 +5,7 @@
 // email the editors and admins they name (src/lib/share/mentions.ts).
 import { createContext, useContext, useEffect, useState } from 'react';
 import { createUsePuck, useGetPuck } from '@puckeditor/core';
+import ConfirmModal from '../admin/ConfirmModal';
 import MentionTextarea, { withMentions } from '../admin/MentionTextarea';
 
 const usePuck = createUsePuck();
@@ -43,6 +44,7 @@ export function CommentsPanel() {
   const [showResolved, setShowResolved] = useState(false);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState<Row | null>(null);
   const [error, setError] = useState('');
 
   const load = async () => {
@@ -137,13 +139,27 @@ export function CommentsPanel() {
               <button type="button" disabled={busy} className="underline hover:text-admin-accent" onClick={() => act({ action: r.status === 'open' ? 'resolve' : 'reopen', id: r.id })}>
                 {r.status === 'open' ? 'Resolve' : 'Reopen'}
               </button>
-              <button type="button" disabled={busy} className="text-[#c4592a] underline" onClick={() => confirm('Delete this comment?') && act({ action: 'delete', id: r.id })}>
+              <button type="button" disabled={busy} className="text-[#c4592a] underline" onClick={() => setDeleting(r)}>
                 Delete
               </button>
             </div>
           </li>
         ))}
       </ol>
+      {deleting && (
+        <ConfirmModal
+          title="Delete this comment?"
+          confirmLabel="Delete"
+          busy={busy}
+          onConfirm={async () => {
+            await act({ action: 'delete', id: deleting.id });
+            setDeleting(null);
+          }}
+          onCancel={() => setDeleting(null)}
+        >
+          {deleting.author}’s comment goes for good. To keep it but mark it done, use Resolve.
+        </ConfirmModal>
+      )}
     </div>
   );
 }

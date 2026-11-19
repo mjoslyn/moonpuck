@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { LinkPicker } from '../puck/LinkPicker';
 import { CAMPAIGN_MEDIUMS, campaignLink } from '../lib/campaign-link';
+import { askText } from '../lib/admin/dialogs';
 
 interface Props {
   /** The site's address, which links are made on. */
@@ -57,7 +58,7 @@ export default function CampaignLink({ origin, used }: Props) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      window.prompt('Copy the link:', made.url);
+      (await askText('Copy the link:', made.url));
     }
   };
   const change = (set: (v: string) => void) => (e: { target: { value: string } }) => (set(e.target.value), setCopied(false));

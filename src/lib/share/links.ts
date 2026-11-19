@@ -176,7 +176,8 @@ export interface NewShare {
   /** An entry, or (`campaign`) a newsletter draft: one of the two. */
   entry?: number;
   campaign?: number;
-  mode: ShareMode;
+  /** Left out: `modeFor` the access. */
+  mode?: ShareMode;
   access: ShareAccess;
   password?: string;
   label?: string;
@@ -196,6 +197,9 @@ export function shareProblem(s: Partial<NewShare>): string | null {
   return null;
 }
 
+/** What a link does for whom it is: signed-in editors and admins edit, guests view and comment. */
+export const modeFor = (access: ShareAccess): ShareMode => (access === 'login' ? 'edit' : 'view');
+
 /** How long a link lasts when its expiry isn't given. */
 export const SHARE_DEFAULT_DAYS = 30;
 
@@ -205,6 +209,8 @@ export const defaultExpiry = (now = Date.now()) => new Date(now + SHARE_DEFAULT_
 /** Make a link. */
 export async function createShare(s: NewShare, by: string | null): Promise<ShareLink> {
   if (s.expires === undefined) s = { ...s, expires: defaultExpiry() };
+  // Without a mode the access decides it: signed-in editors get the editor, everyone else views and comments.
+  if (!s.mode) s = { ...s, mode: modeFor(s.access) };
   const problem = shareProblem(s);
   if (problem) throw new Error(problem);
   const row = {

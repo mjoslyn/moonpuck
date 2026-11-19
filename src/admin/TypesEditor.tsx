@@ -7,6 +7,7 @@ import { CODE_TYPES, CONTENT_TYPES, MADE_TYPES, taxonomiesOf, taxonomyLabel, typ
 import { FIELD_KINDS, type FieldKind } from '../lib/site/type-settings';
 import { showsType, type Features } from '../lib/features';
 import type { FieldDef } from '../lib/site';
+import { ask } from '../lib/admin/dialogs';
 
 /** A field as the form edits it: select options as lines. */
 interface FieldRow {
@@ -236,7 +237,7 @@ function TypeForm({ initial, onClose }: { initial: Draft; onClose: () => void })
       {error && <p className="mt-3 rounded bg-admin-soft px-2 py-1.5 text-xs text-admin-ink" role="alert">{error}</p>}
       <div className="mt-4 flex items-center justify-between gap-3">
         {initial.type ? (
-          <button type="button" disabled={busy} className="text-xs text-[#c4592a] hover:underline" onClick={() => window.confirm(`Delete the type "${initial.label}"? Only a type no entry uses can be deleted.`) && post({ action: 'delete', type: initial.type })}>Delete this type</button>
+          <button type="button" disabled={busy} className="text-xs text-[#c4592a] hover:underline" onClick={async () => (await ask(`Delete the type "${initial.label}"? Only a type no entry uses can be deleted.`)) && post({ action: 'delete', type: initial.type })}>Delete this type</button>
         ) : <span />}
         <span className="flex gap-2">
           <button type="button" className="rounded border border-admin-ink/15 px-3 py-1.5 text-xs" onClick={onClose}>Cancel</button>

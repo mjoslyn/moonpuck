@@ -8,6 +8,7 @@ import { mailingEmailKit } from './mailing-email';
 import { CAMPAIGN_STATUS, WEEKDAYS, type Audience, type CampaignStatus, type ContactField, type Digest, type MailList } from '../lib/mailing/config';
 import type { MemberLevel } from '../lib/members/config';
 import type { EmailDoc } from '../lib/forms/email';
+import { ask } from '../lib/admin/dialogs';
 
 interface Issue {
   id: number;
@@ -211,12 +212,12 @@ export default function DigestEditor({ digest, lists, levels, issues, admin, tz,
           Send me this week's issue
         </button>
         {admin && (
-          <button type="button" className={secondary} disabled={busy || dirty} title={dirty ? 'Save first' : ''} onClick={() => confirm(d.mode === 'review' ? 'Make an issue now? It waits for approval like any other.' : 'Make an issue now and send it at once?') && run(() => post({ action: 'issue', id: d.id }), (r) => `Issue: ${r.result}`, true)}>
+          <button type="button" className={secondary} disabled={busy || dirty} title={dirty ? 'Save first' : ''} onClick={async () => (await ask(d.mode === 'review' ? 'Make an issue now? It waits for approval like any other.' : 'Make an issue now and send it at once?')) && run(() => post({ action: 'issue', id: d.id }), (r) => `Issue: ${r.result}`, true)}>
             Make an issue now
           </button>
         )}
         {admin && (
-          <button type="button" className="ml-auto text-xs text-[#c4592a] underline" onClick={() => confirm('Delete this digest? Its issues stay as campaigns.') && run(async () => (await post({ action: 'delete', id: d.id }), (location.href = '/admin/mailing-lists/?tab=digests')), 'Deleted.')}>
+          <button type="button" className="ml-auto text-xs text-[#c4592a] underline" onClick={async () => (await ask('Delete this digest? Its issues stay as campaigns.')) && run(async () => (await post({ action: 'delete', id: d.id }), (location.href = '/admin/mailing-lists/?tab=digests')), 'Deleted.')}>
             Delete digest
           </button>
         )}

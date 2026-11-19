@@ -12,6 +12,7 @@ import type { MailList } from '../lib/mailing/config';
 import { site } from '../lib/site';
 import { EmailCard } from './EmailCard';
 import { donationEmailKit } from './donation-email';
+import { ask } from '../lib/admin/dialogs';
 
 type Raw = Record<string, any>;
 
@@ -166,7 +167,7 @@ export default function DonationSettingsPanel({ value, providers, mailLists, onC
               </Row>
             </div>
           </div>
-          <button type="button" className="text-xs text-[#c4592a]" onClick={() => confirm(`Delete the goal ${g.name || ''}? Its gifts stay, no longer counted towards it.`) && set({ goals: goals.filter((_, j) => j !== i) })}>
+          <button type="button" className="text-xs text-[#c4592a]" onClick={async () => (await ask(`Delete the goal ${g.name || ''}? Its gifts stay, no longer counted towards it.`)) && set({ goals: goals.filter((_, j) => j !== i) })}>
             Delete goal
           </button>
         </div>

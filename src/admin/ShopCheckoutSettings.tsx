@@ -16,6 +16,7 @@ import { DEFAULT_DOWNLOAD_DAYS, DEFAULT_DOWNLOAD_LIMIT, DEFAULT_LOW_STOCK, DEFAU
 import { shopEmailKit } from './shop-email';
 import { moveItem } from '../lib/admin/move-item';
 import { MAX_STATUSES, newStatusId, STATUS_EMAIL, type ShopStatus } from '../lib/shop/statuses';
+import { ask } from '../lib/admin/dialogs';
 
 const EMAIL_HELP: Record<ShopEmailKind, string> = {
   confirmation: 'To the buyer when an order is paid, or at once when there is nothing to pay. Resend confirmation on an order sends it again.',
@@ -116,7 +117,7 @@ export default function ShopCheckoutSettings({ value, currency, weightUnit, prov
                   Move up
                 </button>
               )}
-              <button type="button" className={`${remove} ml-auto`} onClick={() => confirm(`Delete the zone ${z.name}?`) && set({ zones: c.zones.filter((x) => x.id !== z.id) })}>
+              <button type="button" className={`${remove} ml-auto`} onClick={async () => (await ask(`Delete the zone ${z.name}?`)) && set({ zones: c.zones.filter((x) => x.id !== z.id) })}>
                 Delete zone
               </button>
             </div>

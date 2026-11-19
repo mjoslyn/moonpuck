@@ -1,7 +1,8 @@
 ---
 // The admin colors chosen under Settings > Appearance (src/lib/admin-theme.ts), and what every admin page
 // shares: a focused number field ignores the scroll wheel, which would otherwise change its value (from
-// empty, down to its minimum: a ticket's capacity of 0, sold out) while the page scrolls.
+// empty, down to its minimum: a ticket's capacity of 0, sold out) while the page scrolls; and the admin's own
+// confirm, message and question boxes in place of the browser's (src/lib/admin/dialogs.ts).
 import { adminThemeCss, loadAdminTheme, type AdminTheme } from '../lib/admin-theme';
 import { siteDb } from '../lib/db/site';
 
@@ -17,4 +18,8 @@ const css = adminThemeCss(Astro.props.theme ?? (await loadAdminTheme(Astro.local
     const el = e.target;
     if (el instanceof HTMLInputElement && el.type === 'number' && el === document.activeElement) el.blur();
   }, { passive: true, capture: true });
+</script>
+<script>
+  import { installDialogs } from '../lib/admin/dialogs';
+  installDialogs();
 </script>

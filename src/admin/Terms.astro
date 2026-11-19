@@ -277,7 +277,6 @@ const input = 'rounded border border-admin-ink/15 bg-white px-2 py-1 text-sm foc
 </table>
 <TermDetails client:load taxonomy={tax.name} />
 <script>
-  document.querySelectorAll<HTMLFormElement>('form[data-confirm]').forEach((f) => f.addEventListener('submit', (e) => { if (!confirm(f.dataset.confirm!)) e.preventDefault(); }));
 
   // Moving terms: drag a term's handle onto the top or bottom edge of another term (it goes beside it,
   // in that order), onto its middle (it goes under it) or onto Top level; with the keyboard (or a

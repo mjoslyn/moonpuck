@@ -3,6 +3,7 @@
 // the block of the email it is on. Resolve, Reopen and Delete; Add a comment on one block or the whole email,
 // whose @handles email the editors and admins they name (src/lib/share/mentions.ts).
 import { useEffect, useMemo, useState } from 'react';
+import ConfirmModal from './ConfirmModal';
 import MentionTextarea, { withMentions } from './MentionTextarea';
 
 interface Row {
@@ -44,6 +45,7 @@ export default function CampaignComments({ campaignId, design, tz }: { campaignI
   const [block, setBlock] = useState('');
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState<Row | null>(null);
   const [error, setError] = useState('');
   const blocks = useMemo(() => emailBlocks(design), [design]);
   const when = (s: string) => new Date(s).toLocaleString('en-US', { timeZone: tz, dateStyle: 'medium', timeStyle: 'short' });
@@ -130,7 +132,7 @@ export default function CampaignComments({ campaignId, design, tz }: { campaignI
                   <button type="button" disabled={busy} className="underline hover:text-admin-accent" onClick={() => act({ action: r.status === 'open' ? 'resolve' : 'reopen', id: r.id })}>
                     {r.status === 'open' ? 'Resolve' : 'Reopen'}
                   </button>
-                  <button type="button" disabled={busy} className="text-[#c4592a] underline" onClick={() => confirm('Delete this comment?') && act({ action: 'delete', id: r.id })}>
+                  <button type="button" disabled={busy} className="text-[#c4592a] underline" onClick={() => setDeleting(r)}>
                     Delete
                   </button>
                 </span>
@@ -139,6 +141,20 @@ export default function CampaignComments({ campaignId, design, tz }: { campaignI
           ))}
         </ol>
       </div>
+      {deleting && (
+        <ConfirmModal
+          title="Delete this comment?"
+          confirmLabel="Delete"
+          busy={busy}
+          onConfirm={async () => {
+            await act({ action: 'delete', id: deleting.id });
+            setDeleting(null);
+          }}
+          onCancel={() => setDeleting(null)}
+        >
+          {deleting.author}’s comment goes for good. To keep it but mark it done, use Resolve.
+        </ConfirmModal>
+      )}
     </section>
   );
 }

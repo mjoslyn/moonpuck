@@ -58,7 +58,7 @@ const groups = [
               <input type="hidden" name="action" value="restore" /><input type="hidden" name="kind" value={t.kind} /><input type="hidden" name="slug" value={t.slug} />
               <button class="text-xs text-admin-muted hover:text-admin-accent">Restore</button>
             </form>
-            <form method="post" action="/api/admin/templates" onsubmit="return confirm('Delete this for good? It can\'t be restored.')">
+            <form method="post" action="/api/admin/templates" data-confirm="Delete this for good? It can’t be restored.">
               <input type="hidden" name="action" value="delete" /><input type="hidden" name="kind" value={t.kind} /><input type="hidden" name="slug" value={t.slug} />
               <button class="text-xs text-admin-muted hover:text-admin-accent">Delete permanently</button>
             </form>

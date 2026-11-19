@@ -8,6 +8,7 @@ import { uploadMedia } from '../lib/media/upload';
 import { DOC_ACCEPT, DOC_TYPES, docLabel, isDocument } from '../lib/media/documents';
 import type { Media } from '../lib/types';
 import { LinkPicker, linkSelection, selectionToLink, unlinkSelection } from './LinkPicker';
+import { tell } from '../lib/admin/dialogs';
 
 type Attrs = Record<string, any>;
 type Set = (patch: Attrs) => void;
@@ -311,7 +312,7 @@ export function MediaModal({ onClose, onSelect, multiple, onSelectMany, only }: 
     const res = await uploadMedia(file);
     setBusy(false);
     if (res.ok) load();
-    else alert(await res.text());
+    else (await tell(await res.text()));
   };
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-admin-ink/50 p-8" onClick={onClose}>

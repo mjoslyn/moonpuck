@@ -102,13 +102,14 @@ const summary = (s: { form_id: number | null; data: any }) => rows(s).map(([, v]
 </Admin>
 
 <script>
+  import { ask } from '../../../lib/admin/dialogs';
   document.getElementById('form-filter')?.addEventListener('change', (e) => {
     const v = (e.target as HTMLSelectElement).value;
     location.href = v ? `/admin/submissions/?form=${v}` : '/admin/submissions/';
   });
   for (const b of document.querySelectorAll<HTMLButtonElement>('[data-delete]')) {
     b.addEventListener('click', async () => {
-      if (!confirm('Delete this submission? This cannot be undone.')) return;
+      if (!(await ask('Delete this submission? This cannot be undone.'))) return;
       const res = await fetch(`/api/admin/submissions/${b.dataset.delete}`, { method: 'DELETE' });
       if (res.ok) document.querySelector(`[data-row="${b.dataset.delete}"]`)?.remove();
     });

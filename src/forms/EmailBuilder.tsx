@@ -18,6 +18,7 @@ import { useEventsOn } from '../puck/member-settings';
 import { EntriesQueryField, useEmailEntries } from '../admin/email-entries';
 import { EmailTemplates } from './EmailTemplates';
 import type { TemplateKit } from '../lib/email-templates';
+import { ask } from '../lib/admin/dialogs';
 
 /** An email as it would be sent, for the Preview tab. */
 export interface RenderedEmail {
@@ -375,11 +376,11 @@ function PlainText({ kit, design, value, onChange }: { kit: EmailKit; design: Em
       </p>
       <div className="mb-2 flex flex-wrap items-center gap-3">
         <MergeTags tags={kit.tags} onInsert={insert} />
-        <button type="button" className="rounded border border-admin-ink/15 bg-white px-2.5 py-1 text-xs hover:border-admin-accent" onClick={() => (!value || confirm('Replace the plain text with one made from the visual design?')) && onChange(textFromDesign(design, kit))}>
+        <button type="button" className="rounded border border-admin-ink/15 bg-white px-2.5 py-1 text-xs hover:border-admin-accent" onClick={async () => (!value || (await ask('Replace the plain text with one made from the visual design?'))) && onChange(textFromDesign(design, kit))}>
           Fill from the visual design
         </button>
         {value && (
-          <button type="button" className="text-xs text-[#b3261e]" onClick={() => confirm('Clear the plain text? It will be made from the visual design.') && onChange('')}>
+          <button type="button" className="text-xs text-[#b3261e]" onClick={async () => (await ask('Clear the plain text? It will be made from the visual design.')) && onChange('')}>
             Clear
           </button>
         )}

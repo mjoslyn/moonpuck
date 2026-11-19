@@ -25,7 +25,8 @@ export default function MakePage({ kind, slug, title, features, dirty, className
           aria-label="Make a page"
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
-          onSubmit={(e) => dirty && !window.confirm('The page is made from the saved version; your unsaved changes won’t be in it. Make it anyway?') && e.preventDefault()}
+          data-confirm={dirty ? 'The page is made from the saved version; your unsaved changes won’t be in it. Make it anyway?' : undefined}
+          data-confirm-label="Make it"
         >
           <input type="hidden" name="action" value="make-page" />
           <input type="hidden" name="kind" value={kind} />

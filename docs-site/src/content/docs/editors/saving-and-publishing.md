@@ -114,24 +114,19 @@ changes.
 The link shows the page as it is saved, including changes that aren't published yet.
 
 1. Click **Share** at the top of the editor.
-2. In **People with the link can**, choose one:
-   - **View the page**: they see it, and can leave comments on its blocks and sections.
-   - **Edit it as a draft**: the page opens in the editor. Only signed-in editors and admins can edit, so
-     this choice is greyed out unless **Who can open it** is **Signed-in editors and admins**.
-3. Under **Who can open it**, choose one:
-   - **Signed-in editors and admins**: only people who look after the site. Anyone else is asked to sign
-     in.
-   - **Anyone with the link and the password**: type a password of at least 6 characters, and give it
-     to them separately.
-   - **Anyone with the link**: no account or password needed. Keep the link private.
+2. Under **Who can open it**, choose one card. It decides what the link does:
+   - **Editors and admins**: people who look after the site sign in and get the editor, as usual. Anyone
+     else is asked to sign in.
+   - **With a password**: they see the page and can comment on it. Type a password of at least 6
+     characters, and give it to them separately.
+   - **Anyone with the link**: they see the page and can comment on it, with no account or password. Keep
+     the link private.
+3. Optional: click **More options** to set:
+   - **Name**: so you know which link is which (for example "Board review"). Only you see it.
+   - **Expires**: 30 days from now unless you choose **1 day**, **7 days**, **Never**, or a date and time.
+4. Click **Create link**. The link is copied, ready to paste into an email.
 
-   Choosing either of the last two sets the link back to **View the page**.
-4. Optional: give it a **Name** (for example "Board review"), so you know which link is which.
-5. **Expires** is filled in with 30 days from now. Change it, or clear it for a link that never expires.
-   The link stops working then.
-6. Click **Make link**. The link is copied, ready to paste into an email.
-
-People with a view link see the page as visitors will (without anything only members see). They can't
+People with a password or anyone link see the page as visitors will (without anything only members see). They can't
 change it or reach any other part of the site's admin.
 
 ### Comments
@@ -176,8 +171,8 @@ Your handle is on **Your profile** (see [Changing your name or handle](/editors/
 ### Turning a link off
 
 The **Share** box lists the page's links, with who can open each, when it expires, and how many times it
-has been opened. **Copy** copies a link again. **Turn off** stops it at once: anyone using it loses
-access straight away. Links that are turned off or expired are listed under **Turned off or expired**.
+has been opened. **Copy** copies a link again. **Turn off** asks first, then stops it at once: anyone using
+it loses access straight away. Links that are turned off or expired are listed under **Turned off or expired**.
 
 A link also stops working when the page is moved to the trash.
 

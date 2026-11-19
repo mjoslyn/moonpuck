@@ -220,7 +220,7 @@ const KIND: Record<string, string> = { placed: 'Placed', paid: 'Paid', email: 'E
     const res = await fetch('/api/admin/shop/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: orderId, ...body }) });
     status.textContent = '';
     if (!res.ok) {
-      alert(await res.text());
+      (await window.adminTell(await res.text()));
       return null;
     }
     return res.json();
@@ -252,7 +252,7 @@ const KIND: Record<string, string> = { placed: 'Placed', paid: 'Paid', email: 'E
       price.textContent = money(rate.amount, rate.currency);
       b.append(price);
       b.addEventListener('click', async () => {
-        if (!confirm(`Buy a ${rate.carrierName} ${rate.serviceName} label for ${money(rate.amount, rate.currency)}? Shippo charges your account, and the buyer is emailed the tracking.`)) return;
+        if (!(await window.adminAsk(`Buy a ${rate.carrierName} ${rate.serviceName} label for ${money(rate.amount, rate.currency)}? Shippo charges your account, and the buyer is emailed the tracking.`))) return;
         if (await post({ action: 'label-buy', rate })) location.reload();
       });
       list.append(b);
@@ -294,17 +294,17 @@ const KIND: Record<string, string> = { placed: 'Placed', paid: 'Paid', email: 'E
     if (what === 'refund') {
       const cents = Math.round(Number(String(close.amount.value).replace(/[^0-9.]/g, '')) * 100);
       const left = Number(close.dataset.left);
-      if (!(cents >= 0) || cents > left) return alert(`Refund at most ${money(left, close.dataset.currency)}.`);
-      if (!confirm(`Refund ${money(cents, close.dataset.currency)} to ${close.dataset.name}?${cents === left ? ' This refunds the whole order.' : ''}${stockNote} The money goes back to their card; this can't be undone.`)) return;
+      if (!(cents >= 0) || cents > left) return (await window.adminTell(`Refund at most ${money(left, close.dataset.currency)}.`));
+      if (!(await window.adminAsk(`Refund ${money(cents, close.dataset.currency)} to ${close.dataset.name}?${cents === left ? ' This refunds the whole order.' : ''}${stockNote} The money goes back to their card; this can't be undone.`))) return;
       if (await post({ action: 'refund', amount: cents, restock })) location.reload();
     } else if (what === 'cancel') {
-      if (!confirm(`Cancel this order?${stockNote}`)) return;
+      if (!(await window.adminAsk(`Cancel this order?${stockNote}`))) return;
       const r = await post({ action: 'cancel', restock });
-      if (r?.message) alert(r.message);
+      if (r?.message) (await window.adminTell(r.message));
       if (r) location.reload();
     } else if (what === 'restock') {
-      if (!back) return alert('Choose how many of each item go back in stock.');
-      if (!confirm(`Put ${back} ${back === 1 ? 'item' : 'items'} back in stock?`)) return;
+      if (!back) return (await window.adminTell('Choose how many of each item go back in stock.'));
+      if (!(await window.adminAsk(`Put ${back} ${back === 1 ? 'item' : 'items'} back in stock?`))) return;
       if (await post({ action: 'restock', restock })) location.reload();
     }
   });

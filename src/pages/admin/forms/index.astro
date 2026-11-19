@@ -69,9 +69,10 @@ const when = (s: string) => new Date(s).toLocaleDateString('en-US', { timeZone: 
 </Admin>
 
 <script>
+  import { ask, askText } from '../../../lib/admin/dialogs';
   const json = (r: Response) => (r.ok ? r.json() : r.text().then((t) => Promise.reject(new Error(t))));
   document.getElementById('new-form')?.addEventListener('click', async () => {
-    const title = prompt('Form name', 'Untitled form');
+    const title = (await askText('Form name', 'Untitled form'));
     if (title == null) return;
     const { id } = await fetch('/api/admin/forms/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) }).then(json);
     location.href = `/admin/forms/${id}/`;
@@ -85,7 +86,7 @@ const when = (s: string) => new Date(s).toLocaleDateString('en-US', { timeZone: 
   for (const b of document.querySelectorAll<HTMLButtonElement>('[data-delete]')) {
     b.addEventListener('click', async () => {
       const n = Number(b.dataset.count);
-      if (!confirm(`Delete "${b.dataset.title}"?${n ? ` Its ${n} submission${n === 1 ? '' : 's'} will be kept.` : ''} Pages using this form will stop showing it.`)) return;
+      if (!(await ask(`Delete "${b.dataset.title}"?${n ? ` Its ${n} submission${n === 1 ? '' : 's'} will be kept.` : ''} Pages using this form will stop showing it.`))) return;
       await fetch(`/api/admin/forms/${b.dataset.delete}/`, { method: 'DELETE' }).then(json);
       location.reload();
     });

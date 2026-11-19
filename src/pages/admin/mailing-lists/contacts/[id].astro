@@ -109,12 +109,12 @@ const VERDICT: Record<string, string> = { human: 'Person (confirmed)', likely_hu
             </form>
           )}
           {contact.status === 'subscribed' && (
-            <form method="post" action="/api/admin/mailing/contacts" onsubmit="return confirm('Unsubscribe them from everything?')">
+            <form method="post" action="/api/admin/mailing/contacts" data-confirm="Unsubscribe them from everything?">
               <input type="hidden" name="action" value="unsubscribe" /><input type="hidden" name="id" value={id} />
               <button class="underline hover:text-admin-accent">Unsubscribe</button>
             </form>
           )}
-          <form method="post" action="/api/admin/mailing/contacts" onsubmit={`return confirm(${JSON.stringify(`Erase ${contact.email}? Their record, sends and clicks are deleted. A one-way hash of the address is kept so they aren't mailed again unless they sign up themselves.`)})`}>
+          <form method="post" action="/api/admin/mailing/contacts" data-confirm={`Erase ${contact.email}? Their record, sends and clicks are deleted. A one-way hash of the address is kept so they aren't mailed again unless they sign up themselves.`}>
             <input type="hidden" name="action" value="erase" /><input type="hidden" name="id" value={id} />
             <button class="text-[#c4592a] underline">Erase</button>
           </form>

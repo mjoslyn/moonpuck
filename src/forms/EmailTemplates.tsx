@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { browserClient } from '../lib/db/browser';
 import { TEMPLATE_DEFAULTS, type EmailTemplate, type TemplateKit } from '../lib/email-templates';
 import type { EmailDoc } from '../lib/forms/email';
+import { ask } from '../lib/admin/dialogs';
 
 const input = 'rounded border border-admin-ink/15 bg-white px-2 py-1 text-sm';
 
@@ -81,13 +82,13 @@ export function EmailTemplates({ kit, design, text, onUse, onClose }: { kit: Tem
             </select>
           </label>
           <div className="mt-2 flex gap-3 text-xs">
-            <button type="button" className="underline hover:text-admin-accent" onClick={() => confirm(`Replace this email with “${t.name}”? Its design and plain text are swapped for the template's.`) && onUse(t)}>
+            <button type="button" className="underline hover:text-admin-accent" onClick={async () => (await ask(`Replace this email with “${t.name}”? Its design and plain text are swapped for the template's.`)) && onUse(t)}>
               Use
             </button>
-            <button type="button" className="underline hover:text-admin-accent" onClick={() => confirm(`Save this email over “${t.name}”?`) && run(() => browserClient().from('email_templates').update({ design, text: text ?? '' }).eq('id', t.id), `“${t.name}” updated.`)}>
+            <button type="button" className="underline hover:text-admin-accent" onClick={async () => (await ask(`Save this email over “${t.name}”?`)) && run(() => browserClient().from('email_templates').update({ design, text: text ?? '' }).eq('id', t.id), `“${t.name}” updated.`)}>
               Save over it
             </button>
-            <button type="button" className="text-[#c4592a] underline" onClick={() => confirm(`Delete “${t.name}”? Emails made from it keep their design.`) && run(() => browserClient().from('email_templates').delete().eq('id', t.id), `“${t.name}” deleted.`)}>
+            <button type="button" className="text-[#c4592a] underline" onClick={async () => (await ask(`Delete “${t.name}”? Emails made from it keep their design.`)) && run(() => browserClient().from('email_templates').delete().eq('id', t.id), `“${t.name}” deleted.`)}>
               Delete
             </button>
           </div>

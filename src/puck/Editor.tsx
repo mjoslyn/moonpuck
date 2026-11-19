@@ -43,6 +43,7 @@ import parse, { Element, type DOMNode } from 'html-react-parser';
 // The public site stylesheet, so the canvas matches the site.
 import siteCss from '../styles/site.css?url';
 import { siteThemeCss } from '../lib/theme/site';
+import { ask } from '../lib/admin/dialogs';
 
 export interface EditorProps {
   entryId?: number;
@@ -597,7 +598,7 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
       autosaveBlocked.current = true;
       return setStatus('Not autosaved: someone else saved this since you opened it. Save to choose whose version to keep.');
     }
-    if (res.status === 409 && window.confirm(`${await res.text()}\n\nSaving now replaces their version with yours. To see theirs first, cancel and reload the page (your unsaved changes here will be lost).\n\nSave anyway?`)) res = await put({});
+    if (res.status === 409 && (await ask(`${await res.text()}\n\nSaving now replaces their version with yours. To see theirs first, cancel and reload the page (your unsaved changes here will be lost).\n\nSave anyway?`))) res = await put({});
     setSaving(false);
     if (res.status === 409) return setStatus('Not saved: someone else saved this since you opened it.');
     if (!res.ok) {
@@ -702,12 +703,12 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
                   {dirty && <span className="text-admin-accent">{autosaving ? 'Saving…' : status.startsWith('Restored') || status.startsWith('Not ') ? status : 'Unsaved changes'}</span>}
                   {!dirty && status && <span>{status}</span>}
                   {liveStatus === 'publish' && pending && (
-                    <button type="button" className="underline hover:text-[#c4592a]" onClick={() => confirm('Discard the unpublished changes and go back to the live page?') && save('discard')}>
+                    <button type="button" className="underline hover:text-[#c4592a]" onClick={async () => (await ask('Discard the unpublished changes and go back to the live page?')) && save('discard')}>
                       Discard changes
                     </button>
                   )}
                   {liveStatus === 'publish' && (
-                    <button type="button" className="underline hover:text-[#c4592a]" onClick={() => confirm('Take this page off the site? It stays here as a draft.') && save('unpublish')}>
+                    <button type="button" className="underline hover:text-[#c4592a]" onClick={async () => (await ask('Take this page off the site? It stays here as a draft.')) && save('unpublish')}>
                       Unpublish
                     </button>
                   )}
@@ -731,7 +732,7 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
                 </button>
               )}
               {entry && (
-                <form method="post" action="/api/admin/entries" onSubmit={(e) => dirty && !window.confirm('The copy is made from the saved page; your unsaved changes won\'t be in it. Duplicate anyway?') && e.preventDefault()}>
+                <form method="post" action="/api/admin/entries" data-confirm={dirty ? 'The copy is made from the saved page; your unsaved changes won’t be in it. Duplicate anyway?' : undefined} data-confirm-label="Duplicate">
                   <input type="hidden" name="duplicate" value={entry.id} />
                   <button className="whitespace-nowrap text-sm text-admin-muted hover:text-admin-accent" title="Make a draft copy of this page and open it">
                     Duplicate

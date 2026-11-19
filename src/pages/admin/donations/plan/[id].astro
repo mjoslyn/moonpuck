@@ -64,11 +64,11 @@ const paid = gifts.filter((g) => g.status === 'paid');
   document.querySelectorAll('[data-plan]').forEach((b) =>
     b.addEventListener('click', async () => {
       const action = b.dataset.plan;
-      if (action === 'cancel' && !confirm('Cancel this monthly gift? Stripe stops charging the donor, and they are emailed.')) return;
+      if (action === 'cancel' && !(await window.adminAsk('Cancel this monthly gift? Stripe stops charging the donor, and they are emailed.'))) return;
       status.textContent = 'Working…';
       const res = await fetch('/api/admin/donations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan: planId, action: action === 'cancel' ? 'cancel-plan' : 'refresh-plan' }) });
       status.textContent = '';
-      if (!res.ok) return alert(await res.text());
+      if (!res.ok) return (await window.adminTell(await res.text()));
       location.reload();
     }),
   );

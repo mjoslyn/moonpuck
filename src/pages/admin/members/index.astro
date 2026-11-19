@@ -137,7 +137,7 @@ const STATUS_LABELS: Record<string, string> = { pending: 'Waiting', active: 'Act
                   <input type="hidden" name="return" value={ret} />
                   <button class="underline hover:text-admin-accent">Send password link</button>
                 </form>
-                <form method="post" action="/api/admin/members" onsubmit={`return confirm(${JSON.stringify(`Remove ${m.email}? Their membership goes, and their account unless they edit the site.`)})`}>
+                <form method="post" action="/api/admin/members" data-confirm={`Remove ${m.email}? Their membership goes, and their account unless they edit the site.`}>
                   <input type="hidden" name="action" value="remove" />
                   <input type="hidden" name="id" value={m.user_id} />
                   <input type="hidden" name="return" value={ret} />

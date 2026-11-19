@@ -4,6 +4,7 @@
 // not stored images.
 import { useEffect, useState } from 'react';
 import { plural, post } from './Sync';
+import { ask } from '../lib/admin/dialogs';
 
 export default function BackupsTab() {
   const [remote, setRemote] = useState<string | null | undefined>(undefined);
@@ -66,7 +67,7 @@ function Backups({ site, name }: { site: 'here' | 'remote'; name: string }) {
     const n = Number(keep);
     if (!Number.isInteger(n) || n < 0 || !Number.isInteger(schedule.keep) || schedule.keep < 0) return setStatus('Enter whole numbers: 0 keeps all.');
     const goes = list ? (n ? Math.max(0, list.filter((b) => !b.snapshot).length - n) : 0) + (schedule.keep ? Math.max(0, list.filter((b) => b.snapshot).length - schedule.keep) : 0) : 0;
-    if (goes && !window.confirm(`${plural(goes, 'older backup')} on ${name} will be deleted now. Go on?`)) return;
+    if (goes && !(await ask(`${plural(goes, 'older backup')} on ${name} will be deleted now. Go on?`))) return;
     try {
       const r = await post({ action: 'retention', site, keep: n, schedule });
       setSaved({ keep: r.keep, schedule: r.schedule });
@@ -90,7 +91,7 @@ function Backups({ site, name }: { site: 'here' | 'remote'; name: string }) {
     setBusy('');
   };
   const remove = async (path: string) => {
-    if (!window.confirm(`Delete ${path} on ${name}? It can't be got back.`)) return;
+    if (!(await ask(`Delete ${path} on ${name}? It can't be got back.`))) return;
     try {
       await post({ action: 'deleteBackup', site, path });
       setList((l) => (l ?? []).filter((b) => b.path !== path));
@@ -102,9 +103,9 @@ function Backups({ site, name }: { site: 'here' | 'remote'; name: string }) {
   const startRestore = async (b: BackupRow) => {
     if (!b.snapshot) {
       if (
-        !window.confirm(
+        !(await ask(
           `Restore ${b.path} on ${name}?\n\nThe rows that sync overwrote go back to how they were, and the rows it added are deleted (for files, their library rows). Changes made to those rows since are lost. Stored images aren't in backups and stay as they are.\n\nA backup of ${name}'s current state is saved first.`,
-        )
+        ))
       )
         return;
       return runRestore(b.path, false);

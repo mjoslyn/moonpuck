@@ -47,6 +47,7 @@ import type { Theme } from '../lib/theme/theme';
 import type { TaxonomyMeta } from '../lib/page-meta';
 import { ADMIN_THEME_DEFAULTS, ADMIN_THEME_FIELDS, adminThemeFrom, adminThemeVars, contrast, effectiveAdminTheme, matchedAdminTheme, type AdminTheme } from '../lib/admin-theme';
 import { siteTheme } from '../lib/theme/site';
+import { ask } from '../lib/admin/dialogs';
 
 interface Props {
   /** The section the address names. */
@@ -133,7 +134,7 @@ export default function SiteSettings({ section, site: initialSite, options: init
     const lacking = Object.entries(site.templates ?? {})
       .filter(([, m]) => m.single && templates.some((t) => t.slug === m.single && !t.content))
       .map(([type]) => typeDef(type)?.label ?? type);
-    if (lacking.length && !window.confirm(`${lacking.join(', ')}: the template chosen has no Page content block, so their own content won't show on the site. Save anyway?`)) return;
+    if (lacking.length && !(await ask(`${lacking.join(', ')}: the template chosen has no Page content block, so their own content won't show on the site. Save anyway?`))) return;
     setStatus('Saving…');
     const res = await fetch('/api/admin/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site, options }) });
     if (!res.ok) return setStatus(`Save failed: ${await res.text()}`);

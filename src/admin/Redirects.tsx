@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { SITE_TZ } from '../lib/site';
 import type { Redirect } from '../lib/redirects';
+import { ask } from '../lib/admin/dialogs';
 
 export interface NotFound {
   path: string;
@@ -44,7 +45,7 @@ export default function Redirects({ initial, notFound: initialNotFound }: { init
     fromRef.current?.focus();
   };
   const remove = async (r: Redirect) => {
-    if (!window.confirm(`Remove the redirect from ${r.from_path}?`)) return;
+    if (!(await ask(`Remove the redirect from ${r.from_path}?`))) return;
     const res = await fetch(`/api/admin/redirects?id=${r.id}`, { method: 'DELETE' });
     if (!res.ok) return setStatus(await res.text());
     setRows((all) => all.filter((x) => x.id !== r.id));
@@ -180,7 +181,7 @@ export default function Redirects({ initial, notFound: initialNotFound }: { init
             Not found ({notFound.length})
           </h2>
           {notFound.length > 0 && (
-            <button type="button" className="text-xs text-[#b3261e]" onClick={() => window.confirm('Clear the whole Not found list?') && dismiss('all')}>
+            <button type="button" className="text-xs text-[#b3261e]" onClick={async () => (await ask('Clear the whole Not found list?')) && dismiss('all')}>
               Clear all
             </button>
           )}
