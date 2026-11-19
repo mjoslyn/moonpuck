@@ -310,6 +310,9 @@ export function vendorCss(ctx: RenderCtx): string[] {
 export interface PreviewOverride {
   entry: Entry;
   template?: PuckItem[];
+  /** Read the rest of the site as visitors see it (published entries; a share link's guest), not with
+   * the db's own policies as an editor's preview does. */
+  asVisitor?: boolean;
 }
 
 /** The page chosen as the site's Not found page (settings.site.not_found_page_id), while it is published. */
@@ -321,7 +324,7 @@ export async function notFoundPage(site: Record<string, any> | undefined, loader
 export async function renderRequest(url: URL, db: Db, form?: FormResult, preview?: PreviewOverride, viewer?: Viewer | null): Promise<PageResult> {
   // The site's view: published entries, members-only ones for whoever may see them. Previews read with
   // the editor's own session, whose database policies decide instead.
-  const loader = new Loader(db, undefined, preview ? undefined : { published: true, viewer });
+  const loader = new Loader(db, undefined, preview && !preview.asVisitor ? undefined : { published: true, viewer });
   const settings = await loader.settings();
   // A member counts as one only while Members is on.
   const who = viewer && !memberSettings(settings.site).enabled ? { ...viewer, member: null } : viewer;

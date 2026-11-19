@@ -9,6 +9,7 @@ import { esc } from '../../render/html';
 import type { Entry } from '../types';
 import type { PuckItem } from '../puck/types';
 import type { Db } from '../db/query';
+import { siteDb } from '../db/site';
 
 export interface PreviewOptions {
   /** Someone with a share link: the page as visitors see it (no members-only content), and a bar of its own. */
@@ -46,7 +47,11 @@ export async function renderPreview(db: Db, id: number, origin: string, override
   const path = settings.site?.front_page_id === e.id ? '/' : permalink(e);
   // Shown as an editor sees the site: members-only pages and blocks included; to a guest as visitors see it.
   const viewer = { id: '', email: '', name: '', editor: !opts.guest, member: null };
-  const { status, html } = await renderRequest(new URL(path, origin), db, undefined, { entry: e, template: override?.template }, viewer);
+  // A guest's page reads the rest of the site as the server, as visitors see it (published entries, forms,
+  // totals), since the guest role reads only what its editor needs; the page itself is the one loaded above.
+  const { status, html } = opts.guest
+    ? await renderRequest(new URL(path, origin), siteDb(), undefined, { entry: e, template: override?.template, asVisitor: true }, viewer)
+    : await renderRequest(new URL(path, origin), db, undefined, { entry: e, template: override?.template }, viewer);
   const live = base.status === 'publish';
   const bar = opts.guest
     ? `<div style="${BAR_STYLE}"><span>${esc(opts.note ?? `Shared preview${d?.draft || base.status !== 'publish' ? ' of unpublished changes' : ''}: only people with this link can see it`)}</span>` +

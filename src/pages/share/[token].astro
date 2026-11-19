@@ -33,7 +33,7 @@ if (link) {
   }
   if (link.access === 'anyone') return enter(link, true);
   // A password link: in at once with this link's cookie, else the password.
-  const had = cookieToken(Astro.request);
+  const had = cookieToken(Astro.request, link.entry_id);
   if (had?.token === link.token && cookieFits(link, had.sig)) return enter(link, false);
   if (Astro.request.method === 'POST') {
     const password = String((await Astro.request.formData()).get('password') ?? '');

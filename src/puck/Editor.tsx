@@ -39,6 +39,13 @@ import { A11yMarksContext, A11yPanel, openIssues } from './A11yPanel';
 import { publishNeedsCheck } from '../lib/a11y-gate';
 import { GUEST_BLOCKED } from '../lib/share/guest-content';
 import ShareDialog from '../admin/ShareDialog';
+import { GOALS_KEY } from '../render/c/donations';
+import { LISTS_KEY } from '../render/c/mailing';
+import { STOCK_KEY } from '../render/c/shop';
+import type { FormRow } from '../lib/forms/types';
+
+/** What /api/admin/share-data answers (src/lib/share/guest-state.ts). */
+interface GuestCanvasData { forms: FormRow[]; goals: Record<string, unknown>; lists: unknown[]; stock: [number, unknown][] }
 import parse, { Element, type DOMNode } from 'html-react-parser';
 // The public site stylesheet, so the canvas matches the site.
 import siteCss from '../styles/site.css?url';
@@ -124,6 +131,8 @@ export default function Editor({ entryId, template, admin = false, guest = false
   // A template's name (its title), shown in the header and changed with Rename.
   const [templateTitle, setTemplateTitle] = useState('');
   const dataRef = useRef<Data | null>(null);
+  // A guest's canvas data (forms, totals, lists, stock), fetched once.
+  const guestData = useRef<Promise<GuestCanvasData | null> | null>(null);
   const settingsRef = useRef<Record<string, any>>({});
 
   // Load entry + template, decide the editing mode.
@@ -240,6 +249,17 @@ export default function Editor({ entryId, template, admin = false, guest = false
       ? { kind: 'singular' as const, entry: e, page: 1, url: new URL(settings.site?.front_page_id === e.id ? '/' : permalink(e), location.origin), isFront: settings.site?.front_page_id === e.id }
       : { kind: '404' as const, page: 1, url: new URL('/', location.origin) };
     const next = emptyCtx(loader, queried, settings);
+    // A guest (a share link) reads what the page renders with besides through its own endpoint.
+    if (guest) {
+      guestData.current ??= fetch('/api/admin/share-data').then((r) => (r.ok ? r.json() : null)).catch(() => null);
+      const g = await guestData.current;
+      if (g) {
+        loader.forms = async () => g.forms;
+        next.data.set(GOALS_KEY, g.goals);
+        next.data.set(LISTS_KEY, g.lists);
+        next.data.set(STOCK_KEY, new Map(g.stock));
+      }
+    }
     if (e) {
       loader.entries.set(e.id, e);
       if (e.featured_media_id) await loader.loadMedia([e.featured_media_id]);
