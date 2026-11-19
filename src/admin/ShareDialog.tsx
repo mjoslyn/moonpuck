@@ -1,7 +1,8 @@
 // The Share dialog of the page editor and of a newsletter draft (the campaign editor): its private links
-// (src/lib/share/links.ts, /api/admin/shares): to view the page or email and comment on it, opened by
-// signed-in editors only, with a password, or by anyone with the link; or to edit it, for signed-in editors
-// only. Each with an optional name and expiry. Links already made are listed to copy or turn off.
+// (src/lib/share/links.ts, /api/admin/shares): who can open it (signed-in editors only, with a password, or
+// anyone with the link), then what they can do: view the page or email and comment on it, or edit it (only
+// while signed-in editors are the ones who open it). Each with an optional name and an expiry, 30 days from
+// now unless changed or cleared. Links already made are listed to copy or turn off.
 import { useEffect, useRef, useState } from 'react';
 
 type Mode = 'view' | 'edit';
@@ -28,6 +29,14 @@ const ACCESS_LABEL: Record<Access, string> = {
   anyone: 'Anyone with the link',
 };
 const MIN_PASSWORD = 6;
+/** A date and time `days` from now as a datetime-local input takes it (the browser's own time). */
+function inDays(days: number): string {
+  const d = new Date(Date.now() + days * 86_400_000);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+/** How long a link lasts unless changed (SHARE_DEFAULT_DAYS on the server). */
+const DEFAULT_DAYS = 30;
 const when = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
 /** What is shared: an entry (a page) or a campaign (a newsletter draft). */
@@ -41,12 +50,18 @@ export default function ShareDialog({ target, title, onClose }: { target: ShareT
   const [access, setAccess] = useState<Access>('login');
   const [password, setPassword] = useState('');
   const [label, setLabel] = useState('');
-  const [expires, setExpires] = useState('');
+  const [expires, setExpires] = useState(() => inDays(DEFAULT_DAYS));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [made, setMade] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
-  const first = useRef<HTMLInputElement>(null);
+  const first = useRef<HTMLSelectElement>(null);
+  /** Editing is for signed-in editors and admins: an edit link only with that access. */
+  const canEdit = access === 'login';
+  const chooseAccess = (a: Access) => {
+    setAccess(a);
+    if (a !== 'login') setMode('view');
+  };
 
   const load = async () => {
     const res = await fetch(`/api/admin/shares?${query}`).catch(() => null);
@@ -81,7 +96,7 @@ export default function ShareDialog({ target, title, onClose }: { target: ShareT
     setMade(url);
     setPassword('');
     setLabel('');
-    setExpires('');
+    setExpires(inDays(DEFAULT_DAYS));
     copy(url);
     load();
   };
@@ -108,23 +123,24 @@ export default function ShareDialog({ target, title, onClose }: { target: ShareT
         </div>
         <div className="overflow-y-auto px-5 py-4">
           <form onSubmit={create} className="space-y-3">
-            <fieldset>
-              <legend className="mb-1 text-xs font-medium text-admin-muted">People with the link can</legend>
-              <label className="mr-4 inline-flex items-center gap-1.5">
-                <input ref={first} type="radio" name="share-mode" checked={mode === 'view'} onChange={() => setMode('view')} /> {email ? 'View the email' : 'View the page'}
-              </label>
-              <label className="inline-flex items-center gap-1.5">
-                <input type="radio" name="share-mode" checked={mode === 'edit'} onChange={() => (setMode('edit'), setAccess('login'))} /> {email ? 'Open it in the editor' : 'Edit it as a draft'}
-              </label>
-              {mode === 'view' && <p className="mt-1 text-xs text-admin-muted">They can leave comments on its {email ? 'blocks' : 'blocks and sections'}, which you see under Comments.</p>}
-              {mode === 'edit' && <p className="mt-1 text-xs text-admin-muted">Only signed-in editors and admins can edit, so this link is for them.</p>}
-              {email && <p className="mt-1 text-xs text-admin-muted">Links work while the newsletter is a draft.</p>}
-            </fieldset>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-admin-muted">People with the link can</span>
+              <select ref={first} className={field} value={mode} onChange={(e) => setMode(e.target.value as Mode)}>
+                <option value="view">{email ? 'View the email' : 'View the page'}</option>
+                <option value="edit" disabled={!canEdit}>
+                  {email ? 'Edit it in the editor' : 'Edit it as a draft'}
+                  {canEdit ? '' : ' (signed-in editors and admins only)'}
+                </option>
+              </select>
+              {mode === 'view' && <span className="mt-1 block text-xs text-admin-muted">They can leave comments on its {email ? 'blocks' : 'blocks and sections'}, which you see under Comments.</span>}
+              {mode === 'edit' && <span className="mt-1 block text-xs text-admin-muted">Only signed-in editors and admins can edit, so this link is for them.</span>}
+              {email && <span className="mt-1 block text-xs text-admin-muted">Links work while the newsletter is a draft.</span>}
+            </label>
             <fieldset>
               <legend className="mb-1 text-xs font-medium text-admin-muted">Who can open it</legend>
               {(Object.keys(ACCESS_LABEL) as Access[]).map((a) => (
                 <label key={a} className="flex items-center gap-1.5">
-                  <input type="radio" name="share-access" checked={access === a} disabled={mode === 'edit' && a !== 'login'} onChange={() => setAccess(a)} /> {ACCESS_LABEL[a]}
+                  <input type="radio" name="share-access" checked={access === a} onChange={() => chooseAccess(a)} /> {ACCESS_LABEL[a]}
                 </label>
               ))}
             </fieldset>
@@ -140,7 +156,7 @@ export default function ShareDialog({ target, title, onClose }: { target: ShareT
                 <input className={field} value={label} maxLength={120} placeholder="e.g. Board review" onChange={(e) => setLabel(e.target.value)} />
               </label>
               <label className="block flex-1">
-                <span className="mb-1 block text-xs font-medium text-admin-muted">Expires (optional)</span>
+                <span className="mb-1 block text-xs font-medium text-admin-muted">Expires (30 days unless changed; clear for never)</span>
                 <input className={field} type="datetime-local" value={expires} onChange={(e) => setExpires(e.target.value)} />
               </label>
             </div>

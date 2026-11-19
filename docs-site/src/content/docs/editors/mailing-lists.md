@@ -271,17 +271,18 @@ The last 100 versions are kept.
 on it, before it goes out.
 
 1. Click **Share**.
-2. Under **People with the link can**, choose one:
+2. In **People with the link can**, choose one:
    - **View the email**: they see the email as a subscriber would, with a sample subscriber's name in it,
      and can leave comments.
-   - **Open it in the editor**: the campaign screen. Only signed-in editors and admins can edit, so this
-     link is for them.
-3. Under **Who can open it**, choose one (an edit link is always the first):
+   - **Edit it in the editor**: the campaign screen. Only signed-in editors and admins can edit, so this
+     choice is greyed out unless **Who can open it** is **Signed-in editors and admins**.
+3. Under **Who can open it**, choose one:
    - **Signed-in editors and admins**: only people who look after the site.
    - **Anyone with the link and the password**: type a password of at least 6 characters, and give it to
      them separately.
    - **Anyone with the link**: no account or password needed. Keep the link private.
-4. Optional: give it a **Name**, and set **Expires** to a date and time.
+4. Optional: give it a **Name**. **Expires** is 30 days from now: change it, or clear it for a link that
+   never expires.
 5. Click **Make link**. The link is copied, ready to paste into an email.
 
 A link works only while the campaign is a draft and Mailing Lists is turned on. Scheduling, sending,

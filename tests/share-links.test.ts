@@ -2,7 +2,7 @@
 // on shared pages' and newsletters' blocks, and newsletters' history and conflicting saves.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sessionDb, siteDb } from '../src/lib/db/site';
-import { cookieFits, cookieValue, countUse, createShare, guestCookie, guestLink, guestMay, isLive, liveLink, passwordOpens, revokeShare, shareProblem, sharesOf } from '../src/lib/share/links';
+import { cookieFits, cookieValue, countUse, createShare, guestCookie, SHARE_DEFAULT_DAYS, guestLink, guestMay, isLive, liveLink, passwordOpens, revokeShare, shareProblem, sharesOf } from '../src/lib/share/links';
 import { addComment, blocksOf, commentErrorText, commentsOf, GUEST_COMMENTS_PER_HOUR } from '../src/lib/share/comments';
 
 const block = (type: string, id: string, attrs: Record<string, any> = {}, extra: Record<string, any> = {}) => ({ type, props: { id, attrs, ...extra } });
@@ -39,6 +39,18 @@ describe('links', () => {
     await svc.from('share_links').update({ password_hash: 'other' }).eq('id', link.id);
     expect(await guestLink(withCookie(value))).toBeNull();
     expect(cookieFits(link, value.split('.')[1] + 'x')).toBe(false);
+  });
+
+  it('expires in 30 days unless an expiry, or none, is given', async () => {
+    const day = 86_400_000;
+    const plain = await createShare({ entry, mode: 'view', access: 'anyone' }, null);
+    const left = Date.parse(plain.expires_at!) - Date.now();
+    expect(SHARE_DEFAULT_DAYS).toBe(30);
+    expect(left).toBeGreaterThan(30 * day - 60_000);
+    expect(left).toBeLessThanOrEqual(30 * day);
+    expect((await createShare({ entry, mode: 'view', access: 'anyone', expires: null }, null)).expires_at).toBeNull();
+    const at = new Date(Date.now() + 2 * day).toISOString();
+    expect((await createShare({ entry, mode: 'view', access: 'anyone', expires: at }, null)).expires_at).toBe(at);
   });
 
   it('an edit link made for guests before the rule doesn’t open', async () => {

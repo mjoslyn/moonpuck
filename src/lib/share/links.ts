@@ -180,7 +180,7 @@ export interface NewShare {
   access: ShareAccess;
   password?: string;
   label?: string;
-  /** ISO date and time, or empty for none. */
+  /** ISO date and time; null or empty for none; left out, `SHARE_DEFAULT_DAYS` from now. */
   expires?: string | null;
 }
 
@@ -196,8 +196,15 @@ export function shareProblem(s: Partial<NewShare>): string | null {
   return null;
 }
 
+/** How long a link lasts when its expiry isn't given. */
+export const SHARE_DEFAULT_DAYS = 30;
+
+/** When a link made now expires by default (`SHARE_DEFAULT_DAYS` from `now`). */
+export const defaultExpiry = (now = Date.now()) => new Date(now + SHARE_DEFAULT_DAYS * 86_400_000).toISOString();
+
 /** Make a link. */
 export async function createShare(s: NewShare, by: string | null): Promise<ShareLink> {
+  if (s.expires === undefined) s = { ...s, expires: defaultExpiry() };
   const problem = shareProblem(s);
   if (problem) throw new Error(problem);
   const row = {
