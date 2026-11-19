@@ -23,6 +23,8 @@ A site with no admin yet asks the first person to open `/admin/` to make one:
    page and an About page to start from.
 4. Click **Make my account**. You are signed in as an admin.
 
+To have a coding agent do the setup before this, see [Setting up with an AI agent](/admins/ai-setup/).
+
 After that, the sign-in screen is the way in, and you add everyone else under **People > Users** (see
 [People and access](/admins/people/)).
 
@@ -36,6 +38,7 @@ After that, the sign-in screen is the way in, and you add everyone else under **
 
 ## What's in this guide
 
+- [Setting up with an AI agent](/admins/ai-setup/): a prompt to copy that has a coding agent set up and deploy a new site.
 - [Settings and the menu](/admins/settings/): the site's menu and every section of Settings.
 - [Turning features on](/admins/features/): events, tickets, members, mailing lists, donations and the accessibility check.
 - [Setting up the shop](/admins/shop/): turning it on, payments, shipping, tax, order emails and statuses, labels and refunds.
