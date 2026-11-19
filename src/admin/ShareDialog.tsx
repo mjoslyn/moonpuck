@@ -1,6 +1,7 @@
 // The Share dialog of the page editor and of a newsletter draft (the campaign editor): its private links
-// (src/lib/share/links.ts, /api/admin/shares), to view the page or email, or edit it as a draft, each opened by signed-in editors only, with a password, or by
-// anyone with the link; with an optional name and expiry. Links already made are listed to copy or turn off.
+// (src/lib/share/links.ts, /api/admin/shares): to view the page or email and comment on it, opened by
+// signed-in editors only, with a password, or by anyone with the link; or to edit it, for signed-in editors
+// only. Each with an optional name and expiry. Links already made are listed to copy or turn off.
 import { useEffect, useRef, useState } from 'react';
 
 type Mode = 'view' | 'edit';

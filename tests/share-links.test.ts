@@ -3,7 +3,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sessionDb, siteDb } from '../src/lib/db/site';
 import { cookieFits, cookieValue, countUse, createShare, guestCookie, guestLink, guestMay, isLive, liveLink, passwordOpens, revokeShare, shareProblem, sharesOf } from '../src/lib/share/links';
-import { addComment, blocksOf, commentsOf, GUEST_COMMENTS_PER_HOUR } from '../src/lib/share/comments';
+import { addComment, blocksOf, commentErrorText, commentsOf, GUEST_COMMENTS_PER_HOUR } from '../src/lib/share/comments';
 
 const block = (type: string, id: string, attrs: Record<string, any> = {}, extra: Record<string, any> = {}) => ({ type, props: { id, attrs, ...extra } });
 const doc = (...content: any[]) => ({ root: { props: {} }, content });
@@ -113,7 +113,7 @@ describe('what a guest sees', async () => {
   beforeAll(async () => {
     form = (await svc.from('forms').insert({ title: 'Contact', definition: { fields: [{ id: 'f1', type: 'text', label: 'Your guest name' }] }, notifications: [{ to: 'staff@example.org' }], is_active: true }).select('id').single()).data!.id;
     await svc.from('templates').insert({ kind: 'template', slug: 'guest-test', title: 'Guest test', content: doc(block('entry-content', 'pc')) });
-    page = (await svc.from('entries').insert({ type: 'page', slug: 'guest-form', title: 'Form page', status: 'draft', template: 'guest-test', content: doc(block('heading', 'h1', { content: 'Welcome', level: 2 }), block('form', 'fm1', { formId: form })) }).select('id').single()).data!.id;
+    page = (await svc.from('entries').insert({ type: 'page', slug: 'guest-form', title: 'Form page', status: 'draft', template: 'guest-test', content: doc(block('heading', 'h1', { content: 'Welcome', level: 2 }), block('form', 'fm1', { formId: form }), block('html', 'hb', { html: '<!-- note -->Plain words' })) }).select('id').single()).data!.id;
   });
   afterAll(async () => {
     await svc.from('entries').delete().eq('id', page);
@@ -128,6 +128,8 @@ describe('what a guest sees', async () => {
     expect(html).toMatch(/<h2 data-block="h1" data-block-type="heading"/);
     expect(html).toContain(`<script src="/assets/js/share-comments.js" data-kind="entry" data-id="${page}" data-guest="1" defer>`);
     expect(html).toContain('(Board)');
+    // A block whose output doesn't start with an element is wrapped, so it can take comments too.
+    expect(html).toContain('<div data-block="hb" data-block-type="html"><!-- note -->Plain words</div>');
     // The template's own blocks aren't the page's: not marked.
     expect(html).not.toContain('data-block="pc"');
   });
@@ -208,6 +210,14 @@ describe('comments', async () => {
     expect(r).toMatchObject({ ok: false, status: 429 });
   });
 
+  it('keeps the hourly limit when many comments come at once', async () => {
+    const link = await createShare({ entry: page, mode: 'view', access: 'anyone' }, null);
+    const all = await Promise.all(Array.from({ length: GUEST_COMMENTS_PER_HOUR + 10 }, (_, i) => addComment({ subject: { kind: 'entry', id: page }, body: `c${i}`, name: 'G' }, { link })));
+    expect(all.filter((r) => r.ok)).toHaveLength(GUEST_COMMENTS_PER_HOUR);
+    const { count } = await svc.from('share_comments').select('id', { count: 'exact', head: true }).eq('link_id', link.id);
+    expect(count).toBe(GUEST_COMMENTS_PER_HOUR);
+  });
+
   it('lets an editor comment, list, resolve, reopen and delete', async () => {
     const locals = { db: sessionDb({ role: 'editor', uid: editorId }), user: { id: editorId, email: 'comment-editor@example.org', role: 'editor', name: 'Cora Editor' } };
     const call = (body: Record<string, any>) => manage({ request: new Request('https://x/api/admin/share-comments', { method: 'POST', body: JSON.stringify(body) }), locals } as any);
@@ -260,6 +270,12 @@ describe('newsletter drafts', async () => {
     expect(res.status).toBe(303);
     expect(res.headers.get('location')).toBe(`/share/${link.token}/?commented=1#comments`);
     expect((await commentsOf({ kind: 'campaign', id }))[0]).toMatchObject({ block: 'Text-1', block_type: 'Text', quote: 'Hi there', author: 'Gus' });
+    // A refusal goes back with a code, never words of the request's own.
+    const bad = await comment({ request: new Request('https://site.test/api/share/comment', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', cookie: `site.share.c${id}=${cookieValue(link)}` }, body: new URLSearchParams({ kind: 'campaign', id: String(id), body: 'x', name: '', back: `/share/${link.token}/` }) }) } as any);
+    expect(bad.headers.get('location')).toBe(`/share/${link.token}/?comment_error=name#comments`);
+    expect(commentErrorText('name')).toMatch(/your name/);
+    expect(commentErrorText('Your account is locked, sign in at evil.example')).toBe('');
+    expect(commentErrorText('constructor')).toBe('');
     // A back address elsewhere isn't followed: the answer is JSON.
     const off = await comment({ request: new Request('https://site.test/api/share/comment', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', cookie: `site.share.c${id}=${cookieValue(link)}` }, body: new URLSearchParams({ kind: 'campaign', id: String(id), body: 'x', name: 'G', back: 'https://evil.example/' }) }) } as any);
     expect(off.headers.get('location')).toBeNull();
