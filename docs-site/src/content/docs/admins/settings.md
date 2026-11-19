@@ -98,6 +98,8 @@ accent, headings, links and buttons. Leave one at **Unchanged** to keep it as it
 - **Text**: the font for everything else.
 - Each is one of the fonts the site comes with (serif, sans-serif and display fonts, or the device's
   own), served from the site itself.
+- A font that isn't in the list can be added by the site's developer (see
+  [Custom fonts](/site/styling/#custom-fonts)). It then shows in the list as **The site's own**.
 
 **Text sizes** and **Spacing** list the sizes editors choose from, each a name and a size such as
 `1.25rem`. Change the name or the size in place.

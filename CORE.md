@@ -784,7 +784,7 @@ conversation.
 - `src/lib/text/` (texturize, autop, entities), `src/lib/date-format.ts` (PHP-style date formats stored
   in content), `src/lib/media/image.ts` (image markup), `src/lib/permalink.ts`.
 - CSS: `src/styles/site.css` (Tailwind, no preflight; on the site's pages `body > .c-page` is a column at
-  least the screen's height whose footer part, `.is-footer`, sits at the bottom) imports the site's `tokens.css` and `theme.css`,
+  least the screen's height whose footer part, `.is-footer`, sits at the bottom, as in the editor's canvas) imports the site's `tokens.css` and `theme.css`,
   `forms.css` and `events.css`; the page shell links the compiled file. Swiper (sliders)
   and Leaflet (maps) are served from the site, in versioned folders under `public/assets/vendor/`
   (`src/render/vendor.ts`), not a CDN, whose connection would hold up the page; their stylesheets are

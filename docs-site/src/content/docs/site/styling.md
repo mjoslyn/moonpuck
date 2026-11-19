@@ -64,6 +64,49 @@ export default defineRender({
 
 Content stores palette names (`var(--color-blue)`), so a site moving onto a theme keeps its slugs.
 
+## Custom fonts
+
+The theme's fonts are either one of the core's library fonts or fonts the site serves itself. To use a
+font outside the library:
+
+1. Put its WOFF2 files in `src/site/public/assets/fonts/`, with the font's license (`OFL.txt` for Google
+   Fonts). They are served at `/assets/fonts/`, like `public/`. Serve them from the site, not a font CDN,
+   whose connection would hold up the page.
+2. Write their `@font-face` rules in `src/site/styles/theme.css`. Split latin and latin-ext with
+   `unicode-range` (the ranges in `src/lib/theme/fonts.ts`), so a page downloads latin-ext only when it
+   shows such text.
+3. Name the font's CSS stack in the theme's `fonts`, with fallbacks: `heading: "'Roboto Serif', Georgia, serif"`.
+   The value may hold letters, digits, spaces, quotes, commas and dashes only.
+
+```css
+@font-face {
+  font-family: 'Roboto Serif';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/assets/fonts/roboto-serif-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+```
+
+Settings > Theme shows a stack like this as **The site's own** in its font lists, so an admin can switch
+to a library font and back. The core preloads only library fonts; add a `<link rel="preload">` in
+`render.ts`'s `head` for a site font that most pages show first.
+
+A variable font with axes the theme doesn't change can be cut to one instance, which is much smaller.
+For example, Roboto Serif kept to its weights, at width 54 and optical size 144:
+
+```sh
+pip install fonttools brotli
+fonttools varLib.instancer roboto-serif-latin.woff2 wdth=54 opsz=144 wght=300:700 -o out.ttf
+python3 -c "from fontTools.ttLib import TTFont; f=TTFont('out.ttf'); f.flavor='woff2'; f.save('roboto-serif-latin.woff2')"
+```
+
+`src/site/styles/theme.css` is imported before the core's rules in `src/styles/site.css`, so a rule there
+that changes how the core sets type (heading weights, button corners) needs one more element or class than
+the core's to win: `body :is(h1, h2, h3)`, `.c-button > .c-button__link`.
+
 ## Palette and role colors
 
 The core's styles never use palette names, only **role tokens**, which the theme maps onto the palette:

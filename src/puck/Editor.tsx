@@ -1265,8 +1265,9 @@ function CanvasStyles({ document: doc, ctx, children }: { document?: Document; c
     for (const href of Object.values(VENDOR_CSS)) link(href);
     const style = doc.createElement('style');
     // Puck's drop zones fill their parent's height; a media-text column must keep its own so its text
-    // position (align-self) shows as on the site.
-    style.textContent = '.cms-editor-note{padding:1rem;border:1px dashed #b87333;color:#64748b;font:13px system-ui}.c-media-text__content[data-puck-dropzone]{height:auto}.cms-area{position:relative}.cms-area__label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#64748b;font:13px system-ui;z-index:1}.cms-source-outline{position:fixed;z-index:9998;pointer-events:none;outline:2px dashed #b87333;outline-offset:-2px}.cms-source-link{position:fixed;z-index:9999;padding:4px 10px;border-radius:4px;background:#0f0f1c;color:#fff;font:500 12px/1.4 system-ui;text-decoration:none;white-space:nowrap}.cms-source-link:hover,.cms-source-link:focus-visible{background:#b87333}';
+    // position (align-self) shows as on the site. The page is at least the canvas's height with its
+    // footer at the bottom, as on the site (site.css, body > .c-page).
+    style.textContent = '.c-page{display:flex;flex-direction:column;min-height:100vh}.c-page>*{flex-shrink:0}.c-page>.is-footer{margin-top:auto}.cms-editor-note{padding:1rem;border:1px dashed #b87333;color:#64748b;font:13px system-ui}.c-media-text__content[data-puck-dropzone]{height:auto}.cms-area{position:relative}.cms-area__label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:#64748b;font:13px system-ui;z-index:1}.cms-source-outline{position:fixed;z-index:9998;pointer-events:none;outline:2px dashed #b87333;outline-offset:-2px}.cms-source-link{position:fixed;z-index:9999;padding:4px 10px;border-radius:4px;background:#0f0f1c;color:#fff;font:500 12px/1.4 system-ui;text-decoration:none;white-space:nowrap}.cms-source-link:hover,.cms-source-link:focus-visible{background:#b87333}';
     add(style);
     link(siteCss);
     // The site's theme (Settings > Theme): its colors, fonts and sizes, as on the site.

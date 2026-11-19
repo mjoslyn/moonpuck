@@ -82,7 +82,7 @@ export interface Theme {
   logo_url?: string;
 }
 
-/** The theme a site has before anyone sets one (the example site's). */
+/** The theme a site has before anyone sets one, when its code gives none. */
 export const DEFAULT_THEME: Theme = {
   colors: [
     { slug: 'night', name: 'Night', color: '#1c2331', dark: true },

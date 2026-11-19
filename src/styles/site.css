@@ -149,7 +149,8 @@ h3 {
 .c-page > * {
   margin-block: 0;
 }
-/* On the site (not the editor's canvas), the footer stays at the bottom of the screen on a short page. */
+/* On the site, the footer stays at the bottom of the screen on a short page. The editor's canvas has the
+   same rules for its own page (src/puck/Editor.tsx, CanvasStyles). */
 body > .c-page {
   display: flex;
   flex-direction: column;
