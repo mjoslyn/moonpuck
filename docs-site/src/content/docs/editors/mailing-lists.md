@@ -258,7 +258,11 @@ version saved through a share link says **Saved through a share link** and the l
 - **View** shows the email of that version as a sample subscriber would get it.
 - **Restore** puts that version's name, subject, email and plain text back in the campaign. Nothing changes
   until you click **Save**, so you can look it over first. Restore is there while the campaign can still be
-  changed.
+  changed. On the latest version it shows only while you have unsaved changes, to throw them away.
+
+If someone else saved the campaign while you had it open (another editor, or someone with a share link), Save
+asks before saving over their version. Click **OK** to save yours anyway (theirs stays in **History**), or
+**Cancel** to keep theirs and reload the page.
 
 The last 100 versions are kept.
 
@@ -288,8 +292,9 @@ Someone editing through a link without an account can't change:
 
 They can't send tests or send the campaign. Their saves show in **History**.
 
-A link works only while the campaign is a draft: once it is scheduled or sent, the link stops working. The
-**Share** box lists the campaign's links, with **Copy** and **Turn off**, as for pages (see
+A link works only while the campaign is a draft and Mailing Lists is turned on. Scheduling, sending,
+approving or cancelling the campaign turns its links off for good: if it goes back to being a draft, make new
+links. The **Share** box lists the campaign's links, with **Copy** and **Turn off**, as for pages (see
 [Sharing a private link](/editors/saving-and-publishing/#sharing-a-private-link)).
 
 ### Sending is for admins

@@ -1,8 +1,10 @@
 // Campaigns (the Mailing Lists screen and the campaign editor). JSON posts { action, id, ... }:
-// create (a draft; a form post from the list goes to its editor), save, test (to the signed-in editor,
+// create (a draft; a form post from the list goes to its editor), save (with `base`, the updated_at it is
+// based on: a stale save is refused with 409), test (to the signed-in editor,
 // and up to 5 more addresses), count (who it would go to now), duplicate, delete (drafts and campaigns
 // that sent nothing). Admins only: schedule (at: local "Y-m-dTH:i"), send (now), pause, resume, cancel,
-// approve (a digest's issue waiting for review), reconcile (Mailgun's totals), unpause (sending site-wide).
+// approve (a digest's issue waiting for review); scheduling, sending, approving and cancelling turn the
+// campaign's share links off (src/lib/share); reconcile (Mailgun's totals), unpause (sending site-wide).
 // Writes here don't change the site's pages (src/lib/cache.ts).
 import type { APIRoute } from 'astro';
 import { serviceClient } from '../../../../lib/db/site';
@@ -15,6 +17,8 @@ import { setPaused } from '../../../../lib/mailing/state';
 import { mailOriginProblem } from '../../../../lib/mailing/contacts';
 import { defaultTemplate } from '../../../../lib/email-templates';
 import { recordCampaignRevision } from '../../../../lib/mailing/revisions';
+import { revokeCampaignShares } from '../../../../lib/share/links';
+import { isStale, STALE } from '../../../../lib/admin/save';
 
 const SENDABLE = ['draft', 'review', 'paused', 'failed'];
 const text = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, max) : '');
@@ -70,6 +74,8 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     case 'save': {
       if (!SENDABLE.includes(c.status) && c.status !== 'scheduled') return fail('A campaign can’t be changed once it is sending.');
       if (c.status !== 'draft' && !admin) return fail('Only admins change scheduled or waiting campaigns.', 403);
+      // Someone else (an editor, or a guest through a share link) saved since this form was loaded.
+      if (isStale(body.base, c.updated_at)) return fail(STALE, 409);
       const f = body.campaign ?? {};
       const patch = {
         name: text(f.name, 200),
@@ -141,6 +147,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
       }
       const { error } = await svc.from('campaigns').update({ status: 'scheduled', scheduled_at: at, sent_by: locals.user!.id, error: '', ...(c.status === 'review' ? { approved_by: locals.user!.id, approved_at: new Date().toISOString() } : {}) }).eq('id', id);
       if (error) return fail(error.message);
+      await revokeCampaignShares(svc, id);
       if (action === 'send') await startSending(id, new URL(request.url).origin);
       return Response.json({ ok: true, scheduled_at: at });
     }
@@ -149,6 +156,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
       const problem = ready();
       if (problem) return fail(problem);
       const { error } = await svc.from('campaigns').update({ status: 'scheduled', approved_by: locals.user!.id, approved_at: new Date().toISOString() }).eq('id', id);
+      if (!error) await revokeCampaignShares(svc, id);
       return error ? fail(error.message) : Response.json({ ok: true });
     }
     case 'unschedule': {
@@ -176,6 +184,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     case 'cancel': {
       if (['sent', 'cancelled'].includes(c.status)) return fail('Already finished.');
       const { error } = await svc.from('campaigns').update({ status: 'cancelled' }).eq('id', id);
+      if (!error) await revokeCampaignShares(svc, id);
       return error ? fail(error.message) : Response.json({ ok: true });
     }
     case 'reconcile': {
