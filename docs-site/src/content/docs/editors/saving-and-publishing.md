@@ -111,7 +111,8 @@ changes.
 ## Sharing a private link
 
 **Share** makes a private link to the page, so someone can see it, and comment on it, before it goes live.
-The link shows the page as it is saved, including changes that aren't published yet.
+Unless you choose otherwise, the link shows the page as it is saved, including changes that aren't
+published yet, and keeps up as you save more.
 
 1. Click **Share** at the top of the editor.
 2. Under **Who can open it**, choose one card. It decides what the link does:
@@ -121,10 +122,22 @@ The link shows the page as it is saved, including changes that aren't published 
      characters, and give it to them separately.
    - **Anyone with the link**: they see the page and can comment on it, with no account or password. Keep
      the link private.
-3. Optional: click **More options** to set:
+3. For a password or anyone link, choose the **Version** it shows:
+   - **Latest saved, with unpublished changes**: what is saved when they open it. It changes as you save.
+   - **The live page, as published**: what visitors see now, without unpublished changes (published
+     pages only).
+   - **A saved version**: one from the list (the same versions as **Revisions**). It stays as it was,
+     whatever you change later.
+4. Optional: click **More options** to set:
    - **Name**: so you know which link is which (for example "Board review"). Only you see it.
    - **Expires**: 30 days from now unless you choose **1 day**, **7 days**, **Never**, or a date and time.
-4. Click **Create link**. The link is copied, ready to paste into an email.
+5. Click **Create link**. The link is copied, ready to paste into an email.
+
+To share one version straight from the list of versions, click **Share** beside it in **Revisions**: the
+Share box opens with that version chosen.
+
+A link to an editor or admin always opens the editor, on the latest version. The bar across the top of a
+shared page says which version it is.
 
 People with a password or anyone link see the page as visitors will (without anything only members see). They can't
 change it or reach any other part of the site's admin.
@@ -208,7 +221,8 @@ and the rest of the page's settings.
 The editor keeps earlier versions of the page. To go back to one:
 
 1. Click **Revisions** on the left side of the editor.
-2. Find the version you want. **Preview** shows it in a new tab.
+2. Find the version you want. **Preview** shows it in a new tab, and **Share** makes a private link to it
+   (see [Sharing a private link](#sharing-a-private-link)).
 3. Click **Restore**. The page in the editor goes back to that version, settings included, and the
    top says **Restored the version from** and its date.
 4. The restored version saves itself as a draft. Click **Publish changes** to put it on the site (or keep

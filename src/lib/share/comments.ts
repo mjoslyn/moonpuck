@@ -88,11 +88,16 @@ function wordsOf(item: Item): string {
 export const plain = (s: string) => s.replace(/<[^>]*>?/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
 /** The blocks of what is shared, as stored: a page's content and its unpublished changes; a newsletter's design. */
-async function sharedBlocks(subject: ShareSubject): Promise<Map<string, { type: string; words: string }> | null> {
+async function sharedBlocks(subject: ShareSubject, link?: ShareLink): Promise<Map<string, { type: string; words: string }> | null> {
   const db = siteDb();
+  // A link to a saved version: its blocks count too (they may since have gone from the page).
+  const snap = link?.version === 'revision' ? (link.snapshot as Record<string, unknown> | null) : null;
   if (subject.kind === 'campaign') {
     const { data } = await db.from('campaigns').select('design').eq('id', subject.id).maybeSingle();
-    return data ? blocksOf(data.design) : null;
+    if (!data) return null;
+    const blocks = blocksOf(data.design);
+    for (const [k, v] of blocksOf(snap?.design)) blocks.set(k, v);
+    return blocks;
   }
   const [{ data: e }, { data: d }] = await Promise.all([
     db.from('entries').select('content, status').eq('id', subject.id).maybeSingle(),
@@ -101,6 +106,7 @@ async function sharedBlocks(subject: ShareSubject): Promise<Map<string, { type: 
   if (!e || e.status === 'trash') return null;
   const blocks = blocksOf(e.content);
   for (const [k, v] of blocksOf(d?.draft?.content)) blocks.set(k, v);
+  for (const [k, v] of blocksOf(snap?.content)) blocks.set(k, v);
   return blocks;
 }
 
@@ -123,7 +129,7 @@ export async function addComment(c: NewComment, by: Commenter): Promise<{ ok: tr
   const body = String(c.body ?? '').trim();
   if (!body) return no('empty', 400);
   if (body.length > COMMENT_MAX) return no('long', 400);
-  const blocks = await sharedBlocks(c.subject);
+  const blocks = await sharedBlocks(c.subject, 'link' in by ? by.link : undefined);
   if (!blocks) return no('missing', 404);
   const block = String(c.block ?? '');
   const found = block ? blocks.get(block) : undefined;

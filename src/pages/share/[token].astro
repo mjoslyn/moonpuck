@@ -4,7 +4,7 @@
 // the password; links open to anyone go straight in. A guest (a view link only: editing is for editors) gets
 // a cookie naming the link, then the page's preview. A newsletter's view link shows its email here, as a
 // sample subscriber gets it, in a sandboxed frame, with a form to comment on it.
-import { site } from '../../lib/site';
+import { site, SITE_TZ } from '../../lib/site';
 import Admin from '../../layouts/Admin.astro';
 import { siteDb } from '../../lib/db/site';
 import { sessionUser } from '../../lib/auth';
@@ -25,14 +25,18 @@ const link = await liveLink(token);
 /** Where a link leads: a page's preview or editor; a newsletter's campaign screen (its edit link, editors only). */
 const target = (l: ShareLink) => (l.campaign_id ? `/admin/mailing-lists/campaigns/${l.campaign_id}/` : l.mode === 'edit' ? `/admin/edit/${l.entry_id}/` : `/admin/preview/${l.entry_id}/`);
 /** A newsletter's email, when its view link is opened. */
-const shown: { email?: CampaignPreview; name?: string; id?: number; blocks?: { id: string; label: string }[]; editor?: boolean } = {};
+const shown: { email?: CampaignPreview; name?: string; id?: number; blocks?: { id: string; label: string }[]; editor?: boolean; versionAt?: string | null } = {};
 /** In through the link: counted, the guest's cookie set (not for login links), on to the page; a
  * newsletter's view link shows its email here (null: render this page). */
 async function enter(l: ShareLink, cookie: boolean, editor = false): Promise<Response | null> {
   await countUse(l);
   if (l.campaign_id && l.mode === 'view') {
-    const { data: c } = await siteDb().from('campaigns').select('id, name, subject, design, text').eq('id', l.campaign_id).maybeSingle();
+    const { data: found } = await siteDb().from('campaigns').select('id, name, subject, design, text').eq('id', l.campaign_id).maybeSingle();
+    // A link to a saved version shows that version, frozen.
+    const snap = l.version === 'revision' ? (l.snapshot as { name?: string; subject?: string; design?: unknown; text?: string } | null) : null;
+    const c = found && snap && 'design' in snap ? { ...found, name: snap.name ?? found.name, subject: snap.subject ?? found.subject, design: snap.design, text: snap.text ?? '' } : found;
     if (c) {
+      shown.versionAt = snap ? l.version_at : null;
       if (cookie) Astro.response.headers.append('Set-Cookie', guestCookie(l));
       shown.email = await previewCampaign(siteDb(), { id: c.id, design: c.design, text: c.text, subject: c.subject }, mailOrigin(Astro.url.origin));
       shown.name = c.name;
@@ -82,7 +86,7 @@ if (link) {
 {shown.email ? (
   <Admin title={shown.email.subject || 'Newsletter'}>
     <div class="mx-auto max-w-3xl">
-      <p class="rounded bg-[#b87333] px-3 py-2 text-sm font-semibold text-white">A newsletter draft shared with you{link?.label ? ` (${link.label})` : ''}: only people with this link can see it.</p>
+      <p class="rounded bg-[#b87333] px-3 py-2 text-sm font-semibold text-white">{shown.versionAt ? `A version of a newsletter draft, saved ${new Date(shown.versionAt).toLocaleString('en-US', { timeZone: SITE_TZ, dateStyle: 'medium', timeStyle: 'short' })}, shared with you` : 'A newsletter draft shared with you'}{link?.label ? ` (${link.label})` : ''}: only people with this link can see it.</p>
       <dl class="mt-4 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
         <dt class="text-admin-muted">Subject</dt><dd class="font-medium">{shown.email.subject || '(no subject)'}</dd>
         <dt class="text-admin-muted">Shown to</dt><dd>A sample subscriber ({shown.email.to.join(', ')})</dd>

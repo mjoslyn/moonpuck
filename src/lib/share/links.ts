@@ -36,7 +36,23 @@ export interface ShareLink {
   last_used_at: string | null;
   created_by: string | null;
   created_at: string;
+  /** Which version a view link shows (`ShareVersion`); edit links open the editor, always the latest. */
+  version: ShareVersion;
+  /** A revision link's revision (revisions, or campaign_revisions for a newsletter), when it was saved, and
+   * its frozen copy (`VersionSnapshot`): later saves, autosaves rewriting that row included, don't change it. */
+  revision_id: number | null;
+  version_at: string | null;
+  snapshot: VersionSnapshot | null;
 }
+
+/** The latest saved version (unpublished changes included, as it is when opened); a page's published
+ * version; or one saved revision, frozen. */
+export type ShareVersion = 'latest' | 'live' | 'revision';
+export const SHARE_VERSIONS: ShareVersion[] = ['latest', 'live', 'revision'];
+
+/** A revision as a link keeps it: a page's content, settings and (saved in layout mode) template; a
+ * newsletter's name, subject, design and plain text. */
+export type VersionSnapshot = { content: unknown; entry: Record<string, unknown> | null; template?: unknown[] } | { name: string; subject: string; design: unknown; text: string };
 
 export const SHARE_MODES: ShareMode[] = ['view', 'edit'];
 export const SHARE_ACCESS: ShareAccess[] = ['login', 'password', 'anyone'];
@@ -45,7 +61,7 @@ export const SHARE_PASSWORD_MIN = 6;
 /** How long a guest's cookie lasts (less when the link expires sooner). */
 const COOKIE_DAYS = 7;
 
-const COLUMNS = 'id, token, entry_id, campaign_id, mode, access, password_hash, label, expires_at, revoked_at, uses, last_used_at, created_by, created_at';
+const COLUMNS = 'id, token, entry_id, campaign_id, mode, access, password_hash, label, expires_at, revoked_at, uses, last_used_at, created_by, created_at, version, revision_id, version_at, snapshot';
 
 export const SHARE_COOKIE = 'site.share';
 /** What a link is for. */
@@ -183,6 +199,9 @@ export interface NewShare {
   label?: string;
   /** ISO date and time; null or empty for none; left out, `SHARE_DEFAULT_DAYS` from now. */
   expires?: string | null;
+  /** Which version it shows (view links; default `latest`), and for `revision` which one. */
+  version?: ShareVersion;
+  revision?: number;
 }
 
 /** A link's settings checked: what's wrong with them, or null. */
@@ -194,6 +213,10 @@ export function shareProblem(s: Partial<NewShare>): string | null {
   if (s.mode === 'edit' && s.access !== 'login') return 'Edit links are for signed-in editors and admins only.';
   if (s.access === 'password' && (s.password ?? '').length < SHARE_PASSWORD_MIN) return `The password needs at least ${SHARE_PASSWORD_MIN} characters.`;
   if (s.expires && (Number.isNaN(Date.parse(s.expires)) || Date.parse(s.expires) <= Date.now())) return 'The expiry must be in the future.';
+  if (s.version && !SHARE_VERSIONS.includes(s.version)) return 'Choose a version.';
+  if (s.version && s.version !== 'latest' && s.mode === 'edit') return 'Editor links open the latest version.';
+  if (s.version === 'live' && s.campaign) return 'A newsletter draft has no live version.';
+  if (s.version === 'revision' && !ok(s.revision)) return 'Choose a saved version.';
   return null;
 }
 
@@ -213,6 +236,13 @@ export async function createShare(s: NewShare, by: string | null): Promise<Share
   if (!s.mode) s = { ...s, mode: modeFor(s.access) };
   const problem = shareProblem(s);
   if (problem) throw new Error(problem);
+  const version = s.version ?? 'latest';
+  const frozen = version === 'revision' ? await revisionSnapshot(s.entry ? { kind: 'entry', id: s.entry } : { kind: 'campaign', id: s.campaign! }, s.revision!) : null;
+  if (version === 'revision' && !frozen) throw new Error('That saved version isn’t this page’s or newsletter’s.');
+  if (version === 'live') {
+    const { data: e } = await siteDb().from('entries').select('status').eq('id', s.entry!).maybeSingle();
+    if (e?.status !== 'publish') throw new Error('The page isn’t published, so it has no live version.');
+  }
   const row = {
     token: newToken(),
     entry_id: s.entry ?? null,
@@ -223,10 +253,30 @@ export async function createShare(s: NewShare, by: string | null): Promise<Share
     label: String(s.label ?? '').trim().slice(0, 120),
     expires_at: s.expires ? new Date(s.expires).toISOString() : null,
     created_by: by || null,
+    version,
+    revision_id: frozen ? s.revision! : null,
+    version_at: frozen?.at ?? null,
+    snapshot: frozen?.snapshot ?? null,
   };
   const { data, error } = await siteDb().from('share_links').insert(row).select(COLUMNS).single();
   if (error) throw new Error(error.message);
   return data as ShareLink;
+}
+
+/** A saved version of what is shared, frozen for a link: a page's revision (its content, settings and,
+ * saved in layout mode, template) or a newsletter's (name, subject, design, plain text), with when it was
+ * saved; null when it isn't one of the subject's. */
+export async function revisionSnapshot(subject: ShareSubject, id: number): Promise<{ snapshot: VersionSnapshot; at: string } | null> {
+  const db = siteDb();
+  if (subject.kind === 'campaign') {
+    const { data: r } = await db.from('campaign_revisions').select('campaign_id, name, subject, design, text, created_at').eq('id', id).maybeSingle();
+    if (!r || r.campaign_id !== subject.id) return null;
+    return { snapshot: { name: r.name, subject: r.subject, design: r.design, text: r.text }, at: r.created_at };
+  }
+  const { data: r } = await db.from('revisions').select('entry_id, title, content, fields, entry, template, created_at, saved_at').eq('id', id).maybeSingle();
+  if (!r || r.entry_id !== subject.id) return null;
+  const template = Array.isArray((r.template as any)?.content?.content) ? ((r.template as any).content.content as unknown[]) : undefined;
+  return { snapshot: { content: r.content, entry: (r.entry as Record<string, unknown> | null) ?? { title: r.title, fields: r.fields }, ...(template ? { template } : {}) }, at: r.saved_at ?? r.created_at };
 }
 
 /** Turn off a campaign's links (it was scheduled, sent, approved or cancelled), so going back to a draft
@@ -246,5 +296,5 @@ export async function revokeShare(id: number): Promise<void> {
 export async function sharesOf(subject: ShareSubject): Promise<(Omit<ShareLink, 'password_hash'> & { live: boolean })[]> {
   const { data, error } = await siteDb().from('share_links').select(COLUMNS).eq(subject.kind === 'campaign' ? 'campaign_id' : 'entry_id', subject.id).order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
-  return (data ?? []).map(({ password_hash: _p, ...l }: ShareLink) => ({ ...l, live: isLive(l) }));
+  return (data ?? []).map(({ password_hash: _p, snapshot: _s, ...l }: ShareLink) => ({ ...l, snapshot: null, live: isLive(l) }));
 }

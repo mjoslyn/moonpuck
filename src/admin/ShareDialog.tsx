@@ -21,6 +21,8 @@ interface Link {
   last_used_at: string | null;
   created_at: string;
   created_by_name: string;
+  version: 'latest' | 'live' | 'revision';
+  version_at: string | null;
   live: boolean;
 }
 
@@ -67,8 +69,10 @@ function inDays(days: number): string {
   const p = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
-const when = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' });
+/** Times in the site's time zone, as Revisions and History show them. */
+const tz = () => ((globalThis as any).__siteTz as string | undefined) || undefined;
+const when = (iso: string) => new Date(iso).toLocaleString('en-US', { timeZone: tz(), dateStyle: 'medium', timeStyle: 'short' });
+const day = (iso: string) => new Date(iso).toLocaleDateString('en-US', { timeZone: tz(), dateStyle: 'medium' });
 
 function Icon({ children, className = 'h-4 w-4' }: { children: ReactNode; className?: string }) {
   return (
@@ -81,7 +85,16 @@ function Icon({ children, className = 'h-4 w-4' }: { children: ReactNode; classN
 /** What is shared: an entry (a page) or a campaign (a newsletter draft). */
 export type ShareTarget = { entry: number } | { campaign: number };
 
-export default function ShareDialog({ target, title, onClose }: { target: ShareTarget; title: string; onClose: () => void }) {
+/** A saved version a view link can show (GET /api/admin/shares?versions). */
+interface Version {
+  id: number;
+  at: string;
+  by: string;
+  action: string;
+}
+const ACTIONS: Record<string, string> = { draft: 'draft saved', publish: 'published', unpublish: 'unpublished', save: 'saved', autosave: 'autosaved' };
+
+export default function ShareDialog({ target, title, onClose, revision }: { target: ShareTarget; title: string; onClose: () => void; /** A saved version to share, chosen from Revisions. */ revision?: number }) {
   const email = 'campaign' in target;
   const what = email ? 'email' : 'page';
   const query = email ? `campaign=${target.campaign}` : `entry=${target.entry}`;
@@ -102,6 +115,9 @@ export default function ShareDialog({ target, title, onClose }: { target: ShareT
   const [offBusy, setOffBusy] = useState(false);
   const first = useRef<HTMLInputElement>(null);
   const passwordBox = useRef<HTMLInputElement>(null);
+  /** The version a view link shows: 'latest', 'live' or a saved version's id. */
+  const [version, setVersion] = useState<string>(revision ? String(revision) : 'latest');
+  const [versions, setVersions] = useState<{ live: boolean; versions: Version[] } | null>(null);
   const chooseAccess = (a: Access) => {
     setAccess(a);
     if (a === 'password') requestAnimationFrame(() => passwordBox.current?.focus());
@@ -119,6 +135,10 @@ export default function ShareDialog({ target, title, onClose }: { target: ShareT
   useEffect(() => {
     load();
     first.current?.focus();
+    fetch(`/api/admin/shares?${query}&versions=1`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setVersions)
+      .catch(() => null);
   }, []);
 
   const copy = async (url: string) => {
@@ -139,7 +159,9 @@ export default function ShareDialog({ target, title, onClose }: { target: ShareT
     }
     setBusy(true);
     setError('');
-    const body = { action: 'create', ...target, mode, access, password: access === 'password' ? password : undefined, label, expires: expires ? new Date(expires).toISOString() : null };
+    // Editor links open the latest version; view links the one chosen.
+    const chosen = mode === 'edit' || version === 'latest' ? { version: 'latest' } : version === 'live' ? { version: 'live' } : { version: 'revision', revision: Number(version) };
+    const body = { action: 'create', ...target, mode, access, password: access === 'password' ? password : undefined, label, expires: expires ? new Date(expires).toISOString() : null, ...chosen };
     const res = await fetch('/api/admin/shares', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null);
     setBusy(false);
     if (!res?.ok) return setError((res && (await res.text())) || 'Couldn’t make the link. Try again.');
@@ -230,6 +252,28 @@ export default function ShareDialog({ target, title, onClose }: { target: ShareT
               <label className="mt-3 block">
                 <span className="mb-1 block text-xs font-medium text-admin-muted">Password (at least {MIN_PASSWORD} characters; give it to them separately)</span>
                 <input ref={passwordBox} className={field} type="text" autoComplete="off" spellCheck={false} value={password} onChange={(e) => setPassword(e.target.value)} />
+              </label>
+            )}
+
+            {mode === 'view' && (
+              <label className="mt-4 block">
+                <span className="mb-1 block text-xs font-semibold tracking-wide text-admin-muted uppercase">Version</span>
+                <select className={field} value={version} onChange={(e) => setVersion(e.target.value)}>
+                  <option value="latest">Latest saved{email ? '' : ', with unpublished changes'} (updates as it changes)</option>
+                  {versions?.live && <option value="live">The live page, as published</option>}
+                  {versions && versions.versions.length > 0 && (
+                    <optgroup label="A saved version (stays as it was)">
+                      {versions.versions.map((v) => (
+                        <option key={v.id} value={String(v.id)}>
+                          {when(v.at)}
+                          {v.action && ACTIONS[v.action] ? `, ${ACTIONS[v.action]}` : ''}
+                          {v.by ? ` by ${v.by}` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {revision && !versions && <option value={String(revision)}>The version chosen in Revisions</option>}
+                </select>
               </label>
             )}
 
@@ -331,6 +375,9 @@ export default function ShareDialog({ target, title, onClose }: { target: ShareT
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="font-medium text-admin-ink">{l.label || (l.mode === 'edit' ? 'Editor link' : 'Comment link')}</span>
                       <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${l.mode === 'edit' ? 'bg-admin-accent/10 text-admin-accent' : 'bg-admin-ink/5 text-admin-muted'}`}>{l.mode === 'edit' ? 'Opens the editor' : 'View and comment'}</span>
+                      {l.mode === 'view' && l.version !== 'latest' && (
+                        <span className="rounded-full bg-[#6b8f71]/10 px-2 py-0.5 text-[11px] font-medium text-[#4d6b52]">{l.version === 'live' ? 'Live page' : `Version of ${l.version_at ? day(l.version_at) : 'earlier'}`}</span>
+                      )}
                       <span className="inline-flex items-center gap-1 rounded-full bg-admin-ink/5 px-2 py-0.5 text-[11px] text-admin-muted">
                         <Icon className="h-3 w-3">{ACCESS[l.access].icon}</Icon>
                         {ACCESS[l.access].label}

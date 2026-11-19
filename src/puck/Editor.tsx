@@ -325,7 +325,8 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
   // Only when the selected block or its data changed (a new object each time would re-render Puck in a loop).
   const setSelection = useCallback((next: Selection | null) => setSelectionState((prev) => (prev?.item === next?.item && prev?.top === next?.top ? prev : next)), []);
   const [composeOpen, setComposeOpen] = useState(() => readPinned() || new URLSearchParams(location.search).has('compose'));
-  const [sharing, setSharing] = useState(false);
+  /** The Share dialog: open, with a saved version chosen in Revisions when it was opened from there. */
+  const [sharing, setSharing] = useState<false | { revision?: number }>(false);
   const pin = (on: boolean) => {
     setPinned(on);
     try {
@@ -663,7 +664,7 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
     <div className="cms-editor-frame relative min-h-0 flex-1">
     <EnvContext.Provider value={env}>
       <CommentsContext.Provider value={{ entryId: entry?.id ?? null }}>
-      <RevisionsContext.Provider value={{ entryId: entry?.id ?? null, version: revisionsVersion, layout: mode === 'layout' ? templateSlug : null, canRestore: (r) => !!entry && canRestore(r), restore }}>
+      <RevisionsContext.Provider value={{ entryId: entry?.id ?? null, version: revisionsVersion, layout: mode === 'layout' ? templateSlug : null, canRestore: (r) => !!entry && canRestore(r), restore, share: (id) => setSharing({ revision: id }) }}>
       <A11yMarksContext.Provider value={{ save: saveA11yMarks, quiet: () => (marksOnly.current = true), gate: gated() }}>
       <ViewContext.Provider value={{ env, chrome, sources: admin ? templateSlug : null, form: { type: entry?.type ?? '', id: entry?.id ?? null, state, setState: (v) => { stateRef.current = v; setState(v); edited(); }, templates } }}>
       <Puck
@@ -727,7 +728,7 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
               )}
               {entry && liveStatus === 'publish' && <a href={viewUrl} target="_blank" className="whitespace-nowrap text-sm text-admin-muted hover:text-admin-accent">View live</a>}
               {entry && (
-                <button type="button" onClick={() => setSharing(true)} className="whitespace-nowrap text-sm text-admin-muted hover:text-admin-accent" title="Make a private link to view or edit this page">
+                <button type="button" onClick={() => setSharing({})} className="whitespace-nowrap text-sm text-admin-muted hover:text-admin-accent" title="Make a private link to view or edit this page">
                   Share
                 </button>
               )}
@@ -765,7 +766,7 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
     </EnvContext.Provider>
     </div>
     </div>
-    {sharing && entry && <ShareDialog target={{ entry: entry.id }} title={state?.title || entry.title || '(untitled)'} onClose={() => setSharing(false)} />}
+    {sharing && entry && <ShareDialog target={{ entry: entry.id }} title={state?.title || entry.title || '(untitled)'} revision={sharing.revision} onClose={() => setSharing(false)} />}
     {held && (
       <A11yHoldDialog
         held={held}
@@ -946,6 +947,8 @@ interface RevisionsApi {
   layout: string | null;
   canRestore: (r: RevisionRow) => boolean;
   restore: (r: RevisionRow) => void;
+  /** Open the Share dialog with this saved version chosen. */
+  share: (id: number) => void;
 }
 const RevisionsContext = createContext<RevisionsApi | null>(null);
 const ACTIONS: Record<string, string> = { draft: 'Draft saved', publish: 'Published', unpublish: 'Unpublished', save: 'Saved', autosave: 'Autosaved' };
@@ -1018,6 +1021,9 @@ function RevisionsPanel() {
                 <a href={`/admin/preview/${api.entryId}/?revision=${r.id}`} target="_blank" rel="noopener" className="text-admin-muted underline hover:text-admin-accent">
                   Preview
                 </a>
+                <button type="button" className="text-admin-muted underline hover:text-admin-accent" title="Make a private link to this version, to view and comment on" onClick={() => api.share(r.id)}>
+                  Share
+                </button>
                 {api.canRestore(r) && (
                   <button type="button" className="text-admin-muted underline hover:text-admin-accent" onClick={() => api.restore(r)}>
                     Restore
