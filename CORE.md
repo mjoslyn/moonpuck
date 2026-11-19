@@ -416,6 +416,40 @@ terms, an entry's template, the Patterns tab, the Part block) leave it out; its 
 list's Trash, which restores it or deletes it for good (only from the trash). A part that is missing or has
 no blocks renders nothing. Sync carries `trashed_at` with the row.
 
+## Share links
+
+**Share** in the page editor's header (`src/admin/ShareDialog.tsx`; GET and POST `/api/admin/shares`,
+editors; `src/lib/share/links.ts`; table `share_links`, migration `*_share_links.sql`, the server's only,
+not synced or backed up) makes private links to an entry with a page: `/share/<token>/` (a random 32
+characters, `src/pages/share/[token].astro`, noindex, never cached, `Referrer-Policy: same-origin`).
+Each has a `mode` (`view`: the preview; `edit`: the editor, drafts only), an `access` (`login`: signed-in
+editors and admins, others sent to sign in; `password`: scrypt `password_hash`, wrong tries limited per
+link and visitor, `share-password` in `src/lib/auth/attempts.ts`; `anyone`), an optional `label` and
+`expires_at`, and counts its uses (`uses`, `last_used_at`). Revoking (`revoked_at`), expiry and the entry
+going to the trash end it (`liveLink`). Login links send editors to `/admin/preview/<id>/` or
+`/admin/edit/<id>/`. Password and anyone links set a guest's cookie (`site.share`, HttpOnly, a week or
+until the link expires) signed with a key made from `AUTH_SECRET` over the token, access and password
+hash (`cookieValue`), so a new password or protection ends it too; the middleware reads the link again on
+each request (`guestLink`) and, for someone without an editor's session, lets it reach only that entry's
+preview and, for edit links, its editor, `/api/admin/db`, its `PUT /api/admin/entries/<id>` and
+`/api/admin/me` (`guestMay`), as the `guest` role (`locals.user.role`, `locals.share`).
+
+The `guest` role (`src/lib/db/access.ts`, `editorsOrGuests`) reads its entry (and its unpublished changes
+and revisions), published entries that aren't members-only, terms, media, templates and the `site` and
+`options` settings, and writes nothing; it calls no functions. Its preview renders as visitors see the
+site (`renderPreview`, `src/lib/admin/preview.ts`, `guest`). The editor (`guest` prop) shows Save draft
+only (no Publish, Discard, Unpublish, Compose, Share or Duplicate), the entry form's title, excerpt,
+featured image, an event's dates and the type's fields (`EntryForm`'s `guest`), no HTML or Embed blocks
+to insert (those on the page can be moved or removed, not edited); a page in layout mode isn't editable.
+A guest's save (`guestSave` in the entries API, then saved as the server) takes `draft` only and no
+template; `guestContent` (`src/lib/share/guest-content.ts`) refuses an HTML or Embed block (`GUEST_BLOCKED`)
+or imported markup (`props.html`, `props.saved`) added or changed (a site block that writes a setting
+unescaped is not covered: escape it), and cleans every value the guest
+changed (inline formatting and safe links, `cleanInlineHtml`; addresses in `*href`, `*url`, `*src`,
+`*link`, `*poster`, `*website` settings, `isSafeUrl`); `guestEntry` keeps the address, template, terms and
+tags, and the fields `access`, `ticket` and `tickets`, as they were. The same checks apply to a guest's
+unsaved preview. Its revisions have no author and the note `Saved through a share link (<label>)`.
+
 ## Redirects
 
 Settings > Redirects (admins; `/admin/redirects/` forwards there): old address to new (301 or 302), exact or a prefix ending in `*` whose
@@ -1946,6 +1980,8 @@ takes more, so local runs don't show these): a row's `json_object` has 16 column
   campaigns only as drafts, change digests only while off and change their
   own profile but not its role; anyone else gets nothing. Reads a role may not make return no rows;
   refused inserts, and writes whose rows fail a check, are errors and write nothing.
+- A share link's guest (`role: 'guest'`, `entryId`) reads only what its entry's editor needs and writes
+  nothing (see Share links).
 - The admin screens in the browser (`browserClient`, `src/lib/db/browser.ts`) send their queries
   to `POST /api/admin/db`, which runs them as the signed-in editor; only its writes clear the page
   cache. Of the functions, editors may call `campaign_stats` and `ticket_sold`; the rest are the

@@ -1,0 +1,73 @@
+---
+// A share link (src/lib/share/links.ts): /share/<token>/. Login links send signed-in editors and admins to
+// the page's preview or editor (others sign in first); password links ask for the password; links open to
+// anyone go straight in. A guest gets a cookie naming the link, then the preview (view) or editor (edit).
+import { site } from '../../lib/site';
+import Admin from '../../layouts/Admin.astro';
+import { siteDb } from '../../lib/db/site';
+import { sessionUser } from '../../lib/auth';
+import { clearAttempts, overLimit, recordAttempt } from '../../lib/auth/attempts';
+import { cookieFits, cookieToken, countUse, guestCookie, liveLink, passwordOpens, sharePath, type ShareLink } from '../../lib/share/links';
+
+const token = Astro.params.token ?? '';
+const headers = { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex', 'Referrer-Policy': 'same-origin' };
+for (const [k, v] of Object.entries(headers)) Astro.response.headers.set(k, v);
+
+const link = await liveLink(token);
+const target = (l: ShareLink) => (l.mode === 'edit' ? `/admin/edit/${l.entry_id}/` : `/admin/preview/${l.entry_id}/`);
+/** In through the link: counted, the guest's cookie set (not for login links), on to the page. */
+async function enter(l: ShareLink, cookie: boolean) {
+  await countUse(l);
+  const h = new Headers({ ...headers, Location: target(l) });
+  if (cookie) h.append('Set-Cookie', guestCookie(l));
+  return new Response(null, { status: 303, headers: h });
+}
+
+let error = '';
+if (link) {
+  if (link.access === 'login') {
+    const user = await sessionUser(Astro.request);
+    const { data: profile } = user ? await siteDb().from('profiles').select('role').eq('id', user.id).maybeSingle() : { data: null };
+    if (!profile || !['editor', 'admin'].includes(profile.role)) return Astro.redirect(`/admin/login/?next=${encodeURIComponent(sharePath(token))}`);
+    return enter(link, false);
+  }
+  if (link.access === 'anyone') return enter(link, true);
+  // A password link: in at once with this link's cookie, else the password.
+  const had = cookieToken(Astro.request);
+  if (had?.token === link.token && cookieFits(link, had.sig)) return enter(link, false);
+  if (Astro.request.method === 'POST') {
+    const password = String((await Astro.request.formData()).get('password') ?? '');
+    if (await overLimit('share-password', token, Astro.request)) error = 'Too many tries. Please wait a while and try again.';
+    else if (await passwordOpens(link, password)) {
+      await clearAttempts('share-password', token);
+      return enter(link, true);
+    } else {
+      await recordAttempt('share-password', token, Astro.request);
+      error = 'That password isn’t right.';
+    }
+  }
+} else Astro.response.status = 404;
+---
+<Admin title={link ? 'Enter the password' : 'Link not found'}>
+  <div class="mx-auto mt-24 max-w-sm">
+    {link ? (
+      <>
+        <h1 class="text-3xl font-normal">Enter the password</h1>
+        <p class="mt-2 text-sm text-admin-muted">{site.organization} shared {link.mode === 'edit' ? 'a page for you to edit' : 'a page with you'}{link.label ? ` (${link.label})` : ''}. It is protected by a password.</p>
+        {error && <p role="alert" class="mt-6 rounded border border-[#c4592a]/30 bg-[#c4592a]/5 px-3 py-2 text-sm text-[#c4592a]">{error}</p>}
+        <form method="post" class="mt-6 space-y-4">
+          <label class="block text-sm">
+            <span class="mb-1 block font-medium">Password</span>
+            <input name="password" type="password" required autofocus autocomplete="off" class="w-full rounded border border-admin-ink/20 bg-white px-3 py-2 outline-none focus:border-admin-accent" />
+          </label>
+          <button class="w-full rounded-sm bg-admin-ink px-4 py-2.5 text-sm font-semibold tracking-wider text-white uppercase hover:bg-admin-accent">Open</button>
+        </form>
+      </>
+    ) : (
+      <>
+        <h1 class="text-3xl font-normal">This link doesn’t work</h1>
+        <p class="mt-2 text-sm text-admin-muted">It may have expired or been turned off. Ask the person who shared it for a new one.</p>
+      </>
+    )}
+  </div>
+</Admin>

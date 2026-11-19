@@ -368,7 +368,9 @@ function ExcerptWriter({ type, title, pageItems, onWrite }: { type: string; titl
   );
 }
 
-export function EntryForm({ type, id, value, onChange, templates, pageItems }: { type: string; id?: number | null; value: EntryState; onChange: (v: EntryState) => void; templates: TemplateInfo[]; pageItems?: () => any[] }) {
+/** `guest`: someone editing through a share link (src/lib/share), who changes only the title, excerpt,
+ * featured image, an event's dates and the type's fields; the rest isn't shown to them. */
+export function EntryForm({ type, id, value, onChange, templates, pageItems, guest = false }: { type: string; id?: number | null; value: EntryState; onChange: (v: EntryState) => void; templates: TemplateInfo[]; pageItems?: () => any[]; guest?: boolean }) {
   const set = (patch: Partial<EntryState>) => onChange({ ...value, ...patch });
   const defs = fieldsFor(type);
   const shopIsOn = useShopOn() === true;
@@ -386,8 +388,8 @@ export function EntryForm({ type, id, value, onChange, templates, pageItems }: {
           set({ title: x, ...(follow && slugify(x) ? { slug: slugify(x) } : {}) });
         }}
       />
-      <Text title="Slug" value={value.slug} onChange={(x) => set({ slug: x.toLowerCase().replace(/[^a-z0-9-]+/g, '-') })} />
-      {!PAGELESS_TYPES.has(type) && (
+      {!guest && <Text title="Slug" value={value.slug} onChange={(x) => set({ slug: x.toLowerCase().replace(/[^a-z0-9-]+/g, '-') })} />}
+      {!guest && !PAGELESS_TYPES.has(type) && (
         <>
           <Select title="Template" value={value.template ?? ''} options={templates.map((t) => [t.slug, templateLabel(t)])} onChange={(x) => set({ template: x ?? null })} />
           {value.template && templates.some((t) => t.slug === value.template && !t.content) && <p className="-mt-2 mb-3 text-xs text-[#b3261e]">{NO_CONTENT_WARNING}</p>}
@@ -397,12 +399,12 @@ export function EntryForm({ type, id, value, onChange, templates, pageItems }: {
       <Row title="Excerpt">
         <textarea className={inputClass} rows={3} value={value.excerpt} onChange={(e) => set({ excerpt: e.target.value })} />
       </Row>
-      <ExcerptWriter type={type} title={value.title} pageItems={pageItems} onWrite={(excerpt) => set({ excerpt })} />
+      {!guest && <ExcerptWriter type={type} title={value.title} pageItems={pageItems} onWrite={(excerpt) => set({ excerpt })} />}
       <MediaPicker title="Featured image" url={value.featured_image ?? undefined} mediaId={(value as any).featured_media_id} onSelect={(m) => set({ featured_image: m.url, featured_media_id: m.id })} />
-      {taxonomiesOf(type).map((tax) => (
+      {!guest && taxonomiesOf(type).map((tax) => (
         <EntryTermsField key={tax} taxonomy={tax} value={value.terms?.[tax] ?? []} onChange={(ids) => set({ terms: { ...(value.terms ?? {}), [tax]: ids } })} />
       ))}
-      {type !== 'global' && <TagsField value={value.tags ?? []} onChange={(tags) => set({ tags })} />}
+      {!guest && type !== 'global' && <TagsField value={value.tags ?? []} onChange={(tags) => set({ tags })} />}
       {type === 'event' && (
         <>
           <Row title="Starts">
@@ -443,20 +445,20 @@ export function EntryForm({ type, id, value, onChange, templates, pageItems }: {
           <FieldsForm defs={defs} value={value.fields} onChange={(fields) => set({ fields })} />
         </details>
       )}
-      {type === 'event' && (
+      {!guest && type === 'event' && (
         <details open className="mt-4 border-t border-admin-ink/10 pt-3">
           <summary className="mb-2 cursor-pointer text-xs font-semibold tracking-wider text-admin-muted uppercase">Tickets</summary>
           <EventTicketPicker ticket={Number(value.fields?.ticket) || 0} title={value.title} />
         </details>
       )}
-      {type === 'product' && shopIsOn && (
+      {!guest && type === 'product' && shopIsOn && (
         <details open className="mt-4 border-t border-admin-ink/10 pt-3">
           <summary className="mb-2 cursor-pointer text-xs font-semibold tracking-wider text-admin-muted uppercase">Shop</summary>
           <ProductForm entryId={id ?? null} fields={value.fields} onChange={(fields) => set({ fields })} />
         </details>
       )}
-      {!PAGELESS_TYPES.has(type) && <AccessForm fields={value.fields} onChange={(fields) => set({ fields })} />}
-      {!PAGELESS_TYPES.has(type) && (
+      {!guest && !PAGELESS_TYPES.has(type) && <AccessForm fields={value.fields} onChange={(fields) => set({ fields })} />}
+      {!guest && !PAGELESS_TYPES.has(type) && (
         <details open className="mt-4 border-t border-admin-ink/10 pt-3">
           <summary className="mb-2 cursor-pointer text-xs font-semibold tracking-wider text-admin-muted uppercase">SEO</summary>
           <SeoForm type={type} title={value.title} excerpt={value.excerpt} fields={value.fields} path={permalink({ type, slug: value.slug })} pageItems={pageItems} entry onChange={(fields) => set({ fields })} />

@@ -32,6 +32,8 @@ The toolbar under it has:
 - **Compose**: opens Claude beside the page (see [Writing with Claude](/editors/writing-with-claude/)).
 - **Preview**: the page as it will look, including changes you haven't saved.
 - **View live**: the published page, in a new tab.
+- **Share**: a private link to view or edit the page (see
+  [Sharing a private link](/editors/saving-and-publishing/#sharing-a-private-link)).
 - **Duplicate**: makes a draft copy of the page and opens it.
 - **Save draft** and **Publish** (or **Publish changes**).
 

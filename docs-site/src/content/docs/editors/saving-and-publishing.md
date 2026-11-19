@@ -1,6 +1,6 @@
 ---
 title: Saving and publishing
-description: "Autosave, drafts, publishing, previewing, taking a page off the site and going back to an earlier version."
+description: "Autosave, drafts, publishing, previewing, sharing a private link, taking a page off the site and going back to an earlier version."
 sidebar:
   order: 3
 ---
@@ -31,6 +31,7 @@ From left to right, the top of the editor has:
 | **Compose** | Opens the Compose panel (see [Writing with Claude](/editors/writing-with-claude/)). |
 | **Preview** | Shows the page as it will look, in a new tab. |
 | **View live** | Only on a published page: opens it as visitors see it now. |
+| **Share** | Makes a private link to the page (see [Sharing a private link](#sharing-a-private-link)). |
 | **Duplicate** | Makes a draft copy (see [Making a copy](/editors/pages-and-posts/#making-a-copy)). |
 | **Save draft** | Saves without publishing. |
 | **Publish** or **Publish changes** | Puts the page, or your changes, on your site. |
@@ -106,6 +107,53 @@ and search engines never list it.
 
 **View live** (on published pages) shows the page as visitors see it now, without your unpublished
 changes.
+
+## Sharing a private link
+
+**Share** makes a private link to the page, so someone can see it, or work on it, before it goes live.
+The link shows the page as it is saved, including changes that aren't published yet.
+
+1. Click **Share** at the top of the editor.
+2. Under **People with the link can**, choose one:
+   - **View the page**: they see it, nothing more.
+   - **Edit it as a draft**: they open it in the editor and change it. Their changes are saved as a
+     draft. Only you and the other editors can publish them.
+3. Under **Who can open it**, choose one:
+   - **Signed-in editors and admins**: only people who look after the site. Anyone else is asked to sign
+     in.
+   - **Anyone with the link and the password**: type a password of at least 6 characters, and give it
+     to them separately.
+   - **Anyone with the link**: no account or password needed. Keep the link private.
+4. Optional: give it a **Name** (for example "Board review"), so you know which link is which.
+5. Optional: set **Expires** to a date and time. The link stops working then.
+6. Click **Make link**. The link is copied, ready to paste into an email.
+
+Someone editing through a link without an account can:
+
+- Change the page's blocks, its title, excerpt, featured image and details.
+- Save their work (it also saves itself as they go) and preview it.
+
+They can't:
+
+- Publish, unpublish or discard changes.
+- Change the page's address, template, categories, tags, members setting or SEO.
+- Add HTML or Embed blocks, or change the ones already on the page. They can move or remove them.
+- Upload files, use Compose, or open any other part of the site's admin.
+
+Anything they type is cleaned: only bold, italic, links and the like are kept, and links must go to
+web, email or phone addresses. A page whose content is part of its template (such as some home pages)
+can be viewed through a link but not edited.
+
+Their changes show in **Revisions** with the note **Saved through a share link** and the link's name.
+Look them over, then publish.
+
+### Turning a link off
+
+The **Share** box lists the page's links, with who can open each, when it expires, and how many times it
+has been opened. **Copy** copies a link again. **Turn off** stops it at once: anyone using it loses
+access straight away. Links that are turned off or expired are listed under **Turned off or expired**.
+
+A link also stops working when the page is moved to the trash.
 
 ## Taking a page off the site
 

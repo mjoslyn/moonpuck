@@ -7,12 +7,14 @@ import { createHash } from 'node:crypto';
 import { siteDb } from '../db/site';
 import { clientIp } from '../mailing/request';
 
-export type AttemptKind = 'sign-in' | 'password-link';
+export type AttemptKind = 'sign-in' | 'password-link' | 'share-password';
 
-/** Failed sign-ins in 15 minutes, and password links asked for in an hour. */
+/** Failed sign-ins in 15 minutes, password links asked for in an hour, and wrong share link passwords in 15 minutes. */
 const LIMITS: Record<AttemptKind, { window: number; email: number; ip: number }> = {
   'sign-in': { window: 15 * 60_000, email: 10, ip: 30 },
   'password-link': { window: 3600_000, email: 3, ip: 20 },
+  // A share link's password (src/lib/share): counted per link (its token in place of an address).
+  'share-password': { window: 15 * 60_000, email: 20, ip: 10 },
 };
 
 const hash = (s: string) => createHash('sha256').update(s).digest('base64url');

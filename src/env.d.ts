@@ -3,7 +3,9 @@
 declare namespace App {
   interface Locals {
     db: import('./lib/db/query').Db;
-    user: { id: string; email: string; role: 'editor' | 'admin'; name: string };
+    /** `guest`: someone using a share link (src/lib/share), with `share` the link. */
+    user: { id: string; email: string; role: 'editor' | 'admin' | 'guest'; name: string };
+    share?: import('./lib/share/links').ShareLink;
   }
 }
 

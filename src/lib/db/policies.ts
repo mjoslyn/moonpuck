@@ -5,10 +5,10 @@
 // rows fail a check are errors; updates and deletes reach only the rows the role may change. A site's
 // own tables (its plugins' too) have theirs in src/site/db.ts.
 import type { Filter } from './query';
-import { admins, adminsOrEditorsWhen, all, editors, nobody, readOnly, type Ctx, type Rule, type TablePolicy } from './access';
+import { admins, adminsOrEditorsWhen, all, editors, editorsOrGuests, nobody, readOnly, type Ctx, type Rule, type TablePolicy } from './access';
 import { SITE_POLICIES } from '../../site/db';
 
-export type { Access, Ctx, Role, Rule, TablePolicy } from './access';
+export type { Access, Ctx, ReadAccess, Role, Rule, TablePolicy } from './access';
 
 export const POLICIES: Record<string, TablePolicy> = {
   campaign_batches: readOnly(editors),
@@ -23,15 +23,17 @@ export const POLICIES: Record<string, TablePolicy> = {
   compose_jobs: all(editors, editors),
   compose_sessions: all(editors, editors),
   email_templates: all(editors, editors),
-  entries: all(editors, editors),
-  entry_drafts: all(editors, editors),
-  entry_terms: all(editors, editors),
+  // A guest (a share link) reads their own entry and the site's published, open ones (for collections
+  // and links in the canvas), never members-only ones.
+  entries: all(editorsOrGuests((c) => ({ any: [{ col: 'id', op: 'eq', value: c.entryId }, { all: [{ col: 'status', op: 'eq', value: 'publish' }, { any: [{ col: 'fields->access->>members', op: 'is', value: null }, { col: 'fields->access->>members', op: 'neq', value: 'true' }] }] }] })), editors),
+  entry_drafts: all(editorsOrGuests((c) => ({ col: 'entry_id', op: 'eq', value: c.entryId })), editors),
+  entry_terms: all(editorsOrGuests(() => true), editors),
   forms: all(editors, editors),
   mail_segments: all(editors, editors),
-  media: all(editors, editors),
-  revisions: all(editors, editors),
-  templates: all(editors, editors),
-  terms: all(editors, editors),
+  media: all(editorsOrGuests(() => true), editors),
+  revisions: all(editorsOrGuests((c) => ({ col: 'entry_id', op: 'eq', value: c.entryId })), editors),
+  templates: all(editorsOrGuests(() => true), editors),
+  terms: all(editorsOrGuests(() => true), editors),
   ticket_emails: all(editors, editors),
   // Stock counts, set in a product's settings (they save as they change).
   shop_stock: all(editors, editors),
@@ -41,7 +43,8 @@ export const POLICIES: Record<string, TablePolicy> = {
   members: all(editors, admins),
   // Rules are admins' (Settings > Redirects); an entry's or term's moved address writes its own as the server.
   redirects: all(editors, admins),
-  settings: all(editors, admins),
+  // A guest reads the site's settings the page renders with (menus, theme), not the others.
+  settings: all(editorsOrGuests(() => ({ col: 'key', op: 'in', value: ['site', 'options'] })), admins),
   form_submissions: { select: editors, insert: nobody, update: nobody, delete: editors },
   not_found: { select: editors, insert: nobody, update: nobody, delete: editors },
   // Orders and waitlists change through the attendee list's actions, which write as the server.

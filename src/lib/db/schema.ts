@@ -279,6 +279,14 @@ export const SCHEMA: Record<string, TableSchema> = {
     defaults: {},
     touch: true,
   },
+  share_links: {
+    pk: ["id"],
+    columns: {"id":"int8","token":"text","entry_id":"int8","mode":"text","access":"text","password_hash":"text","label":"text","expires_at":"timestamptz","revoked_at":"timestamptz","uses":"int8","last_used_at":"timestamptz","created_by":"uuid","created_at":"timestamptz","updated_at":"timestamptz"},
+    generated: [],
+    fks: [[["created_by"],"users",["id"]],[["entry_id"],"entries",["id"]]],
+    defaults: {"mode":"view","access":"login","label":"","uses":0},
+    touch: true,
+  },
   shop_discounts: {
     pk: ["id"],
     columns: {"id":"int8","code":"text","name":"text","kind":"text","value":"numeric","applies":"text","products":"jsonb","categories":"jsonb","min_subtotal":"int8","starts_at":"timestamptz","ends_at":"timestamptz","max_uses":"int8","once_per_email":"bool","members_only":"bool","levels":"jsonb","active":"bool","created_at":"timestamptz","updated_at":"timestamptz"},
