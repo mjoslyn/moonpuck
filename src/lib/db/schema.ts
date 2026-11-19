@@ -249,7 +249,7 @@ export const SCHEMA: Record<string, TableSchema> = {
   },
   profiles: {
     pk: ["id"],
-    columns: {"id":"uuid","display_name":"text","role":"text","created_at":"timestamptz"},
+    columns: {"id":"uuid","display_name":"text","role":"text","created_at":"timestamptz","handle":"text"},
     generated: [],
     fks: [[["id"],"users",["id"]]],
     defaults: {"role":"viewer"},

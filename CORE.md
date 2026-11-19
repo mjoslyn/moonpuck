@@ -469,6 +469,15 @@ selects the block, Resolve, Reopen, Delete, and Add a comment on the selected bl
 on the campaign screen (`src/admin/CampaignComments.tsx`), through `GET` and `POST
 /api/admin/share-comments` (`add`, `resolve`, `reopen`, `delete`; only for what the editor can read; it
 doesn't clear the page cache).
+**@mentions** (`src/lib/share/mentions.ts`): an editor's or admin's comment that names another as `@handle`
+emails them after the answer (`notifyMentions`, kind `admin`: the comment, the block and a link to the page's
+editor or the campaign screen; never the author; guests' comments notify nobody). Handles (`withHandles`):
+`profiles.handle` (migration `*_profiles_handle.sql`, unique), else the email's local part cleaned, a taken
+one numbered in order of address. The editor's Comments panel and the campaign screen's box suggest people as
+`@` is typed (`src/admin/MentionTextarea.tsx`, `GET /api/admin/share-comments?people`: ids, names and handles
+of editors and admins only) and show handles in bold (`withMentions`). **Your profile** (`/admin/profile/`,
+the account menu; `saveProfile`, written as the server for that person) changes one's own name and handle
+(`cleanHandle`: 2 to 30 letters, digits, `.`, `-`, `_`; empty for the made one; one someone has refused).
 
 ## Redirects
 

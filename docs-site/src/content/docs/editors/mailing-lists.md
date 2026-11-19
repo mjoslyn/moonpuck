@@ -304,6 +304,8 @@ The campaign screen lists them under **Comments**, open ones first, each with th
 it and when (**(share link)** for those sent through a link). **Resolve** marks one done (tick **Show
 resolved** to see those, and **Reopen** one), **Delete** removes it, and the box at the top adds your own,
 on a block you choose or the whole email.
+Type **@** in that box to mention an editor or admin: they get an email (see
+[Mentioning someone](/editors/saving-and-publishing/#mentioning-someone)).
 
 ### Sending is for admins
 

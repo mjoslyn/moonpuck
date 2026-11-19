@@ -1,11 +1,15 @@
 // A page's or newsletter's comments (src/lib/share/comments.ts), for editors: the page editor's Comments
 // panel and the campaign screen. GET ?entry=<id> or ?campaign=<id>: its comments, open first, with who
-// resolved each. POST { action: 'add', entry or campaign, block?, body } (as the editor), or
+// resolved each; GET ?people: the editors and admins to @mention (src/lib/share/mentions.ts), whom an
+// added comment emails. POST { action: 'add', entry or campaign, block?, body } (as the editor), or
 // { action: 'resolve' | 'reopen' | 'delete', id }. Only for what this editor can read; doesn't clear the
 // page cache.
 import type { APIRoute } from 'astro';
 import { siteDb } from '../../../lib/db/site';
 import type { ShareSubject } from '../../../lib/share/links';
+import { afterAnswer } from '../../../lib/platform';
+import { mailOrigin } from '../../../lib/mailing/contacts';
+import { mentionablePeople, notifyMentions } from '../../../lib/share/mentions';
 import { addComment, commentsOf, deleteComment, setCommentStatus, subjectOfComment } from '../../../lib/share/comments';
 
 const NO_STORE = { 'Cache-Control': 'private, no-store' };
@@ -20,6 +24,8 @@ function subjectFrom(v: { entry?: unknown; campaign?: unknown }): ShareSubject |
 const readable = async (db: App.Locals['db'], s: ShareSubject) => !!(await db.from(s.kind === 'campaign' ? 'campaigns' : 'entries').select('id').eq('id', s.id).maybeSingle()).data;
 
 export const GET: APIRoute = async ({ url, locals }) => {
+  // The editors and admins a comment can @mention (no addresses).
+  if (url.searchParams.has('people')) return Response.json((await mentionablePeople()).map(({ id, name, handle }) => ({ id, name, handle })), { headers: NO_STORE });
   const subject = subjectFrom({ entry: url.searchParams.get('entry'), campaign: url.searchParams.get('campaign') });
   if (!subject) return new Response('Which page or newsletter?', { status: 400 });
   if (!(await readable(locals.db, subject))) return new Response('Not found', { status: 404 });
@@ -36,7 +42,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const subject = subjectFrom(body);
     if (!subject || !(await readable(locals.db, subject))) return new Response('Not found', { status: 404 });
     const r = await addComment({ subject, block: String(body.block ?? ''), body: String(body.body ?? '') }, { editor: { id: locals.user.id, name: locals.user.name || locals.user.email } });
-    return r.ok ? Response.json(r.comment, { headers: NO_STORE }) : new Response(r.error, { status: r.status });
+    if (!r.ok) return new Response(r.error, { status: r.status });
+    afterAnswer(notifyMentions(r.comment, mailOrigin(new URL(request.url).origin)).catch((e) => console.error('comment mentions', e)));
+    return Response.json(r.comment, { headers: NO_STORE });
   }
   if (['resolve', 'reopen', 'delete'].includes(body.action)) {
     const id = Number(body.id);

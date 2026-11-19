@@ -1,9 +1,11 @@
 // The page editor's Comments panel (the left rail): the page's comments (src/lib/share/comments.ts, GET and
 // POST /api/admin/share-comments), left by guests with a share link that views it and by editors, open ones
 // first. Each names the block it is on, with a few of its words; Show selects that block, Resolve and Reopen
-// change its state, Delete removes it. Add a comment: on the selected block, or on the whole page.
+// change its state, Delete removes it. Add a comment: on the selected block, or on the whole page; @handles
+// email the editors and admins they name (src/lib/share/mentions.ts).
 import { createContext, useContext, useEffect, useState } from 'react';
 import { createUsePuck, useGetPuck } from '@puckeditor/core';
+import MentionTextarea, { withMentions } from '../admin/MentionTextarea';
 
 const usePuck = createUsePuck();
 
@@ -87,9 +89,9 @@ export function CommentsPanel() {
       <form onSubmit={add} className="border-b border-admin-ink/10 p-3">
         <label className="block">
           <span className="mb-1 block text-xs font-medium text-admin-muted">Comment on {selected ? `the selected ${typeLabel(selected.type).toLowerCase()}` : 'the whole page'}</span>
-          <textarea className="w-full rounded border border-admin-ink/15 px-2 py-1.5 text-sm outline-none focus:border-admin-accent" rows={3} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} />
+          <MentionTextarea className="w-full rounded border border-admin-ink/15 px-2 py-1.5 text-sm outline-none focus:border-admin-accent" rows={3} maxLength={2000} value={text} onChange={setText} />
         </label>
-        <p className="mt-1 text-xs text-admin-muted">Select a block on the page to comment on it. Comments on new blocks need the page saved first.</p>
+        <p className="mt-1 text-xs text-admin-muted">Select a block on the page to comment on it. Comments on new blocks need the page saved first. Type @ to mention an editor or admin: they get an email.</p>
         {error && (
           <p role="alert" className="mt-1 text-xs text-[#c4592a]">
             {error}
@@ -120,7 +122,7 @@ export function CommentsPanel() {
               <span className="font-medium text-admin-ink">{typeLabel(r.block_type)}</span>
               {r.quote && <span>: {r.quote.slice(0, 80)}</span>}
             </div>
-            <p className="my-1 whitespace-pre-wrap">{r.body}</p>
+            <p className="my-1 whitespace-pre-wrap">{withMentions(r.body)}</p>
             <div className="text-xs text-admin-muted">
               {r.author}
               {r.guest ? ' (share link)' : ''} · {when(r.created_at)}
