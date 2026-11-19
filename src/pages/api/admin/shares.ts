@@ -1,6 +1,6 @@
 // An entry's share links (src/lib/share/links.ts), for editors: the editor's Share dialog.
 // GET ?entry=<id> or ?campaign=<id>: its links. POST { action: 'create', entry or campaign, mode, access,
-// password?, label?, expires? }
+// password?, label?, expires? (null: none; left out: 30 days) }
 // makes one; { action: 'revoke', id } turns one off. The links' address is this copy's (the request's).
 import type { APIRoute } from 'astro';
 import { PAGELESS_TYPES } from '../../../lib/site';
@@ -62,7 +62,7 @@ export const POST: APIRoute = async ({ request, url, locals }) => {
       if (!subject) return new Response('Which page or newsletter?', { status: 400 });
       const why = await notShareable(locals.db, subject);
       if (why) return new Response(why, { status: why === 'Not found' ? 404 : 400 });
-      const link = await createShare({ [subject.kind]: subject.id, mode: body.mode, access: body.access, password: String(body.password ?? ''), label: body.label, expires: body.expires || null }, locals.user.id);
+      const link = await createShare({ [subject.kind]: subject.id, mode: body.mode, access: body.access, password: String(body.password ?? ''), label: body.label, expires: body.expires === undefined ? undefined : body.expires || null }, locals.user.id);
       return Response.json({ id: link.id, url: origin(url) + sharePath(link.token) }, { headers: NO_STORE });
     }
     if (body.action === 'revoke') {

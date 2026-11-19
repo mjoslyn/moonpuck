@@ -114,18 +114,21 @@ changes.
 The link shows the page as it is saved, including changes that aren't published yet.
 
 1. Click **Share** at the top of the editor.
-2. Under **People with the link can**, choose one:
+2. In **People with the link can**, choose one:
    - **View the page**: they see it, and can leave comments on its blocks and sections.
-   - **Edit it as a draft**: the page opens in the editor. Only signed-in editors and admins can edit,
-     so this link is for them.
-3. Under **Who can open it**, choose one (an edit link is always the first):
+   - **Edit it as a draft**: the page opens in the editor. Only signed-in editors and admins can edit, so
+     this choice is greyed out unless **Who can open it** is **Signed-in editors and admins**.
+3. Under **Who can open it**, choose one:
    - **Signed-in editors and admins**: only people who look after the site. Anyone else is asked to sign
      in.
    - **Anyone with the link and the password**: type a password of at least 6 characters, and give it
      to them separately.
    - **Anyone with the link**: no account or password needed. Keep the link private.
+
+   Choosing either of the last two sets the link back to **View the page**.
 4. Optional: give it a **Name** (for example "Board review"), so you know which link is which.
-5. Optional: set **Expires** to a date and time. The link stops working then.
+5. **Expires** is filled in with 30 days from now. Change it, or clear it for a link that never expires.
+   The link stops working then.
 6. Click **Make link**. The link is copied, ready to paste into an email.
 
 People with a view link see the page as visitors will (without anything only members see). They can't

@@ -429,7 +429,8 @@ same-origin`). Each has a `mode`: `view` (the page's preview, or the newsletter'
 others sent to sign in), `password` (scrypt `password_hash`, wrong tries limited per link and visitor,
 `share-password` in `src/lib/auth/attempts.ts`) or `anyone`; an edit link is always `login`
 (`shareProblem`; one made otherwise doesn't open, `liveLink`), since only editors and admins edit. A link
-has an optional `label` and `expires_at`, and counts its uses (`uses`, `last_used_at`, `countUse`, over the
+has an optional `label` and `expires_at` (`SHARE_DEFAULT_DAYS`, 30 days, when it isn't given; null for
+none; the Share dialog's mode is a list whose edit choice is off unless the access is `login`), and counts its uses (`uses`, `last_used_at`, `countUse`, over the
 count read, so opens at once all count). Revoking (`revoked_at`), expiry, the entry going to the trash, or
 the campaign leaving `draft` or Mailing Lists being off end it (`liveLink`); scheduling, sending, approving
 or cancelling a campaign revokes its links (`revokeCampaignShares`), so going back to a draft doesn't bring
