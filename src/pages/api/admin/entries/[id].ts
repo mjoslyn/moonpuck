@@ -49,7 +49,7 @@ async function guestSave(id: number, body: any, label: string): Promise<Response
   if (body.template) return new Response('A share link can’t change the page’s layout.', { status: 403 });
   const db = siteDb();
   const [{ data: current }, { data: kept }] = await Promise.all([
-    db.from('entries').select('slug, title, excerpt, content, fields, status').eq('id', id).maybeSingle(),
+    db.from('entries').select('type, slug, title, excerpt, content, fields, status').eq('id', id).maybeSingle(),
     db.from('entry_drafts').select('draft').eq('entry_id', id).maybeSingle(),
   ]);
   if (!current || current.status === 'trash') return new Response('Not found', { status: 404 });

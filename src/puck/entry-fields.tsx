@@ -1,5 +1,6 @@
 // Sidebar form for an entry's own data: core columns plus the fields of each content type.
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { guestFieldKeys } from '../lib/share/guest-content';
 import { Code, LinkInput, MediaPicker, Num, Row, Select, Text, Toggle, inputClass, FieldGroup } from './fields';
 import { browserClient } from '../lib/db/browser';
 import { mediaUrl } from '../lib/media/image';
@@ -372,7 +373,9 @@ function ExcerptWriter({ type, title, pageItems, onWrite }: { type: string; titl
  * featured image, an event's dates and the type's fields; the rest isn't shown to them. */
 export function EntryForm({ type, id, value, onChange, templates, pageItems, guest = false }: { type: string; id?: number | null; value: EntryState; onChange: (v: EntryState) => void; templates: TemplateInfo[]; pageItems?: () => any[]; guest?: boolean }) {
   const set = (patch: Partial<EntryState>) => onChange({ ...value, ...patch });
-  const defs = fieldsFor(type);
+  // A guest (a share link) sees only the fields they may change (src/lib/share/guest-content.ts).
+  const guestKeys = guest ? guestFieldKeys(type) : null;
+  const defs = fieldsFor(type).filter((d) => !guestKeys || guestKeys.has(d.key));
   const shopIsOn = useShopOn() === true;
   // An event's own timezone, else the site's.
   const eventTz: string = value.fields?.timezone || SITE_TZ;

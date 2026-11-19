@@ -130,13 +130,15 @@ The link shows the page as it is saved, including changes that aren't published 
 
 Someone editing through a link without an account can:
 
-- Change the page's blocks, its title, excerpt, featured image and details.
+- Change the page's blocks, its title, excerpt, featured image and details (for an event, its dates,
+  time zone and repeats too).
 - Save their work (it also saves itself as they go) and preview it.
 
 They can't:
 
 - Publish, unpublish or discard changes.
-- Change the page's address, template, categories, tags, members setting or SEO.
+- Change the page's address, template, categories, tags, members setting, SEO, Featured setting, or a
+  product's prices and download.
 - Add HTML or Embed blocks, or change the ones already on the page. They can move or remove them.
 - Upload files, use Compose, or open any other part of the site's admin.
 

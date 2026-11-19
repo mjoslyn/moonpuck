@@ -96,7 +96,8 @@ const donate: Renderer = (b, env) => {
   const a = b.attrs;
   const s = donationSettings(ctx.settings.site);
   if (!s.enabled) return off(ctx);
-  const id = `donate-${b.id}`;
+  // The block's id goes into ids and labels' for: only its plain characters.
+  const id = `donate-${String(b.id ?? '').replace(/[^\w-]/g, '')}`;
   const root = (inner: string) => `<section ${attrs(['c-donate', formStyleClass(a.formStyle), a.className], [...styleDecls(a.style), ...formStyleDecls(a.formStyle)], { id: a.anchor || 'donate' })}>${inner}</section>`;
   const q = ctx.queried.url.searchParams;
   const shown = ctx.data.get(DONATION_KEY) as ShownDonation | undefined;

@@ -38,7 +38,8 @@ const subscribe: Renderer = (b, env) => {
   if (!s.enabled) return ctx.editor ? '<div class="cms-editor-note">Mailing is off (Settings &gt; Mailing Lists): this block shows nothing.</div>' : '';
   const choices = offered(ctx, a.lists);
   if (!choices.length) return ctx.editor ? '<div class="cms-editor-note">No mailing lists yet: add one on the Mailing Lists screen.</div>' : '';
-  const id = `subscribe-${b.id}`;
+  // The block's id goes into ids and labels' for: only its plain characters.
+  const id = `subscribe-${String(b.id ?? '').replace(/[^\w-]/g, '')}`;
   const q = ctx.queried.url.searchParams;
   const mine = q.get('subscribe_block') === b.id || (!q.get('subscribe_block') && ctx.queried.url.pathname === SUBSCRIBE_PATH);
   const sent = mine && q.get('subscribe') === 'sent';

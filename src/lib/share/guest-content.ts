@@ -4,12 +4,17 @@
 // text they change is cleaned to inline formatting and safe links (cleanInlineHtml), every address to a
 // web, mail, phone or site link (isSafeUrl). What they leave as it was stays as an editor made it.
 import { cleanInlineHtml, isSafeUrl } from '../compose/safe-html';
+import { fieldsFor } from '../site';
 import type { PuckItem } from '../puck/types';
 
 /** Blocks whose markup goes on the page as written: never added or changed by a guest. */
 export const GUEST_BLOCKED = new Set(['html', 'embed']);
 
 export const GUEST_BLOCKED_MESSAGE = 'HTML and Embed blocks can’t be added or changed through a share link.';
+export const GUEST_ID_MESSAGE = 'A block’s id can only have letters, digits, dashes and underscores.';
+
+/** A block id a guest may give a new block: renderers put ids in markup (a field's id, a label's for). */
+const GUEST_ID = /^[A-Za-z0-9_-]{1,100}$/;
 
 /** Settings keys holding an address (href, url, src, link, poster, website...). */
 const URL_KEY = /(href|url|src|link|poster|website)$/i;
@@ -66,42 +71,57 @@ export function guestContent(after: any, before: any): GuestCheck {
   eachItem(before, (i) => i.props?.id && old.set(String(i.props.id), i));
   const content = structuredClone(after);
   let refused = false;
+  let badId = false;
   eachItem(content, (item) => {
+    // An id the page already had stays; any other must be a plain one.
+    if (item.props?.id != null && !old.has(String(item.props.id)) && !GUEST_ID.test(String(item.props.id))) badId = true;
     const was = item.props?.id ? old.get(String(item.props.id)) : undefined;
     const kept = was && was.type === item.type;
     if (GUEST_BLOCKED.has(item.type) && !(kept && same(item.props.attrs, was!.props.attrs))) refused = true;
     if ((item.props?.html?.length || item.props?.saved?.length) && !(kept && same(item.props.html, was!.props.html) && same(item.props.saved, was!.props.saved))) refused = true;
     if (item.props && !GUEST_BLOCKED.has(item.type)) item.props.attrs = cleanGuestValue(item.props.attrs ?? {}, kept ? was!.props.attrs : undefined) as Record<string, any>;
   });
+  if (badId) return { ok: false, error: GUEST_ID_MESSAGE };
   return refused ? { ok: false, error: GUEST_BLOCKED_MESSAGE } : { ok: true, content };
 }
 
 /** Entry settings a guest may change; the others stay as they were. */
 export const GUEST_ENTRY_KEYS = ['title', 'excerpt', 'featured_image', 'fields', 'event_start', 'event_end', 'event_all_day'] as const;
 
-/** Fields only editors change: who may see the page, and the ticket it sells. */
-const KEPT_FIELDS = ['access', 'ticket', 'tickets'];
+/** Fields only editors change, whatever the type: SEO, who may see the page, its ticket, a product's
+ * prices, stock and download, Featured, and the core's own keys. */
+const KEPT_FIELDS = new Set(['seo', 'access', 'ticket', 'tickets', 'shop', 'featured', 'template', 'imported_from']);
+
+/** The fields a guest may change on an entry of `type`: the type's own (its Details), and an event's time
+ * zone and repeat rule, which go with its dates. */
+export function guestFieldKeys(type: string): Set<string> {
+  const keys = fieldsFor(type).map((f) => f.key).filter((k) => !KEPT_FIELDS.has(k));
+  if (type === 'event') keys.push('timezone', 'recurrence');
+  return new Set(keys);
+}
 
 /**
  * The page settings a guest's save stores: `base` (the settings kept aside, else none) with the guest's
- * changes to GUEST_ENTRY_KEYS, cleaned like content, the address always the one it has.
+ * changes to GUEST_ENTRY_KEYS and to the fields they may change (guestFieldKeys), cleaned like content;
+ * the address and every other field always as they were.
  */
-export function guestEntry(given: any, base: Record<string, any> | null, current: { slug: string; title: string; excerpt: string | null; fields: Record<string, any> | null }): Record<string, any> {
+export function guestEntry(given: any, base: Record<string, any> | null, current: { type: string; slug: string; title: string; excerpt: string | null; fields: Record<string, any> | null }): Record<string, any> {
   const from = base ?? {};
   const out: Record<string, any> = { ...from, slug: from.slug ?? current.slug };
   if (!given || typeof given !== 'object') return out;
   for (const k of GUEST_ENTRY_KEYS) {
-    if (!(k in given)) continue;
-    const before = k === 'fields' ? (from.fields ?? current.fields ?? {}) : k === 'title' ? (from.title ?? current.title) : k === 'excerpt' ? (from.excerpt ?? current.excerpt) : from[k];
+    if (k === 'fields' || !(k in given)) continue;
+    const before = k === 'title' ? (from.title ?? current.title) : k === 'excerpt' ? (from.excerpt ?? current.excerpt) : from[k];
     out[k] = k === 'title' && typeof given.title === 'string' ? given.title.slice(0, 500) : cleanGuestValue(given[k], before, k);
   }
-  if (out.fields && typeof out.fields === 'object') {
-    const was = from.fields ?? current.fields ?? {};
-    out.fields = { ...out.fields };
-    for (const k of KEPT_FIELDS) {
-      if (k in was) out.fields[k] = was[k];
-      else delete out.fields[k];
+  if (given.fields && typeof given.fields === 'object') {
+    const was: Record<string, any> = from.fields ?? current.fields ?? {};
+    const fields: Record<string, any> = { ...was };
+    for (const k of guestFieldKeys(current.type)) {
+      if (k in given.fields) fields[k] = cleanGuestValue(given.fields[k], was[k], k);
+      else delete fields[k];
     }
+    out.fields = fields;
   }
   return out;
 }
