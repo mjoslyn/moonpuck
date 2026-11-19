@@ -1,24 +1,42 @@
 ---
 // A share link (src/lib/share/links.ts): /share/<token>/. Login links send signed-in editors and admins to
-// the page's preview or editor (others sign in first); password links ask for the password; links open to
-// anyone go straight in. A guest gets a cookie naming the link, then the preview (view) or editor (edit).
+// the page's preview or editor, or the newsletter's editor (others sign in first); password links ask for
+// the password; links open to anyone go straight in. A guest gets a cookie naming the link, then the
+// page's preview (view) or editor (edit), or the newsletter's guest editor (edit). A newsletter's view link
+// shows its email here, as a sample subscriber gets it, in a sandboxed frame.
 import { site } from '../../lib/site';
 import Admin from '../../layouts/Admin.astro';
 import { siteDb } from '../../lib/db/site';
 import { sessionUser } from '../../lib/auth';
 import { clearAttempts, overLimit, recordAttempt } from '../../lib/auth/attempts';
-import { cookieFits, cookieToken, countUse, guestCookie, liveLink, passwordOpens, sharePath, type ShareLink } from '../../lib/share/links';
+import { cookieFits, cookieToken, countUse, guestCookie, liveLink, passwordOpens, sharePath, subjectOf, type ShareLink } from '../../lib/share/links';
+import { previewCampaign, type CampaignPreview } from '../../lib/mailing/preview';
+import { mailOrigin } from '../../lib/mailing/contacts';
 
 const token = Astro.params.token ?? '';
 const headers = { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex', 'Referrer-Policy': 'same-origin' };
 for (const [k, v] of Object.entries(headers)) Astro.response.headers.set(k, v);
 
 const link = await liveLink(token);
-const target = (l: ShareLink) => (l.mode === 'edit' ? `/admin/edit/${l.entry_id}/` : `/admin/preview/${l.entry_id}/`);
-/** In through the link: counted, the guest's cookie set (not for login links), on to the page. */
-async function enter(l: ShareLink, cookie: boolean) {
+/** Where a link leads: a page's preview or editor; a newsletter's editor (the campaign screen for editors). */
+const target = (l: ShareLink, editor: boolean) =>
+  l.campaign_id ? (editor ? `/admin/mailing-lists/campaigns/${l.campaign_id}/` : `/admin/shared-email/${l.campaign_id}/`) : l.mode === 'edit' ? `/admin/edit/${l.entry_id}/` : `/admin/preview/${l.entry_id}/`;
+/** A newsletter's email, when its view link is opened. */
+const shown: { email?: CampaignPreview; name?: string } = {};
+/** In through the link: counted, the guest's cookie set (not for login links), on to the page; a
+ * newsletter's view link shows its email here (null: render this page). */
+async function enter(l: ShareLink, cookie: boolean, editor = false): Promise<Response | null> {
   await countUse(l);
-  const h = new Headers({ ...headers, Location: target(l) });
+  if (l.campaign_id && l.mode === 'view') {
+    const { data: c } = await siteDb().from('campaigns').select('id, name, subject, design, text').eq('id', l.campaign_id).maybeSingle();
+    if (c) {
+      if (cookie) Astro.response.headers.append('Set-Cookie', guestCookie(l));
+      shown.email = await previewCampaign(siteDb(), { id: c.id, design: c.design, text: c.text, subject: c.subject }, mailOrigin(Astro.url.origin));
+      shown.name = c.name;
+      return null;
+    }
+  }
+  const h = new Headers({ ...headers, Location: target(l, editor) });
   if (cookie) h.append('Set-Cookie', guestCookie(l));
   return new Response(null, { status: 303, headers: h });
 }
@@ -29,31 +47,53 @@ if (link) {
     const user = await sessionUser(Astro.request);
     const { data: profile } = user ? await siteDb().from('profiles').select('role').eq('id', user.id).maybeSingle() : { data: null };
     if (!profile || !['editor', 'admin'].includes(profile.role)) return Astro.redirect(`/admin/login/?next=${encodeURIComponent(sharePath(token))}`);
-    return enter(link, false);
-  }
-  if (link.access === 'anyone') return enter(link, true);
+    const go = await enter(link, false, true);
+    if (go) return go;
+  } else if (link.access === 'anyone') {
+    const go = await enter(link, true);
+    if (go) return go;
+  } else {
   // A password link: in at once with this link's cookie, else the password.
-  const had = cookieToken(Astro.request, link.entry_id);
-  if (had?.token === link.token && cookieFits(link, had.sig)) return enter(link, false);
+  const had = cookieToken(Astro.request, subjectOf(link));
+  const opened = had?.token === link.token && cookieFits(link, had.sig) ? await enter(link, false) : undefined;
+  if (opened) return opened;
   if (Astro.request.method === 'POST') {
     const password = String((await Astro.request.formData()).get('password') ?? '');
     if (await overLimit('share-password', token, Astro.request)) error = 'Too many tries. Please wait a while and try again.';
     else if (await passwordOpens(link, password)) {
       await clearAttempts('share-password', token);
-      return enter(link, true);
+      const go = await enter(link, true);
+      if (go) return go;
     } else {
       await recordAttempt('share-password', token, Astro.request);
       error = 'That password isn’t right.';
     }
   }
+  }
 } else Astro.response.status = 404;
 ---
+{shown.email ? (
+  <Admin title={shown.email.subject || 'Newsletter'}>
+    <div class="mx-auto max-w-3xl">
+      <p class="rounded bg-[#b87333] px-3 py-2 text-sm font-semibold text-white">A newsletter draft shared with you{link?.label ? ` (${link.label})` : ''}: only people with this link can see it.</p>
+      <dl class="mt-4 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+        <dt class="text-admin-muted">Subject</dt><dd class="font-medium">{shown.email.subject || '(no subject)'}</dd>
+        <dt class="text-admin-muted">Shown to</dt><dd>A sample subscriber ({shown.email.to.join(', ')})</dd>
+      </dl>
+      <iframe title="The email" srcdoc={shown.email.html} sandbox="" class="mt-4 h-[80vh] w-full rounded border border-admin-ink/10 bg-white"></iframe>
+      <details class="mt-4 text-sm">
+        <summary class="cursor-pointer text-admin-muted">Plain text</summary>
+        <pre class="mt-2 whitespace-pre-wrap rounded bg-white p-3 text-xs">{shown.email.text}</pre>
+      </details>
+    </div>
+  </Admin>
+) : (
 <Admin title={link ? 'Enter the password' : 'Link not found'}>
   <div class="mx-auto mt-24 max-w-sm">
     {link ? (
       <>
         <h1 class="text-3xl font-normal">Enter the password</h1>
-        <p class="mt-2 text-sm text-admin-muted">{site.organization} shared {link.mode === 'edit' ? 'a page for you to edit' : 'a page with you'}{link.label ? ` (${link.label})` : ''}. It is protected by a password.</p>
+        <p class="mt-2 text-sm text-admin-muted">{site.organization} shared {link.campaign_id ? (link.mode === 'edit' ? 'a newsletter for you to edit' : 'a newsletter with you') : link.mode === 'edit' ? 'a page for you to edit' : 'a page with you'}{link.label ? ` (${link.label})` : ''}. It is protected by a password.</p>
         {error && <p role="alert" class="mt-6 rounded border border-[#c4592a]/30 bg-[#c4592a]/5 px-3 py-2 text-sm text-[#c4592a]">{error}</p>}
         <form method="post" class="mt-6 space-y-4">
           <label class="block text-sm">
@@ -66,8 +106,9 @@ if (link) {
     ) : (
       <>
         <h1 class="text-3xl font-normal">This link doesn’t work</h1>
-        <p class="mt-2 text-sm text-admin-muted">It may have expired or been turned off. Ask the person who shared it for a new one.</p>
+        <p class="mt-2 text-sm text-admin-muted">It may have expired or been turned off, or the newsletter may have gone out. Ask the person who shared it for a new one.</p>
       </>
     )}
   </div>
 </Admin>
+)}

@@ -1,7 +1,7 @@
 // Share links (src/lib/share): what a guest may save, what the guest role reads, and the links themselves.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sessionDb, siteDb } from '../src/lib/db/site';
-import { guestContent, guestEntry, GUEST_BLOCKED_MESSAGE, GUEST_ID_MESSAGE } from '../src/lib/share/guest-content';
+import { guestContent, guestEmail, guestEntry, GUEST_BLOCKED_MESSAGE, GUEST_ID_MESSAGE } from '../src/lib/share/guest-content';
 import { cookieFits, cookieValue, countUse, createShare, guestCookie, guestLink, guestMay, isLive, liveLink, passwordOpens, revokeShare, shareProblem, sharesOf } from '../src/lib/share/links';
 
 const block = (type: string, id: string, attrs: Record<string, any> = {}, extra: Record<string, any> = {}) => ({ type, props: { id, attrs, ...extra } });
@@ -176,13 +176,13 @@ describe('links', () => {
     await svc.from('entries').update({ status: 'draft' }).eq('id', entry);
     await revokeShare(link.id);
     expect(await liveLink(link.token)).toBeNull();
-    expect((await sharesOf(entry)).find((l) => l.id === link.id)).toMatchObject({ live: false });
-    expect((await sharesOf(entry))[0]).not.toHaveProperty('password_hash');
+    expect((await sharesOf({ kind: 'entry', id: entry })).find((l) => l.id === link.id)).toMatchObject({ live: false });
+    expect((await sharesOf({ kind: 'entry', id: entry }))[0]).not.toHaveProperty('password_hash');
   });
 
   it('lets a guest reach only its entry’s editor, preview and the editor’s APIs', () => {
-    const edit = { entry_id: 7, mode: 'edit' as const };
-    const view = { entry_id: 7, mode: 'view' as const };
+    const edit = { entry_id: 7, campaign_id: null, mode: 'edit' as const };
+    const view = { entry_id: 7, campaign_id: null, mode: 'view' as const };
     expect(guestMay(edit, 'GET', '/admin/edit/7/')).toBe(true);
     expect(guestMay(edit, 'PUT', '/api/admin/entries/7')).toBe(true);
     expect(guestMay(edit, 'POST', '/api/admin/db')).toBe(true);
@@ -292,5 +292,106 @@ describe('what a guest sees', async () => {
       if (was === undefined) delete process.env.SITE_URL;
       else process.env.SITE_URL = was;
     }
+  });
+});
+
+describe('newsletter drafts', async () => {
+  const { PUT: guestSave } = await import('../src/pages/api/admin/shared-email/[id]');
+  const { POST: campaigns } = await import('../src/pages/api/admin/mailing/campaigns');
+  const svc = siteDb();
+  const editorId = '00000000-0000-0000-0000-0000000000e1';
+  const design = { root: { props: { textColor: '#111111', preheader: 'Old line' } }, content: [{ type: 'Text', props: { id: 'Text-1', html: '<p>Hi</p>' } }] };
+  let id = 0;
+  let pub = 0;
+  let draft = 0;
+  beforeAll(async () => {
+    await svc.from('users').insert({ id: editorId, email: 'news-editor@example.org', name: 'Nell Editor' });
+    await svc.from('profiles').update({ display_name: 'Nell Editor', role: 'editor' }).eq('id', editorId);
+    id = (await svc.from('campaigns').insert({ name: 'November news', subject: 'Hello', design, text: '', status: 'draft' }).select('id').single()).data!.id;
+    pub = (await svc.from('entries').insert({ type: 'page', slug: 'news-pub', title: 'Pub', status: 'publish' }).select('id').single()).data!.id;
+    draft = (await svc.from('entries').insert({ type: 'page', slug: 'news-draft', title: 'Draft', status: 'draft' }).select('id').single()).data!.id;
+  });
+  afterAll(async () => {
+    await svc.from('campaigns').delete().eq('id', id);
+    await svc.from('entries').delete().in('id', [pub, draft]);
+    await svc.from('users').delete().eq('id', editorId);
+  });
+  const stamp = async () => (await svc.from('campaigns').select('updated_at').eq('id', id).single()).data!.updated_at;
+  const put = (body: Record<string, any>, campaignId = id) =>
+    guestSave({ params: { id: String(campaignId) }, request: new Request(`http://x/api/admin/shared-email/${campaignId}`, { method: 'PUT', body: JSON.stringify(body) }), locals: { user: { id: '', email: '', role: 'guest', name: 'Guest' }, share: { campaign_id: campaignId, label: 'Board' } } } as any);
+
+  it('a link works while the newsletter is a draft, for its own editor page and calls only', async () => {
+    const link = await createShare({ campaign: id, mode: 'edit', access: 'anyone' }, null);
+    expect(guestCookie(link)).toMatch(new RegExp(`^site\\.share\\.c${id}=`));
+    const cookie = `site.share.c${id}=${cookieValue(link)}`;
+    expect((await guestLink(new Request(`https://site.test/admin/shared-email/${id}/`, { headers: { cookie } })))?.id).toBe(link.id);
+    expect((await guestLink(new Request('https://site.test/api/admin/mailing/preview', { headers: { cookie, referer: `https://site.test/admin/shared-email/${id}/` } })))?.id).toBe(link.id);
+    // Not as a page's link of the same number.
+    expect(await guestLink(new Request(`https://site.test/admin/edit/${id}/`, { headers: { cookie } }))).toBeNull();
+    const l = { entry_id: null, campaign_id: id, mode: 'edit' as const };
+    expect(guestMay(l, 'GET', `/admin/shared-email/${id}/`)).toBe(true);
+    expect(guestMay(l, 'PUT', `/api/admin/shared-email/${id}`)).toBe(true);
+    expect(guestMay(l, 'POST', '/api/admin/mailing/preview')).toBe(true);
+    expect(guestMay(l, 'POST', '/api/admin/mailing/campaigns')).toBe(false);
+    expect(guestMay(l, 'GET', `/admin/mailing-lists/campaigns/${id}/`)).toBe(false);
+    expect(guestMay({ ...l, mode: 'view' }, 'GET', `/admin/shared-email/${id}/`)).toBe(false);
+    await svc.from('campaigns').update({ status: 'scheduled' }).eq('id', id);
+    expect(await liveLink(link.token)).toBeNull();
+    await svc.from('campaigns').update({ status: 'draft' }).eq('id', id);
+    expect(await liveLink(link.token)).not.toBeNull();
+  });
+
+  it('its guest reads published open entries only', async () => {
+    const guest = sessionDb({ role: 'guest', campaignId: id });
+    const { data } = await guest.from('entries').select('id').in('id', [pub, draft]);
+    expect(data!.map((r: any) => r.id)).toEqual([pub]);
+    expect((await guest.from('entry_drafts').select('entry_id')).data).toEqual([]);
+    expect((await guest.from('campaigns').select('id')).data).toEqual([]);
+  });
+
+  it('guestEmail keeps the look, takes the preview line and refuses an unplain new id', () => {
+    const after = { root: { props: { textColor: 'x" onmouseover="alert(1)', preheader: 'New line' } }, content: [{ type: 'Text', props: { id: 'Text-1', html: '<p>Changed</p>' } }] };
+    const r = guestEmail(after, design);
+    expect(r.ok && r.content.root.props).toEqual({ textColor: '#111111', preheader: 'New line' });
+    expect(guestEmail({ ...after, content: [{ type: 'Section', props: { id: 'S1', content: [{ type: 'Text', props: { id: 'x"><b>', html: '' } }] } }] }, design)).toEqual({ ok: false, error: GUEST_ID_MESSAGE });
+  });
+
+  it('a guest saves the subject and email, keeping the rest, with a version noting the link', async () => {
+    await svc.from('campaigns').update({ list_ids: ['1'], from_name: 'Town' }).eq('id', id);
+    const res = await put({ subject: 'New subject', design: { root: { props: { preheader: 'Line' } }, content: [{ type: 'Heading', props: { id: 'Heading-2', text: 'Hi' } }] }, text: 'Plain', base: await stamp(), list_ids: [], from_name: 'Evil' });
+    expect(res.status).toBe(200);
+    const { data } = await svc.from('campaigns').select('subject, design, text, list_ids, from_name').eq('id', id).single();
+    expect(data).toMatchObject({ subject: 'New subject', text: 'Plain', list_ids: ['1'], from_name: 'Town' });
+    expect(data!.design.root.props).toEqual({ textColor: '#111111', preheader: 'Line' });
+    const { data: rev } = await svc.from('campaign_revisions').select('subject, author_id, note').eq('campaign_id', id).order('id', { ascending: false }).limit(1).single();
+    expect(rev).toEqual({ subject: 'New subject', author_id: null, note: 'Saved through a share link (Board)' });
+  });
+
+  it('refuses a stale save, and any once the newsletter isn’t a draft', async () => {
+    expect((await put({ subject: 'x', design, text: '', base: '2000-01-01T00:00:00.000Z' })).status).toBe(409);
+    await svc.from('campaigns').update({ status: 'scheduled' }).eq('id', id);
+    expect((await put({ subject: 'x', design, text: '' })).status).toBe(409);
+    await svc.from('campaigns').update({ status: 'draft' }).eq('id', id);
+  });
+
+  it('an editor’s save keeps a version with its author, and an unchanged save adds none', async () => {
+    const save = (subject: string) =>
+      campaigns({ request: new Request('http://x/api/admin/mailing/campaigns', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'save', id, campaign: { name: 'November news', subject, design, text: '' } }) }), locals: { db: sessionDb({ role: 'editor', uid: editorId }), user: { id: editorId, email: 'news-editor@example.org', role: 'editor', name: 'Nell Editor' } }, redirect: () => new Response(null) } as any);
+    const count = async () => (await svc.from('campaign_revisions').select('id', { count: 'exact', head: true }).eq('campaign_id', id)).count;
+    expect((await save('Editor subject')).status).toBe(200);
+    const before = await count();
+    expect((await save('Editor subject')).status).toBe(200);
+    expect(await count()).toBe(before);
+    const { data: rev } = await svc.from('campaign_revisions').select('subject, author_id, note').eq('campaign_id', id).order('id', { ascending: false }).limit(1).single();
+    expect(rev).toEqual({ subject: 'Editor subject', author_id: editorId, note: null });
+  });
+
+  it('links for a newsletter are made only for drafts', async () => {
+    const { POST: shares } = await import('../src/pages/api/admin/shares');
+    const make = () => shares({ request: new Request('http://x/api/admin/shares', { method: 'POST', body: JSON.stringify({ action: 'create', campaign: id, mode: 'view', access: 'anyone' }) }), url: new URL('http://x/api/admin/shares'), locals: { db: sessionDb({ role: 'editor', uid: editorId }), user: { id: editorId } } } as any);
+    expect((await make()).status).toBe(200);
+    await svc.from('campaigns').update({ status: 'sent' }).eq('id', id);
+    expect(await (await make()).text()).toMatch(/drafts/);
+    await svc.from('campaigns').update({ status: 'draft' }).eq('id', id);
   });
 });

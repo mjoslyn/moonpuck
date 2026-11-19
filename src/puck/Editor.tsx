@@ -811,7 +811,7 @@ export default function Editor({ entryId, template, admin = false, guest = false
     </EnvContext.Provider>
     </div>
     </div>
-    {sharing && entry && <ShareDialog entryId={entry.id} title={state?.title || entry.title || '(untitled)'} onClose={() => setSharing(false)} />}
+    {sharing && entry && <ShareDialog target={{ entry: entry.id }} title={state?.title || entry.title || '(untitled)'} onClose={() => setSharing(false)} />}
     {held && (
       <A11yHoldDialog
         held={held}

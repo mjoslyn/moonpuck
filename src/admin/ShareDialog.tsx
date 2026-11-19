@@ -1,5 +1,5 @@
-// The editor's Share dialog: an entry's private links (src/lib/share/links.ts, /api/admin/shares), to
-// view the page or edit it as a draft, each opened by signed-in editors only, with a password, or by
+// The Share dialog of the page editor and of a newsletter draft (the campaign editor): its private links
+// (src/lib/share/links.ts, /api/admin/shares), to view the page or email, or edit it as a draft, each opened by signed-in editors only, with a password, or by
 // anyone with the link; with an optional name and expiry. Links already made are listed to copy or turn off.
 import { useEffect, useRef, useState } from 'react';
 
@@ -29,7 +29,12 @@ const ACCESS_LABEL: Record<Access, string> = {
 const MIN_PASSWORD = 6;
 const when = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
-export default function ShareDialog({ entryId, title, onClose }: { entryId: number; title: string; onClose: () => void }) {
+/** What is shared: an entry (a page) or a campaign (a newsletter draft). */
+export type ShareTarget = { entry: number } | { campaign: number };
+
+export default function ShareDialog({ target, title, onClose }: { target: ShareTarget; title: string; onClose: () => void }) {
+  const email = 'campaign' in target;
+  const query = email ? `campaign=${target.campaign}` : `entry=${target.entry}`;
   const [links, setLinks] = useState<Link[] | null>(null);
   const [mode, setMode] = useState<Mode>('view');
   const [access, setAccess] = useState<Access>('login');
@@ -43,7 +48,7 @@ export default function ShareDialog({ entryId, title, onClose }: { entryId: numb
   const first = useRef<HTMLInputElement>(null);
 
   const load = async () => {
-    const res = await fetch(`/api/admin/shares?entry=${entryId}`).catch(() => null);
+    const res = await fetch(`/api/admin/shares?${query}`).catch(() => null);
     if (!res?.ok) return setError((res && (await res.text())) || 'Couldn’t load the links.');
     setLinks(await res.json());
   };
@@ -67,7 +72,7 @@ export default function ShareDialog({ entryId, title, onClose }: { entryId: numb
     if (access === 'password' && password.length < MIN_PASSWORD) return setError(`The password needs at least ${MIN_PASSWORD} characters.`);
     setBusy(true);
     setError('');
-    const body = { action: 'create', entry: entryId, mode, access, password: access === 'password' ? password : undefined, label, expires: expires ? new Date(expires).toISOString() : null };
+    const body = { action: 'create', ...target, mode, access, password: access === 'password' ? password : undefined, label, expires: expires ? new Date(expires).toISOString() : null };
     const res = await fetch('/api/admin/shares', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null);
     setBusy(false);
     if (!res?.ok) return setError((res && (await res.text())) || 'Couldn’t make the link. Try again.');
@@ -105,12 +110,14 @@ export default function ShareDialog({ entryId, title, onClose }: { entryId: numb
             <fieldset>
               <legend className="mb-1 text-xs font-medium text-admin-muted">People with the link can</legend>
               <label className="mr-4 inline-flex items-center gap-1.5">
-                <input ref={first} type="radio" name="share-mode" checked={mode === 'view'} onChange={() => setMode('view')} /> View the page
+                <input ref={first} type="radio" name="share-mode" checked={mode === 'view'} onChange={() => setMode('view')} /> {email ? 'View the email' : 'View the page'}
               </label>
               <label className="inline-flex items-center gap-1.5">
                 <input type="radio" name="share-mode" checked={mode === 'edit'} onChange={() => setMode('edit')} /> Edit it as a draft
               </label>
-              {mode === 'edit' && <p className="mt-1 text-xs text-admin-muted">Their changes are saved as a draft for you to publish. People without an account can’t add or change HTML or Embed blocks.</p>}
+              {mode === 'edit' && !email && <p className="mt-1 text-xs text-admin-muted">Their changes are saved as a draft for you to publish. People without an account can’t add or change HTML or Embed blocks.</p>}
+              {mode === 'edit' && email && <p className="mt-1 text-xs text-admin-muted">They change the subject, the preview line, the email and its plain text. Only editors choose who it goes to and send it.</p>}
+              {email && <p className="mt-1 text-xs text-admin-muted">Links work while the newsletter is a draft.</p>}
             </fieldset>
             <fieldset>
               <legend className="mb-1 text-xs font-medium text-admin-muted">Who can open it</legend>

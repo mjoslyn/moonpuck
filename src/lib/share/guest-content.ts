@@ -125,3 +125,39 @@ export function guestEntry(given: any, base: Record<string, any> | null, current
   }
   return out;
 }
+
+/** Every block of an email design (the email builder's: content, and the blocks inside Sections' content
+ * and Columns' left and right). */
+function eachEmailItem(doc: any, visit: (item: { type: string; props: Record<string, any> }) => void) {
+  const walk = (items: unknown) => {
+    if (!Array.isArray(items)) return;
+    for (const item of items) {
+      if (!item || typeof item !== 'object' || !('props' in item)) continue;
+      visit(item);
+      for (const v of Object.values(item.props ?? {})) walk(v);
+    }
+  };
+  walk(doc?.content);
+}
+
+/**
+ * A guest's email design (a newsletter's share link) checked against the design as it was: the email
+ * renderer (src/lib/forms/email.ts) escapes, cleans or checks every block setting, so blocks are taken as
+ * they are, but a block id the design didn't have must be plain, and the email's look (its root settings,
+ * written into the email's styles) stays as it was: a guest changes only its preview line.
+ */
+export function guestEmail(after: any, before: any): GuestCheck {
+  if (!after || typeof after !== 'object' || !Array.isArray(after.content)) return { ok: false, error: 'Not an email.' };
+  const old = new Set<string>();
+  eachEmailItem(before, (i) => i.props?.id != null && old.add(String(i.props.id)));
+  const design = structuredClone(after);
+  let badId = false;
+  eachEmailItem(design, (i) => {
+    if (i.props?.id != null && !old.has(String(i.props.id)) && !GUEST_ID.test(String(i.props.id))) badId = true;
+  });
+  if (badId) return { ok: false, error: GUEST_ID_MESSAGE };
+  const was = (before?.root?.props ?? {}) as Record<string, unknown>;
+  const pre = after.root?.props?.preheader;
+  design.root = { ...(before?.root ?? {}), props: { ...was, ...(typeof pre === 'string' ? { preheader: pre.slice(0, 300) } : {}) } };
+  return { ok: true, content: design };
+}

@@ -10,6 +10,9 @@ import { SITE_POLICIES } from '../../site/db';
 
 export type { Access, Ctx, ReadAccess, Role, Rule, TablePolicy } from './access';
 
+/** Published entries that aren't members-only: what a share link's guest reads besides their own. */
+const OPEN_PUBLISHED: Filter = { all: [{ col: 'status', op: 'eq', value: 'publish' }, { any: [{ col: 'fields->access->>members', op: 'is', value: null }, { col: 'fields->access->>members', op: 'neq', value: 'true' }] }] };
+
 export const POLICIES: Record<string, TablePolicy> = {
   campaign_batches: readOnly(editors),
   campaign_links: readOnly(editors),
@@ -25,13 +28,16 @@ export const POLICIES: Record<string, TablePolicy> = {
   email_templates: all(editors, editors),
   // A guest (a share link) reads their own entry and the site's published, open ones (for collections
   // and links in the canvas), never members-only ones.
-  entries: all(editorsOrGuests((c) => ({ any: [{ col: 'id', op: 'eq', value: c.entryId }, { all: [{ col: 'status', op: 'eq', value: 'publish' }, { any: [{ col: 'fields->access->>members', op: 'is', value: null }, { col: 'fields->access->>members', op: 'neq', value: 'true' }] }] }] })), editors),
-  entry_drafts: all(editorsOrGuests((c) => ({ col: 'entry_id', op: 'eq', value: c.entryId })), editors),
+  // (A newsletter's guest reads the published, open ones only.)
+  entries: all(editorsOrGuests((c) => (c.entryId ? { any: [{ col: 'id', op: 'eq', value: c.entryId }, OPEN_PUBLISHED] } : OPEN_PUBLISHED)), editors),
+  entry_drafts: all(editorsOrGuests((c) => (c.entryId ? { col: 'entry_id', op: 'eq', value: c.entryId } : false)), editors),
   entry_terms: all(editorsOrGuests(() => true), editors),
   forms: all(editors, editors),
   mail_segments: all(editors, editors),
   media: all(editorsOrGuests(() => true), editors),
-  revisions: all(editorsOrGuests((c) => ({ col: 'entry_id', op: 'eq', value: c.entryId })), editors),
+  revisions: all(editorsOrGuests((c) => (c.entryId ? { col: 'entry_id', op: 'eq', value: c.entryId } : false)), editors),
+  // A campaign's saved versions: written by the server (the campaigns API, a share link's save).
+  campaign_revisions: readOnly(editors),
   templates: all(editorsOrGuests(() => true), editors),
   terms: all(editorsOrGuests(() => true), editors),
   ticket_emails: all(editors, editors),

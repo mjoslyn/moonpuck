@@ -8,6 +8,8 @@ import EmailBuilder from '../forms/EmailBuilder';
 import ComposeCampaign, { type ComposedCampaign } from './ComposeCampaign';
 import { takeStart, type ComposeStart } from '../lib/compose/start';
 import { mailingEmailKit } from './mailing-email';
+import ShareDialog from './ShareDialog';
+import CampaignHistory, { type CampaignVersionRow } from './CampaignHistory';
 import { CAMPAIGN_STATUS, rate, sendAction, type Audience, type Campaign, type CampaignStats, type ContactField, type MailList } from '../lib/mailing/config';
 import type { MemberLevel } from '../lib/members/config';
 import type { EmailDoc } from '../lib/forms/email';
@@ -75,6 +77,9 @@ export default function CampaignEditor({ campaign, lists, levels, stats, links, 
   const [composing, setComposing] = useState(false);
   const [composeStart, setComposeStart] = useState<ComposeStart | undefined>();
   const [composeNotes, setComposeNotes] = useState<string[]>([]);
+  const [sharing, setSharing] = useState(false);
+  // Bumped by each save, so the history lists the new version.
+  const [versions, setVersions] = useState(0);
   const latest = useRef(c);
   latest.current = c;
   const dirty = JSON.stringify(c) !== saved;
@@ -128,12 +133,20 @@ export default function CampaignEditor({ campaign, lists, levels, stats, links, 
     run(async () => {
       await post({ action: 'save', id: c.id, campaign: latest.current });
       setSaved(JSON.stringify(latest.current));
+      setVersions((v) => v + 1);
     }, `Saved ${new Date().toLocaleTimeString()}`);
   const saveFirst = async () => {
     if (dirty && editable) {
       await post({ action: 'save', id: c.id, campaign: latest.current });
       setSaved(JSON.stringify(latest.current));
+      setVersions((v) => v + 1);
     }
+  };
+  /** A saved version back in the form, as an unsaved change. */
+  const restore = (v: CampaignVersionRow) => {
+    set({ name: v.name, subject: v.subject, design: v.design as Campaign['design'], text: v.text });
+    setStatus(`Restored the version saved ${when(v.created_at)}: Save to keep it.`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   const ask = async (action: 'send' | 'schedule' | 'approve') => {
     setConfirming({ action, count: null, ticked: false });
@@ -173,6 +186,11 @@ export default function CampaignEditor({ campaign, lists, levels, stats, links, 
           {editable && (
             <button type="button" className={secondary} disabled={busy} onClick={() => setComposing(true)}>
               Compose
+            </button>
+          )}
+          {c.status === 'draft' && (
+            <button type="button" className={secondary} disabled={busy} onClick={() => setSharing(true)} title="Make a private link to view or edit this newsletter">
+              Share
             </button>
           )}
           {editable && (
@@ -368,6 +386,10 @@ export default function CampaignEditor({ campaign, lists, levels, stats, links, 
           </button>
         )}
       </div>
+
+      {sharing && <ShareDialog target={{ campaign: c.id }} title={c.name || c.subject || 'Newsletter'} onClose={() => setSharing(false)} />}
+
+      <CampaignHistory campaignId={c.id} version={versions} tz={tz} editable={editable} onRestore={restore} />
 
       {stats && stats.recipients + stats.dropped > 0 && <Numbers stats={stats} links={links} showMachine={showMachine} setShowMachine={setShowMachine} campaignId={c.id} admin={admin} mailgun={mailgun} />}
 

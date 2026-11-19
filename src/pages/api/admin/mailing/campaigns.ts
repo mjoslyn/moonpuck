@@ -14,6 +14,7 @@ import { mailgunStatus, tagStats } from '../../../../lib/mailing/mailgun';
 import { setPaused } from '../../../../lib/mailing/state';
 import { mailOriginProblem } from '../../../../lib/mailing/contacts';
 import { defaultTemplate } from '../../../../lib/email-templates';
+import { recordCampaignRevision } from '../../../../lib/mailing/revisions';
 
 const SENDABLE = ['draft', 'review', 'paused', 'failed'];
 const text = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, max) : '');
@@ -84,7 +85,11 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
         utm: !!f.utm,
       };
       const { data, error } = await db.from('campaigns').update(patch).eq('id', id).select('updated_at').single();
-      return error ? fail(error.message) : Response.json({ ok: true, updated_at: data.updated_at });
+      if (error) return fail(error.message);
+      // A version for the campaign's history (src/lib/mailing/revisions.ts), when its email changed.
+      const { error: revErr } = await recordCampaignRevision(serviceClient(), id, { name: patch.name, subject: patch.subject, design: patch.design, text: patch.text }, { author: locals.user!.id });
+      if (revErr) console.error(`campaign ${id}: version not kept: ${revErr.message}`);
+      return Response.json({ ok: true, updated_at: data.updated_at });
     }
     case 'count': {
       const people = await audience(serviceClient(), c);
