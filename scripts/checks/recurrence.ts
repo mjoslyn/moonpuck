@@ -33,11 +33,12 @@ eq('occurrences keep wall-clock times across DST', occ.map((o) => [o.occurrence,
   ['2026-10-29', '2026-10-29 19:00:00', '2026-10-29 22:00:00', '2026-10-29T23:00:00.000Z'],
   ['2026-11-05', '2026-11-05 19:00:00', '2026-11-05 22:00:00', '2026-11-06T00:00:00.000Z'],
 ]);
-const saved = eventDates({ event_start: '2026-11-05T19:00', event_end: '2026-11-05T21:30', event_all_day: false }, { all_day: true, recurrence: { freq: 'weekly', interval: '2', count: 'x' } });
+// The saves name their timezone, so the check holds whatever the site's (SITE_TZ) is.
+const saved = eventDates({ event_start: '2026-11-05T19:00', event_end: '2026-11-05T21:30', event_all_day: false }, { timezone: 'America/New_York', all_day: true, recurrence: { freq: 'weekly', interval: '2', count: 'x' } });
 eq('save: fields from editor times', [saved.event_start, saved.event_end, saved.fields.start, saved.fields.end, saved.fields.all_day, saved.fields.recurrence], [
   '2026-11-06T00:00:00.000Z', '2026-11-06T02:30:00.000Z', '2026-11-05 19:00:00', '2026-11-05 21:30:00', false, { freq: 'weekly', interval: 2 },
 ]);
-const allDay = eventDates({ event_start: '2026-10-10T04:00:00+00:00', event_end: '2026-10-12T03:59:59+00:00', event_all_day: true }, { recurrence: { freq: '' } });
+const allDay = eventDates({ event_start: '2026-10-10T04:00:00+00:00', event_end: '2026-10-12T03:59:59+00:00', event_all_day: true }, { timezone: 'America/New_York', recurrence: { freq: '' } });
 eq('save: all-day spans whole days', [allDay.fields.start, allDay.fields.end, allDay.fields.all_day, 'recurrence' in allDay.fields], ['2026-10-10 00:00:00', '2026-10-11 23:59:59', true, false]);
 // 8-9 pm in Los Angeles on a New York site, at 8:30 pm Pacific (11:30 pm Eastern): still on.
 const la: any = { id: 8, type: 'event', fields: { start: '2026-10-26 20:00:00', end: '2026-10-26 21:00:00', timezone: 'America/Los_Angeles' } };
