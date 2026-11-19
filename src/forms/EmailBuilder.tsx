@@ -43,8 +43,6 @@ export interface EmailKit {
   entries?: boolean;
   /** Saved templates of this kind (the Templates panel). */
   templates?: TemplateKit;
-  /** The email's look (colours, font, width) isn't offered: only its preview text (a share link's guest). */
-  lockLook?: boolean;
   /** A data block in the plain text made from the design (usually its merge tag). */
   textField: (id: string, showLabel: boolean) => string;
   preview: {
@@ -135,7 +133,7 @@ function emailConfig(kit: EmailKit, events: boolean): Config {
       other: { visible: false },
     },
     root: {
-      fields: kit.lockLook ? { preheader: { type: 'text', label: 'Preview text (after the subject in the inbox)' } } : {
+      fields: {
         preheader: { type: 'text', label: 'Preview text (after the subject in the inbox)' },
         background: color('Page background', EMAIL_DEFAULTS.background),
         contentBackground: color('Email background', EMAIL_DEFAULTS.contentBackground),

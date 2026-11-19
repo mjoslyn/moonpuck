@@ -10,6 +10,7 @@ import { takeStart, type ComposeStart } from '../lib/compose/start';
 import { mailingEmailKit } from './mailing-email';
 import ShareDialog from './ShareDialog';
 import CampaignHistory, { type CampaignVersionRow } from './CampaignHistory';
+import CampaignComments from './CampaignComments';
 import { CAMPAIGN_STATUS, rate, sendAction, type Audience, type Campaign, type CampaignStats, type ContactField, type MailList } from '../lib/mailing/config';
 import type { MemberLevel } from '../lib/members/config';
 import type { EmailDoc } from '../lib/forms/email';
@@ -140,7 +141,7 @@ export default function CampaignEditor({ campaign, lists, levels, stats, links, 
   };
   /**
    * Save, based on the version loaded or last saved here (`base`): if someone else saved since (an editor,
-   * or a guest through a share link), ask before saving over theirs, which History keeps either way.
+   * another tab), ask before saving over theirs, which History keeps either way.
    */
   const persist = async () => {
     const now = latest.current;
@@ -405,6 +406,8 @@ export default function CampaignEditor({ campaign, lists, levels, stats, links, 
       </div>
 
       {sharing && <ShareDialog target={{ campaign: c.id }} title={c.name || c.subject || 'Newsletter'} onClose={() => setSharing(false)} />}
+
+      <CampaignComments campaignId={c.id} design={c.design} tz={tz} />
 
       <CampaignHistory campaignId={c.id} version={versions} tz={tz} editable={editable} dirty={dirty} onRestore={restore} />
 

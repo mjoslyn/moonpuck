@@ -74,7 +74,7 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     case 'save': {
       if (!SENDABLE.includes(c.status) && c.status !== 'scheduled') return fail('A campaign can’t be changed once it is sending.');
       if (c.status !== 'draft' && !admin) return fail('Only admins change scheduled or waiting campaigns.', 403);
-      // Someone else (an editor, or a guest through a share link) saved since this form was loaded.
+      // Someone else saved since this form was loaded.
       if (isStale(body.base, c.updated_at)) return fail(STALE, 409);
       const f = body.campaign ?? {};
       const patch = {

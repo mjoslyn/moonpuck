@@ -1,6 +1,6 @@
 ---
 title: Saving and publishing
-description: "Autosave, drafts, publishing, previewing, sharing a private link, taking a page off the site and going back to an earlier version."
+description: "Autosave, drafts, publishing, previewing, sharing a private link and comments, taking a page off the site and going back to an earlier version."
 sidebar:
   order: 3
 ---
@@ -110,15 +110,15 @@ changes.
 
 ## Sharing a private link
 
-**Share** makes a private link to the page, so someone can see it, or work on it, before it goes live.
+**Share** makes a private link to the page, so someone can see it, and comment on it, before it goes live.
 The link shows the page as it is saved, including changes that aren't published yet.
 
 1. Click **Share** at the top of the editor.
 2. Under **People with the link can**, choose one:
-   - **View the page**: they see it, nothing more.
-   - **Edit it as a draft**: they open it in the editor and change it. Their changes are saved as a
-     draft. Only you and the other editors can publish them.
-3. Under **Who can open it**, choose one:
+   - **View the page**: they see it, and can leave comments on its blocks and sections.
+   - **Edit it as a draft**: the page opens in the editor. Only signed-in editors and admins can edit,
+     so this link is for them.
+3. Under **Who can open it**, choose one (an edit link is always the first):
    - **Signed-in editors and admins**: only people who look after the site. Anyone else is asked to sign
      in.
    - **Anyone with the link and the password**: type a password of at least 6 characters, and give it
@@ -128,26 +128,31 @@ The link shows the page as it is saved, including changes that aren't published 
 5. Optional: set **Expires** to a date and time. The link stops working then.
 6. Click **Make link**. The link is copied, ready to paste into an email.
 
-Someone editing through a link without an account can:
+People with a view link see the page as visitors will (without anything only members see). They can't
+change it or reach any other part of the site's admin.
 
-- Change the page's blocks, its title, excerpt, featured image and details (for an event, its dates,
-  time zone and repeats too).
-- Save their work (it also saves itself as they go) and preview it.
+### Comments
 
-They can't:
+On the page a view link opens, and on your own **Preview**, a **Comment** button sits in the bottom right
+corner.
 
-- Publish, unpublish or discard changes.
-- Change the page's address, template, categories, tags, members setting, SEO, Featured setting, or a
-  product's prices and download.
-- Add HTML or Embed blocks, or change the ones already on the page. They can move or remove them.
-- Upload files, use Compose, or open any other part of the site's admin.
+1. Click **Comment**. Moving the pointer over the page outlines the block or section under it.
+2. Click a block or section. A small box opens, showing which one it is.
+3. Someone without an account types their name (the browser remembers it). Then type the comment.
+4. Click **Send**. The button says **Comment sent**.
+5. Click **Done commenting** to use the page normally again.
 
-Anything they type is cleaned: only bold, italic, links and the like are kept, and links must go to
-web, email or phone addresses. A page whose content is part of its template (such as some home pages)
-can be viewed through a link but not edited.
+Comments go on blocks the page has when it is saved. A block you just added needs the page saved first.
 
-Their changes show in **Revisions** with the note **Saved through a share link** and the link's name.
-Look them over, then publish.
+You see them in the editor's **Comments** panel (the speech bubble in the left rail):
+
+- Open comments come first, each with the block it is on, a few of its words, who wrote it and when.
+  Comments sent through a link say **(share link)**.
+- **Show** selects that block on the page.
+- **Resolve** marks a comment done. Tick **Show resolved** to see those again, and **Reopen** one.
+- **Delete** removes a comment.
+- To add your own, select a block on the page (or nothing, for the whole page), type in the box at the top
+  of the panel and click **Add comment**.
 
 ### Turning a link off
 

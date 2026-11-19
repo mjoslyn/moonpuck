@@ -1,0 +1,160 @@
+// Comments on a page's or newsletter draft's blocks (table share_comments): left by a guest with a share
+// link that views it (a password or anyone link; they give a name) or by a signed-in editor or admin, from a
+// page's preview (public/assets/js/share-comments.js), a newsletter's share page, the page editor's Comments
+// panel or the campaign screen. A comment names one block (its id) or none (the whole page or email), with
+// the block's type and a few words of it to show where it was. Editors read them, resolve, reopen and delete
+// them (/api/admin/share-comments). Written as the server; the text is plain and shown escaped.
+import { siteDb } from '../db/site';
+import type { ShareLink, ShareSubject } from './links';
+
+/** The longest comment, name and quote kept. */
+export const COMMENT_MAX = 2000;
+export const NAME_MAX = 80;
+export const QUOTE_MAX = 200;
+/** Comments a guest's link may leave in an hour (all its guests together). */
+export const GUEST_COMMENTS_PER_HOUR = 30;
+
+export interface ShareComment {
+  id: number;
+  link_id: number | null;
+  entry_id: number | null;
+  campaign_id: number | null;
+  block: string;
+  block_type: string;
+  quote: string;
+  body: string;
+  author: string;
+  author_id: string | null;
+  status: 'open' | 'resolved';
+  resolved_at: string | null;
+  resolved_by: string | null;
+  created_at: string;
+}
+
+const COLUMNS = 'id, link_id, entry_id, campaign_id, block, block_type, quote, body, author, author_id, status, resolved_at, resolved_by, created_at';
+
+type Item = { type: string; props?: Record<string, any> };
+
+/** Every block of a page's content (its blocks, those inside them and in its root's slots) or an email
+ * design (its blocks and those in Sections and Columns), by id with its type and a few words of it. */
+export function blocksOf(doc: any): Map<string, { type: string; words: string }> {
+  const out = new Map<string, { type: string; words: string }>();
+  const walk = (items: unknown) => {
+    if (!Array.isArray(items)) return;
+    for (const item of items as Item[]) {
+      if (!item || typeof item !== 'object' || !item.props) continue;
+      const id = item.props.id;
+      if (id != null && id !== '') out.set(String(id), { type: String(item.type ?? ''), words: wordsOf(item) });
+      walk(item.props.children);
+      for (const v of Object.values(item.props.attrs ?? {})) walk(v);
+      // Email blocks keep their settings, and their inner blocks, on props itself.
+      for (const v of Object.values(item.props)) walk(v);
+    }
+  };
+  walk(doc?.content);
+  for (const v of Object.values(doc?.root?.props ?? {})) walk(v);
+  return out;
+}
+
+/** The ids of a page's blocks: those a preview marks for comments. */
+export const blockIdsOf = (doc: any): Set<string> => new Set(blocksOf(doc).keys());
+
+/** A few words of a block's own text, for showing which block a comment is on. */
+function wordsOf(item: Item): string {
+  const p = item.props ?? {};
+  const a = p.attrs ?? {};
+  const raw = [a.content, a.text, a.title, a.heading, a.label, a.caption, p.text, p.html, p.label, p.heading].find((v) => typeof v === 'string' && v.trim()) ?? '';
+  return plain(String(raw)).slice(0, QUOTE_MAX);
+}
+
+/** Text with its markup and runs of spaces taken out. */
+export const plain = (s: string) => s.replace(/<[^>]*>?/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+
+/** The blocks of what is shared, as stored: a page's content and its unpublished changes; a newsletter's design. */
+async function sharedBlocks(subject: ShareSubject): Promise<Map<string, { type: string; words: string }> | null> {
+  const db = siteDb();
+  if (subject.kind === 'campaign') {
+    const { data } = await db.from('campaigns').select('design').eq('id', subject.id).maybeSingle();
+    return data ? blocksOf(data.design) : null;
+  }
+  const [{ data: e }, { data: d }] = await Promise.all([
+    db.from('entries').select('content, status').eq('id', subject.id).maybeSingle(),
+    db.from('entry_drafts').select('draft').eq('entry_id', subject.id).maybeSingle(),
+  ]);
+  if (!e || e.status === 'trash') return null;
+  const blocks = blocksOf(e.content);
+  for (const [k, v] of blocksOf(d?.draft?.content)) blocks.set(k, v);
+  return blocks;
+}
+
+export interface NewComment {
+  subject: ShareSubject;
+  /** A block's id, or empty for the whole page or email. */
+  block?: string;
+  body: string;
+  /** A guest's name (an editor's comes from their account). */
+  name?: string;
+}
+
+/** Who leaves a comment: a guest through a link, or a signed-in editor or admin. */
+export type Commenter = { link: ShareLink; name?: string } | { editor: { id: string; name: string } };
+
+/** Leave a comment: checked (the block is one of what is shared, the text not too long, a guest's link
+ * under its hourly limit) and kept. The answer is the comment, or why not. */
+export async function addComment(c: NewComment, by: Commenter): Promise<{ ok: true; comment: ShareComment } | { ok: false; error: string; status: number }> {
+  const body = String(c.body ?? '').trim();
+  if (!body) return { ok: false, error: 'Write a comment first.', status: 400 };
+  if (body.length > COMMENT_MAX) return { ok: false, error: `A comment can be at most ${COMMENT_MAX} characters.`, status: 400 };
+  const blocks = await sharedBlocks(c.subject);
+  if (!blocks) return { ok: false, error: 'Not found', status: 404 };
+  const block = String(c.block ?? '');
+  const found = block ? blocks.get(block) : undefined;
+  if (block && !found) return { ok: false, error: 'That block isn’t in the saved version. Save the page, then comment.', status: 400 };
+  const db = siteDb();
+  let author: string;
+  if ('link' in by) {
+    author = String(by.name ?? c.name ?? '').trim().slice(0, NAME_MAX);
+    if (!author) return { ok: false, error: 'Add your name, so the editors know who wrote it.', status: 400 };
+    const since = new Date(Date.now() - 3600_000).toISOString();
+    const { count } = await db.from('share_comments').select('id', { count: 'exact', head: true }).eq('link_id', by.link.id).gt('created_at', since);
+    if ((count ?? 0) >= GUEST_COMMENTS_PER_HOUR) return { ok: false, error: 'Too many comments for now. Please wait a while and try again.', status: 429 };
+  } else author = by.editor.name;
+  const row = {
+    link_id: 'link' in by ? by.link.id : null,
+    author_id: 'editor' in by ? by.editor.id || null : null,
+    entry_id: c.subject.kind === 'entry' ? c.subject.id : null,
+    campaign_id: c.subject.kind === 'campaign' ? c.subject.id : null,
+    block,
+    block_type: found?.type ?? '',
+    quote: found?.words ?? '',
+    body,
+    author,
+  };
+  const { data, error } = await db.from('share_comments').insert(row).select(COLUMNS).single();
+  if (error) return { ok: false, error: error.message, status: 400 };
+  return { ok: true, comment: data as ShareComment };
+}
+
+/** A page's or newsletter's comments, open ones first, then newest first. */
+export async function commentsOf(subject: ShareSubject): Promise<ShareComment[]> {
+  const { data, error } = await siteDb().from('share_comments').select(COLUMNS).eq(subject.kind === 'campaign' ? 'campaign_id' : 'entry_id', subject.id).order('id', { ascending: false }).limit(500);
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as ShareComment[];
+  return [...rows.filter((r) => r.status === 'open'), ...rows.filter((r) => r.status !== 'open')];
+}
+
+/** Resolve or reopen a comment. */
+export async function setCommentStatus(id: number, status: 'open' | 'resolved', by: string): Promise<void> {
+  const patch = status === 'resolved' ? { status, resolved_at: new Date().toISOString(), resolved_by: by || null } : { status, resolved_at: null, resolved_by: null };
+  const { error } = await siteDb().from('share_comments').update(patch).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+/** Delete a comment. */
+export async function deleteComment(id: number): Promise<void> {
+  const { error } = await siteDb().from('share_comments').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+/** What a comment is on, from its row. */
+export const subjectOfComment = (c: Pick<ShareComment, 'entry_id' | 'campaign_id'>): ShareSubject => (c.campaign_id ? { kind: 'campaign', id: c.campaign_id } : { kind: 'entry', id: c.entry_id ?? 0 });

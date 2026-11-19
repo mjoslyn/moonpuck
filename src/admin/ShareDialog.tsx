@@ -113,17 +113,17 @@ export default function ShareDialog({ target, title, onClose }: { target: ShareT
                 <input ref={first} type="radio" name="share-mode" checked={mode === 'view'} onChange={() => setMode('view')} /> {email ? 'View the email' : 'View the page'}
               </label>
               <label className="inline-flex items-center gap-1.5">
-                <input type="radio" name="share-mode" checked={mode === 'edit'} onChange={() => setMode('edit')} /> Edit it as a draft
+                <input type="radio" name="share-mode" checked={mode === 'edit'} onChange={() => (setMode('edit'), setAccess('login'))} /> {email ? 'Open it in the editor' : 'Edit it as a draft'}
               </label>
-              {mode === 'edit' && !email && <p className="mt-1 text-xs text-admin-muted">Their changes are saved as a draft for you to publish. People without an account can’t add or change HTML or Embed blocks.</p>}
-              {mode === 'edit' && email && <p className="mt-1 text-xs text-admin-muted">They change the subject, the preview line, the email and its plain text. Only editors choose who it goes to and send it.</p>}
+              {mode === 'view' && <p className="mt-1 text-xs text-admin-muted">They can leave comments on its {email ? 'blocks' : 'blocks and sections'}, which you see under Comments.</p>}
+              {mode === 'edit' && <p className="mt-1 text-xs text-admin-muted">Only signed-in editors and admins can edit, so this link is for them.</p>}
               {email && <p className="mt-1 text-xs text-admin-muted">Links work while the newsletter is a draft.</p>}
             </fieldset>
             <fieldset>
               <legend className="mb-1 text-xs font-medium text-admin-muted">Who can open it</legend>
               {(Object.keys(ACCESS_LABEL) as Access[]).map((a) => (
                 <label key={a} className="flex items-center gap-1.5">
-                  <input type="radio" name="share-access" checked={access === a} onChange={() => setAccess(a)} /> {ACCESS_LABEL[a]}
+                  <input type="radio" name="share-access" checked={access === a} disabled={mode === 'edit' && a !== 'login'} onChange={() => setAccess(a)} /> {ACCESS_LABEL[a]}
                 </label>
               ))}
             </fieldset>

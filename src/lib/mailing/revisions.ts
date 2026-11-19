@@ -1,5 +1,5 @@
 // A campaign's saved versions (table campaign_revisions): one per save that changed its name, subject,
-// email or plain text, by an editor (the campaigns API) or a share link's guest (src/lib/share). The newest
+// email or plain text, by an editor (the campaigns API). The newest
 // KEEP_VERSIONS are kept. Written as the server; editors read them on the campaign's screen.
 import type { Db } from '../db/query';
 

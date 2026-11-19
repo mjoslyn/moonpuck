@@ -5,12 +5,10 @@ import type { APIRoute } from 'astro';
 import { emailEntries } from '../../../../lib/mailing/entries';
 import { mailOrigin } from '../../../../lib/mailing/contacts';
 import { previewCampaign } from '../../../../lib/mailing/preview';
-import { siteDb } from '../../../../lib/db/site';
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const body = await request.json().catch(() => ({}));
-  // A share link's guest reads the site as visitors see it, through the server (src/lib/share).
-  const db = locals.user.role === 'guest' ? siteDb() : locals.db;
+  const db = locals.db;
   const origin = mailOrigin(new URL(request.url).origin);
   const since = typeof body.since === 'string' ? body.since : new Date(Date.now() - 7 * 86_400_000).toISOString();
   try {
