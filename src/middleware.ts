@@ -1,4 +1,5 @@
-// Admin routes require a session (src/lib/auth) whose profile role is editor or admin. Site settings and
+// Admin routes require a session (src/lib/auth) whose profile role is editor or admin, or a share link's
+// cookie (src/lib/share) for its entry's editor and preview only (the `guest` role). Site settings and
 // users are for admins only. locals.db reads and writes as that role (src/lib/db/policies.ts).
 import { defineMiddleware } from 'astro:middleware';
 import { sessionDb, siteDb } from './lib/db/site';
@@ -9,6 +10,7 @@ import { changesPages, PAGE_CACHE_TAG } from './lib/cache';
 import { AUTOSAVE } from './lib/admin/revisions';
 import { env } from './lib/env';
 import { adminOnlyIn, sitePlugins } from './lib/site/plugins';
+import { guestLink, guestMay } from './lib/share/links';
 // Server-only work the page renderer calls (src/render/hooks.ts).
 import './lib/mailing/page-data';
 import './lib/shop/page-data';
@@ -121,11 +123,23 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (PUBLIC_ADMIN.some((p) => pathname.startsWith(p))) return noindex(next());
 
   const user = await sessionUser(context.request);
+  const { data: profile } = user ? await siteDb().from('profiles').select('role, display_name').eq('id', user.id).maybeSingle() : { data: null };
+  if (!user || !profile || !['editor', 'admin'].includes(profile.role)) {
+    // Someone without an editor's account, with a share link's cookie: its entry's editor or preview only.
+    const link = await guestLink(context.request);
+    if (link && guestMay(link, context.request.method, pathname)) {
+      context.locals.db = sessionDb({ role: 'guest', entryId: link.entry_id });
+      context.locals.user = { id: '', email: '', role: 'guest', name: link.label ? `Guest (${link.label})` : 'Guest' };
+      context.locals.share = link;
+      // Links followed from the editor or preview don't tell other sites where they came from (same-origin, not
+      // no-referrer: that makes browsers send Origin: null on form posts, which the same-site check refuses).
+      return purgeAfter(context, async () => withHeaders(await noindex(next()), (h) => h.set('Referrer-Policy', 'same-origin')));
+    }
+  }
   if (!user) {
     if (pathname.startsWith('/api/')) return new Response('Unauthorized', { status: 401 });
     return context.redirect(`/admin/login/?next=${encodeURIComponent(pathname)}`);
   }
-  const { data: profile } = await siteDb().from('profiles').select('role, display_name').eq('id', user.id).maybeSingle();
   if (!profile || !['editor', 'admin'].includes(profile.role)) {
     if (pathname.startsWith('/api/')) return new Response('Forbidden', { status: 403 });
     return context.redirect('/admin/login/?error=forbidden');

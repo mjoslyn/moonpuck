@@ -37,6 +37,8 @@ import { inlinePatterns } from './patterns';
 import { PatternsPanel } from './PatternsPanel';
 import { A11yMarksContext, A11yPanel, openIssues } from './A11yPanel';
 import { publishNeedsCheck } from '../lib/a11y-gate';
+import { GUEST_BLOCKED } from '../lib/share/guest-content';
+import ShareDialog from '../admin/ShareDialog';
 import parse, { Element, type DOMNode } from 'html-react-parser';
 // The public site stylesheet, so the canvas matches the site.
 import siteCss from '../styles/site.css?url';
@@ -47,6 +49,11 @@ export interface EditorProps {
   template?: { kind: 'template' | 'part' | 'pattern'; slug: string };
   /** Admins get links from the template's blocks around the page's content to edit them (SourceLinks). */
   admin?: boolean;
+  /**
+   * Someone editing through a share link (src/lib/share): drafts only (Save draft and autosave), the page's
+   * content and a few settings, no HTML or Embed blocks, none of the admin's other screens.
+   */
+  guest?: boolean;
 }
 
 const CONTENT_MARKER = '<cms-content></cms-content>';
@@ -64,7 +71,7 @@ function emptyCtx(loader: Loader, queried: RenderCtx['queried'], settings: Recor
   return { loader, queried, settings, queries: new Map(), docs: new Map(), css: [], assets: new Set(), data: new Map(), scripts: [], rendered: [], editor: true };
 }
 
-export default function Editor({ entryId, template, admin = false }: EditorProps) {
+export default function Editor({ entryId, template, admin = false, guest = false }: EditorProps) {
   const db = browserClient();
   const [entry, setEntry] = useState<Entry | null>(null);
   const [state, setState] = useState<EntryState | null>(null);
@@ -299,6 +306,15 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
   const donationsAreOn = useDonationsOn();
   const config = useMemo(() => {
     const c = buildConfig(EDITABLE_TYPES, entryType, { members: !!members?.enabled, events: eventsAreOn === true, mailing: mailingIsOn === true, shop: shopIsOn === true, donations: donationsAreOn === true });
+    // A guest (a share link) can't add HTML or Embed blocks, nor change the ones on the page; they can
+    // move or remove them. The server refuses them too (src/lib/share/guest-content.ts).
+    if (guest) {
+      for (const cat of Object.values((c.categories ?? {}) as Record<string, { components?: string[] }>)) if (cat.components) cat.components = cat.components.filter((t) => !GUEST_BLOCKED.has(t));
+      for (const t of GUEST_BLOCKED) {
+        const comp = (c.components as Record<string, any>)[t];
+        if (comp) (c.components as Record<string, any>)[t] = { ...comp, resolvePermissions: (_d: unknown, { permissions }: any) => ({ ...permissions, edit: false, duplicate: false, insert: false }) };
+      }
+    }
     c.root = {
       fields: state
         ? {
@@ -313,7 +329,7 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
       render: ({ children, ...props }: { children: ReactNode } & Record<string, any>) => <ChromeFromContext content={children} slots={props} />,
     } as any;
     return c;
-  }, [state === null, entryType, areaList.join(), !!members?.enabled, eventsAreOn === true, mailingIsOn === true, shopIsOn === true, donationsAreOn === true]);
+  }, [state === null, entryType, areaList.join(), !!members?.enabled, eventsAreOn === true, mailingIsOn === true, shopIsOn === true, donationsAreOn === true, guest]);
 
   // Compose panel: docked beside the editor; pinned keeps it open (per browser).
   const puckRef = useRef<ReturnType<typeof useGetPuck> | null>(null);
@@ -321,7 +337,8 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
   const [selection, setSelectionState] = useState<Selection | null>(null);
   // Only when the selected block or its data changed (a new object each time would re-render Puck in a loop).
   const setSelection = useCallback((next: Selection | null) => setSelectionState((prev) => (prev?.item === next?.item && prev?.top === next?.top ? prev : next)), []);
-  const [composeOpen, setComposeOpen] = useState(() => readPinned() || new URLSearchParams(location.search).has('compose'));
+  const [composeOpen, setComposeOpen] = useState(() => !guest && (readPinned() || new URLSearchParams(location.search).has('compose')));
+  const [sharing, setSharing] = useState(false);
   const pin = (on: boolean) => {
     setPinned(on);
     try {
@@ -639,6 +656,15 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
 
   if (error) return <p className="p-8 text-[#c4592a]">{error}</p>;
   if (!initial || !env) return <p className="p-8 text-admin-muted">Loading editor…</p>;
+  // A page whose template holds its content is edited as the template, which a share link can't change.
+  if (guest && (mode !== 'content' || !entry))
+    return (
+      <div className="mx-auto mt-24 max-w-md p-4">
+        <h1 className="text-2xl font-normal">This page can’t be edited through a share link</h1>
+        <p className="mt-2 text-sm text-admin-muted">Its content is part of its layout, which only the site’s editors change. You can still see it.</p>
+        {entryId && <a className="mt-4 inline-block rounded bg-admin-ink px-4 py-2 text-sm text-white hover:bg-admin-accent" href={`/admin/preview/${entryId}/`}>See the page</a>}
+      </div>
+    );
 
   const viewUrl = entry && settingsRef.current.site?.front_page_id !== entry.id ? permalink(entry) : '/';
   const templateName = templateTitle || template?.slug || '';
@@ -648,9 +674,13 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
     <div className="flex min-w-0 flex-1 flex-col">
     {/* Page title and address, above Puck (outside its header, so its toolbar keeps its own layout). */}
     <div className="flex shrink-0 items-baseline gap-3 border-b border-admin-ink/10 bg-white px-4 py-2">
-      <a href={entry ? `/admin/?type=${entry.type}` : '/admin/templates/'} className="text-xs text-admin-muted hover:text-admin-accent" title="Back to the list">
-        ←
-      </a>
+      {guest ? (
+        <span className="rounded-full bg-admin-accent/10 px-2 py-0.5 text-xs text-admin-accent" title="You are editing through a share link: your changes are saved as a draft for the site's editors to publish">Shared with you</span>
+      ) : (
+        <a href={entry ? `/admin/?type=${entry.type}` : '/admin/templates/'} className="text-xs text-admin-muted hover:text-admin-accent" title="Back to the list">
+          ←
+        </a>
+      )}
       <h1 className="truncate text-lg">{titleText}</h1>
       {entry && <span className="truncate font-mono text-xs text-admin-muted">{viewUrl}</span>}
       {template && templateTitle && templateTitle !== template.slug && <span className="truncate font-mono text-xs text-admin-muted">{template.slug}</span>}
@@ -660,12 +690,12 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
     <EnvContext.Provider value={env}>
       <RevisionsContext.Provider value={{ entryId: entry?.id ?? null, version: revisionsVersion, layout: mode === 'layout' ? templateSlug : null, canRestore: (r) => !!entry && canRestore(r), restore }}>
       <A11yMarksContext.Provider value={{ save: saveA11yMarks, quiet: () => (marksOnly.current = true), gate: gated() }}>
-      <ViewContext.Provider value={{ env, chrome, sources: admin ? templateSlug : null, form: { type: entry?.type ?? '', id: entry?.id ?? null, state, setState: (v) => { stateRef.current = v; setState(v); edited(); }, templates } }}>
+      <ViewContext.Provider value={{ env, chrome, sources: admin ? templateSlug : null, form: { type: entry?.type ?? '', id: entry?.id ?? null, state, setState: (v) => { stateRef.current = v; setState(v); edited(); }, templates, guest } }}>
       <Puck
         config={config}
         data={initial}
         onChange={onChange}
-        onPublish={() => (entry && mode === 'content' ? publish() : save('save'))}
+        onPublish={() => (guest ? save('draft') : entry && mode === 'content' ? publish() : save('save'))}
         plugins={PLUGINS}
         iframe={IFRAME}
         // The title and address are on the bar above the editor; Puck falls back to the page title when
@@ -697,12 +727,12 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
                   {liveStatus === 'publish' && pending && !dirty && <span title={`Saved ${new Date(pending).toLocaleString()}`}>Unpublished changes</span>}
                   {dirty && <span className="text-admin-accent">{autosaving ? 'Saving…' : status.startsWith('Restored') || status.startsWith('Not ') ? status : 'Unsaved changes'}</span>}
                   {!dirty && status && <span>{status}</span>}
-                  {liveStatus === 'publish' && pending && (
+                  {!guest && liveStatus === 'publish' && pending && (
                     <button type="button" className="underline hover:text-[#c4592a]" onClick={() => confirm('Discard the unpublished changes and go back to the live page?') && save('discard')}>
                       Discard changes
                     </button>
                   )}
-                  {liveStatus === 'publish' && (
+                  {!guest && liveStatus === 'publish' && (
                     <button type="button" className="underline hover:text-[#c4592a]" onClick={() => confirm('Take this page off the site? It stays here as a draft.') && save('unpublish')}>
                       Unpublish
                     </button>
@@ -710,7 +740,7 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
                 </span>
               )}
               {!(entry && mode === 'content') && (dirty || status) && <span className={`text-xs ${dirty && !status.startsWith('Restored') ? 'text-admin-accent' : 'text-admin-muted'}`}>{dirty && !status.startsWith('Restored') && !status.startsWith('Not ') ? 'Unsaved changes' : status}</span>}
-              {(entry || template) && (
+              {!guest && (entry || template) && (
                 <button type="button" onClick={() => setComposeOpen((v) => !v)} aria-pressed={composeOpen} className={`whitespace-nowrap rounded border px-3 py-1.5 text-sm ${composeOpen ? 'border-admin-accent text-admin-accent' : 'border-admin-ink/15 hover:border-admin-accent hover:text-admin-accent'}`}>
                   Compose
                 </button>
@@ -721,7 +751,12 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
                 </button>
               )}
               {entry && liveStatus === 'publish' && <a href={viewUrl} target="_blank" className="whitespace-nowrap text-sm text-admin-muted hover:text-admin-accent">View live</a>}
-              {entry && (
+              {!guest && entry && (
+                <button type="button" onClick={() => setSharing(true)} className="whitespace-nowrap text-sm text-admin-muted hover:text-admin-accent" title="Make a private link to view or edit this page">
+                  Share
+                </button>
+              )}
+              {!guest && entry && (
                 <form method="post" action="/api/admin/entries" onSubmit={(e) => dirty && !window.confirm('The copy is made from the saved page; your unsaved changes won\'t be in it. Duplicate anyway?') && e.preventDefault()}>
                   <input type="hidden" name="duplicate" value={entry.id} />
                   <button className="whitespace-nowrap text-sm text-admin-muted hover:text-admin-accent" title="Make a draft copy of this page and open it">
@@ -735,9 +770,11 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
                   <button type="button" disabled={saving} onClick={() => save('draft')} className="whitespace-nowrap rounded border border-admin-ink/20 px-3 py-1.5 text-sm hover:border-admin-accent hover:text-admin-accent disabled:opacity-50" title={liveStatus === 'publish' ? 'Keep your changes without changing the live page' : 'Save without publishing'}>
                     Save draft
                   </button>
-                  <button type="button" disabled={saving} onClick={publish} title={gated() ? 'Checks the page\'s accessibility first' : undefined} className="whitespace-nowrap rounded bg-admin-ink px-4 py-1.5 text-sm font-medium text-white hover:bg-admin-accent disabled:opacity-50">
-                    {liveStatus === 'publish' ? 'Publish changes' : 'Publish'}
-                  </button>
+                  {!guest && (
+                    <button type="button" disabled={saving} onClick={publish} title={gated() ? 'Checks the page\'s accessibility first' : undefined} className="whitespace-nowrap rounded bg-admin-ink px-4 py-1.5 text-sm font-medium text-white hover:bg-admin-accent disabled:opacity-50">
+                      {liveStatus === 'publish' ? 'Publish changes' : 'Publish'}
+                    </button>
+                  )}
                 </>
               ) : (
                 <button type="button" disabled={saving} onClick={() => save('save')} className="whitespace-nowrap rounded bg-admin-ink px-4 py-1.5 text-sm font-medium text-white hover:bg-admin-accent disabled:opacity-50" title="Templates have no drafts: changes apply to every page using them">
@@ -754,6 +791,7 @@ export default function Editor({ entryId, template, admin = false }: EditorProps
     </EnvContext.Provider>
     </div>
     </div>
+    {sharing && entry && <ShareDialog entryId={entry.id} title={state?.title || entry.title || '(untitled)'} onClose={() => setSharing(false)} />}
     {held && (
       <A11yHoldDialog
         held={held}
@@ -1069,7 +1107,7 @@ interface ViewState {
   chrome: PuckItem[];
   /** The template's slug when the canvas marks where its blocks come from (admins), else null. */
   sources: string | null;
-  form: { type: string; id: number | null; state: EntryState | null; setState: (v: EntryState) => void; templates: TemplateInfo[] };
+  form: { type: string; id: number | null; state: EntryState | null; setState: (v: EntryState) => void; templates: TemplateInfo[]; guest: boolean };
 }
 const ViewContext = createContext<ViewState | null>(null);
 
@@ -1083,7 +1121,7 @@ function EntryFormBridge() {
   const view = useContext(ViewContext);
   if (!view?.form.state) return null;
   const f = view.form;
-  return <EntryForm type={f.type} id={f.id} value={f.state!} onChange={f.setState} templates={f.templates} pageItems={() => getPuck().appState.data.content as any[]} />;
+  return <EntryForm type={f.type} id={f.id} value={f.state!} onChange={f.setState} templates={f.templates} pageItems={() => getPuck().appState.data.content as any[]} guest={f.guest} />;
 }
 
 /** Template around the editable content, rendered statically (header, footer, template sections). */
