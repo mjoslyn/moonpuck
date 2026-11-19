@@ -287,6 +287,14 @@ export const SCHEMA: Record<string, TableSchema> = {
     defaults: {},
     touch: true,
   },
+  share_comments: {
+    pk: ["id"],
+    columns: {"id":"int8","link_id":"int8","entry_id":"int8","campaign_id":"int8","block":"text","block_type":"text","quote":"text","body":"text","author":"text","status":"text","resolved_at":"timestamptz","resolved_by":"uuid","created_at":"timestamptz","updated_at":"timestamptz","author_id":"uuid"},
+    generated: [],
+    fks: [[["author_id"],"users",["id"]],[["campaign_id"],"campaigns",["id"]],[["entry_id"],"entries",["id"]],[["link_id"],"share_links",["id"]],[["resolved_by"],"users",["id"]]],
+    defaults: {"block":"","block_type":"","quote":"","author":"","status":"open"},
+    touch: true,
+  },
   share_links: {
     pk: ["id"],
     columns: {"id":"int8","token":"text","entry_id":"int8","campaign_id":"int8","mode":"text","access":"text","password_hash":"text","label":"text","expires_at":"timestamptz","revoked_at":"timestamptz","uses":"int8","last_used_at":"timestamptz","created_by":"uuid","created_at":"timestamptz","updated_at":"timestamptz"},

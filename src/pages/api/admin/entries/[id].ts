@@ -9,8 +9,6 @@ import { siteDb } from '../../../../lib/db/site';
 import { uniqueAreas } from '../../../../lib/content/areas';
 import { taxonomiesOf } from '../../../../lib/site';
 import { recordRevision } from '../../../../lib/admin/revisions';
-import { guestContent, guestEntry } from '../../../../lib/share/guest-content';
-import { entryState } from '../../../../lib/share/guest-state';
 
 /**
  * Save an entry. Body: { action, content?, entry?, template? }.
@@ -40,44 +38,10 @@ async function entrySlug(db: any, current: { id: number; type: string; slug: str
   return given || current.slug;
 }
 
-/**
- * A guest's save (a share link that edits, src/lib/share): drafts only, never a layout, its content and
- * settings checked and cleaned (src/lib/share/guest-content.ts) against what is stored, then saved as
- * the server (the guest role writes nothing itself). An answer to send back, or the body to save.
- */
-async function guestSave(id: number, body: any, label: string): Promise<Response | { body: any; note: string }> {
-  if ((body.action ?? 'save') !== 'draft') return new Response('A share link saves drafts only. An editor publishes them.', { status: 403 });
-  if (body.template) return new Response('A share link can’t change the page’s layout.', { status: 403 });
-  const db = siteDb();
-  const [{ data: current }, { data: kept }] = await Promise.all([
-    db.from('entries').select('type, slug, title, excerpt, content, fields, status').eq('id', id).maybeSingle(),
-    db.from('entry_drafts').select('draft').eq('entry_id', id).maybeSingle(),
-  ]);
-  if (!current || current.status === 'trash') return new Response('Not found', { status: 404 });
-  const checked = guestContent(body.content, kept?.draft?.content ?? current.content);
-  if (!checked.ok) return new Response(checked.error, { status: 400 });
-  return {
-    // A published page's changes go aside: on the settings kept aside, else on the page's full settings,
-    // so the draft an editor opens has its template, tags, terms and featured image as they are.
-    body: { ...body, content: checked.content, entry: guestEntry(body.entry, kept?.draft?.entry ?? (current.status === 'publish' ? await entryState(id) : null), current) },
-    note: `Saved through a share link${label ? ` (${label.slice(0, 120)})` : ''}`,
-  };
-}
-
 export const PUT: APIRoute = async ({ params, request, locals }) => {
+  const db = locals.db;
   const id = Number(params.id);
-  let body = await request.json();
-  const guest = locals.user.role === 'guest';
-  // Who saved, for the history: nobody's account for a guest, whose saves carry a note instead.
-  const author = guest ? null : locals.user.id;
-  let guestNote: { note?: string } = {};
-  if (guest) {
-    const g = await guestSave(id, body, locals.share?.label ?? '');
-    if (g instanceof Response) return g;
-    body = g.body;
-    guestNote = { note: g.note };
-  }
-  const db = guest ? siteDb() : locals.db;
+  const body = await request.json();
   const action: string = body.action ?? 'save';
   const autosave = body.autosave === true && action === 'draft';
   // Set when this save keeps an earlier version the editor restored.
@@ -105,7 +69,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     const draft = { content: body.content ?? pending?.content ?? current.content, entry: body.entry ?? pending?.entry ?? null };
     const { error } = await db.from('entry_drafts').upsert({ entry_id: id, draft }).then((r) => (r.error ? r : db.from('entries').update({ draft_saved_at: new Date().toISOString() }).eq('id', id)));
     if (error) return new Response(error.message, { status: 400 });
-    const { error: revErr } = await recordRevision(db, { entry_id: id, title: body.entry?.title ?? current.title, content: draft.content, fields: body.entry?.fields ?? current.fields, entry: draft.entry, action: 'draft', author_id: author, ...guestNote, ...restored }, autosave);
+    const { error: revErr } = await recordRevision(db, { entry_id: id, title: body.entry?.title ?? current.title, content: draft.content, fields: body.entry?.fields ?? current.fields, entry: draft.entry, action: 'draft', author_id: locals.user.id, ...restored }, autosave);
     if (revErr) console.error(`entry ${id}: revision not saved: ${revErr.message}`);
     return Response.json({ ok: true, status: 'publish', pending: true, updated_at: await stamp(), ...(revErr ? { warning: REVISION_WARNING } : {}) });
   }
@@ -129,7 +93,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     if (error) return new Response(error.message, { status: 400 });
     const tpl = await saveTemplate();
     if (tpl instanceof Response) return tpl;
-    const { error: revErr } = await recordRevision(db, { entry_id: id, title: body.entry?.title ?? current.title, content: draft.content, fields: body.entry?.fields ?? current.fields, entry: draft.entry, action: 'draft', author_id: author, template: savedTemplate(), ...restored }, false);
+    const { error: revErr } = await recordRevision(db, { entry_id: id, title: body.entry?.title ?? current.title, content: draft.content, fields: body.entry?.fields ?? current.fields, entry: draft.entry, action: 'draft', author_id: locals.user.id, template: savedTemplate(), ...restored }, false);
     if (revErr) console.error(`entry ${id}: revision not saved: ${revErr.message}`);
     return Response.json({ ok: true, status: 'publish', pending: true, updated_at: await stamp(), templateUpdatedAt: tpl.updated_at, ...(revErr ? { warning: REVISION_WARNING } : {}) });
   }
@@ -195,7 +159,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
   const tpl = await saveTemplate();
   if (tpl instanceof Response) return tpl;
   const templateUpdatedAt = tpl.updated_at;
-  const { error: revErr } = await recordRevision(db, { entry_id: id, title: patch.title ?? current.title, content: patch.content ?? current.content, fields: patch.fields ?? current.fields, entry: Object.keys(e).length ? e : null, action, author_id: author, template: savedTemplate(), ...restored, ...guestNote, ...note }, autosave);
+  const { error: revErr } = await recordRevision(db, { entry_id: id, title: patch.title ?? current.title, content: patch.content ?? current.content, fields: patch.fields ?? current.fields, entry: Object.keys(e).length ? e : null, action, author_id: locals.user.id, template: savedTemplate(), ...restored, ...note }, autosave);
   // The entry is saved either way; a version that couldn't be kept is said, not hidden.
   if (revErr) console.error(`entry ${id}: revision not saved: ${revErr.message}`);
   return Response.json({ ok: true, status, pending: false, ...(patch.slug ? { slug: patch.slug } : {}), updated_at: await stamp(), templateUpdatedAt, ...(revErr ? { warning: REVISION_WARNING } : {}) });

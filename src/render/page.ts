@@ -313,6 +313,8 @@ export interface PreviewOverride {
   /** Read the rest of the site as visitors see it (published entries; a share link's guest), not with
    * the db's own policies as an editor's preview does. */
   asVisitor?: boolean;
+  /** Blocks to mark for comments (RenderCtx.markBlocks). */
+  markBlocks?: Set<string>;
 }
 
 /** The page chosen as the site's Not found page (settings.site.not_found_page_id), while it is published. */
@@ -348,7 +350,7 @@ export async function renderRequest(url: URL, db: Db, form?: FormResult, preview
     const entry = await notFoundPage(settings.site, loader);
     if (entry) queried = { kind: 'singular', entry, page: 1, url, notFound: true };
   }
-  const ctx: RenderCtx = { loader, queried, settings, queries: new Map(), docs: new Map(), css: [], assets: new Set(), data: new Map(), scripts: [], rendered: [], viewer: who ?? null };
+  const ctx: RenderCtx = { loader, queried, settings, queries: new Map(), docs: new Map(), css: [], assets: new Set(), data: new Map(), scripts: [], rendered: [], viewer: who ?? null, ...(preview?.markBlocks ? { markBlocks: preview.markBlocks } : {}) };
 
   if (form) ctx.data.set('form-result', form);
   let template: PuckItem[] | null = preview?.template ?? null;

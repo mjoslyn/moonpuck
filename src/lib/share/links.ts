@@ -1,10 +1,11 @@
 // Share links (server only): a private address for one entry or newsletter draft (a campaign;
-// /share/<token>/), to view it as it is saved (an entry's unpublished changes included) or to edit it as
-// a draft. Each is protected one of three ways
-// (`access`): login (signed-in editors and admins only), password, or anyone with the link. Guests
-// (password and anyone links) get a signed cookie naming the link, one per entry or campaign
-// (`site.share.<entry id>`, `site.share.c<campaign id>`, so several links work side by side), which the
-// middleware turns into the `guest` role for that one entry or campaign (src/lib/db/policies.ts). Revoking a link, its expiry,
+// /share/<token>/), to view it as it is saved (an entry's unpublished changes included), or, for signed-in
+// editors and admins only, to open it in its editor. A view link is protected one of three ways
+// (`access`): login (signed-in editors and admins only), password, or anyone with the link; an edit link
+// is always login. Guests (password and anyone view links) get a signed cookie naming the link, one per
+// entry or campaign (`site.share.<entry id>`, `site.share.c<campaign id>`, so several links work side by
+// side): a page's lets the middleware show its preview as the `guest` role, which reads nothing itself
+// (the preview reads as the server); a newsletter's is shown at /share/<token>/. Revoking a link, its expiry,
 // a new password or a changed protection ends every guest's access at once: the cookie is signed over
 // the link's token, protection and password hash, and the link is read again on each request.
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
@@ -80,6 +81,8 @@ export async function liveLink(token: string | null | undefined): Promise<ShareL
   if (!token || !TOKEN.test(token)) return null;
   const { data } = await siteDb().from('share_links').select(`${COLUMNS}, entries(status), campaigns(status)`).eq('token', token).maybeSingle();
   if (!data || !isLive(data)) return null;
+  // An edit link is for signed-in editors only (one made otherwise, before that rule, doesn't open).
+  if (data.mode === 'edit' && data.access !== 'login') return null;
   const open = data.campaign_id ? data.campaigns?.status === 'draft' && (await mailingIsOn()) : !!data.entries && data.entries.status !== 'trash';
   if (!open) return null;
   const { entries: _e, campaigns: _c, ...link } = data;
@@ -111,31 +114,15 @@ export function cookieFits(link: Pick<ShareLink, 'token' | 'access' | 'password_
   return want.length === got.length && timingSafeEqual(want, got);
 }
 
-const ENTRY_PATH = /^\/(?:admin\/(?:edit|preview)|api\/admin\/entries)\/(\d+)\/?$/;
-const CAMPAIGN_PATH = /^\/(?:api\/)?admin\/shared-email\/(\d+)\/?$/;
+const ENTRY_PATH = /^\/admin\/preview\/(\d+)\/?$/;
 const pathSubject = (path: string): ShareSubject | null => {
   const e = path.match(ENTRY_PATH);
-  if (e) return { kind: 'entry', id: Number(e[1]) };
-  const c = path.match(CAMPAIGN_PATH);
-  return c ? { kind: 'campaign', id: Number(c[1]) } : null;
+  return e ? { kind: 'entry', id: Number(e[1]) } : null;
 };
 
-/**
- * What a guest's request is about: the entry or campaign in its address (the editor, the preview, the
- * save), else, for the editor's other calls (its queries, previews, who is signed in), the one in the
- * address of the editor page that made them (its Referer, sent for the site's own requests:
- * Referrer-Policy same-origin).
- */
-export function requestSubject(request: Request, pathname: string): ShareSubject | null {
-  const own = pathSubject(pathname);
-  if (own) return own;
-  try {
-    const from = new URL(request.headers.get('referer') ?? '');
-    if (from.origin !== new URL(request.url).origin || from.pathname.startsWith('/api/')) return null;
-    return pathSubject(from.pathname);
-  } catch {
-    return null;
-  }
+/** What a guest's request is about: the page whose preview it asks for (the only address a guest reaches). */
+export function requestSubject(_request: Request, pathname: string): ShareSubject | null {
+  return pathSubject(pathname);
 }
 
 /** The live link a guest's cookie lets them use for what the request is about, or null. */
@@ -163,30 +150,13 @@ export async function passwordOpens(link: ShareLink, password: string): Promise<
 }
 
 /**
- * The addresses a guest may reach with an edit or view link, beside /share/<token>/. An entry's: its
- * preview, and for edit links its editor and the APIs the editor uses (its queries, read as the guest
- * role; the entry's own save, which checks what a guest may save; who is signed in; the canvas's data). A
- * campaign's (edit links only; a view link's email is shown at /share/<token>/): its guest editor and save,
- * the email builder's queries (media), previews, and Entries and Events blocks.
+ * The addresses a guest (a password or anyone link: view only) may reach beside /share/<token>/: a page's
+ * preview (GET; a newsletter's email is shown on the share page itself). Editing is for signed-in editors
+ * and admins, who need no link to reach the editor.
  */
-export function guestMay(link: Pick<ShareLink, 'entry_id' | 'campaign_id' | 'mode'>, method: string, pathname: string): boolean {
-  const read = method === 'GET' || method === 'HEAD';
-  if (link.campaign_id) {
-    if (link.mode !== 'edit') return false;
-    const id = link.campaign_id;
-    if (new RegExp(`^/admin/shared-email/${id}/?$`).test(pathname)) return read;
-    if (new RegExp(`^/api/admin/shared-email/${id}/?$`).test(pathname)) return method === 'PUT';
-    if (pathname === '/api/admin/db' || pathname === '/api/admin/mailing/preview' || pathname === '/api/admin/email-events') return method === 'POST';
-    return pathname === '/api/admin/me' && read;
-  }
-  const id = link.entry_id;
-  if (new RegExp(`^/admin/preview/${id}/?$`).test(pathname)) return read || method === 'POST';
-  if (link.mode !== 'edit') return false;
-  if (new RegExp(`^/admin/edit/${id}/?$`).test(pathname)) return read;
-  if (new RegExp(`^/api/admin/entries/${id}/?$`).test(pathname)) return method === 'PUT';
-  if (pathname === '/api/admin/db') return method === 'POST';
-  if (pathname === '/api/admin/me' || pathname === '/api/admin/share-data') return read;
-  return false;
+export function guestMay(link: Pick<ShareLink, 'entry_id' | 'campaign_id' | 'mode' | 'access'>, method: string, pathname: string): boolean {
+  if (link.campaign_id || link.mode !== 'view' || link.access === 'login') return false;
+  return (method === 'GET' || method === 'HEAD') && new RegExp(`^/admin/preview/${link.entry_id}/?$`).test(pathname);
 }
 
 /** Count a link's use (opening its address): written only over the count it read, so two opens at once
@@ -220,6 +190,7 @@ export function shareProblem(s: Partial<NewShare>): string | null {
   if (ok(s.entry) === ok(s.campaign)) return 'Choose a page or newsletter to share.';
   if (!SHARE_MODES.includes(s.mode as ShareMode)) return 'Choose View or Edit.';
   if (!SHARE_ACCESS.includes(s.access as ShareAccess)) return 'Choose who can open the link.';
+  if (s.mode === 'edit' && s.access !== 'login') return 'Edit links are for signed-in editors and admins only.';
   if (s.access === 'password' && (s.password ?? '').length < SHARE_PASSWORD_MIN) return `The password needs at least ${SHARE_PASSWORD_MIN} characters.`;
   if (s.expires && (Number.isNaN(Date.parse(s.expires)) || Date.parse(s.expires) <= Date.now())) return 'The expiry must be in the future.';
   return null;

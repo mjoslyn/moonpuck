@@ -5,13 +5,10 @@
 // rows fail a check are errors; updates and deletes reach only the rows the role may change. A site's
 // own tables (its plugins' too) have theirs in src/site/db.ts.
 import type { Filter } from './query';
-import { admins, adminsOrEditorsWhen, all, editors, editorsOrGuests, nobody, readOnly, type Ctx, type Rule, type TablePolicy } from './access';
+import { admins, adminsOrEditorsWhen, all, editors, nobody, readOnly, type Ctx, type Rule, type TablePolicy } from './access';
 import { SITE_POLICIES } from '../../site/db';
 
-export type { Access, Ctx, ReadAccess, Role, Rule, TablePolicy } from './access';
-
-/** Published entries that aren't members-only: what a share link's guest reads besides their own. */
-const OPEN_PUBLISHED: Filter = { all: [{ col: 'status', op: 'eq', value: 'publish' }, { any: [{ col: 'fields->access->>members', op: 'is', value: null }, { col: 'fields->access->>members', op: 'neq', value: 'true' }] }] };
+export type { Access, Ctx, Role, Rule, TablePolicy } from './access';
 
 export const POLICIES: Record<string, TablePolicy> = {
   campaign_batches: readOnly(editors),
@@ -26,20 +23,19 @@ export const POLICIES: Record<string, TablePolicy> = {
   compose_jobs: all(editors, editors),
   compose_sessions: all(editors, editors),
   email_templates: all(editors, editors),
-  // A guest (a share link) reads their own entry and the site's published, open ones (for collections
-  // and links in the canvas), never members-only ones.
-  // (A newsletter's guest reads the published, open ones only.)
-  entries: all(editorsOrGuests((c) => (c.entryId ? { any: [{ col: 'id', op: 'eq', value: c.entryId }, OPEN_PUBLISHED] } : OPEN_PUBLISHED)), editors),
-  entry_drafts: all(editorsOrGuests((c) => (c.entryId ? { col: 'entry_id', op: 'eq', value: c.entryId } : false)), editors),
-  entry_terms: all(editorsOrGuests(() => true), editors),
+  entries: all(editors, editors),
+  entry_drafts: all(editors, editors),
+  entry_terms: all(editors, editors),
   forms: all(editors, editors),
   mail_segments: all(editors, editors),
-  media: all(editorsOrGuests(() => true), editors),
-  revisions: all(editorsOrGuests((c) => (c.entryId ? { col: 'entry_id', op: 'eq', value: c.entryId } : false)), editors),
-  // A campaign's saved versions: written by the server (the campaigns API, a share link's save).
+  media: all(editors, editors),
+  revisions: all(editors, editors),
+  // A campaign's saved versions (src/lib/mailing/revisions.ts): written by the server (the campaigns API).
   campaign_revisions: readOnly(editors),
-  templates: all(editorsOrGuests(() => true), editors),
-  terms: all(editorsOrGuests(() => true), editors),
+  // Comments on shared pages and newsletters (src/lib/share/comments.ts): written by the server.
+  share_comments: readOnly(editors),
+  templates: all(editors, editors),
+  terms: all(editors, editors),
   ticket_emails: all(editors, editors),
   // Stock counts, set in a product's settings (they save as they change).
   shop_stock: all(editors, editors),
@@ -49,8 +45,7 @@ export const POLICIES: Record<string, TablePolicy> = {
   members: all(editors, admins),
   // Rules are admins' (Settings > Redirects); an entry's or term's moved address writes its own as the server.
   redirects: all(editors, admins),
-  // A guest reads the site's settings the page renders with (menus, theme), not the others.
-  settings: all(editorsOrGuests(() => ({ col: 'key', op: 'in', value: ['site', 'options'] })), admins),
+  settings: all(editors, admins),
   form_submissions: { select: editors, insert: nobody, update: nobody, delete: editors },
   not_found: { select: editors, insert: nobody, update: nobody, delete: editors },
   // Orders and waitlists change through the attendee list's actions, which write as the server.

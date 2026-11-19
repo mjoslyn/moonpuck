@@ -422,64 +422,52 @@ no blocks renders nothing. Sync carries `trashed_at` with the row.
 campaign screen) (`src/admin/ShareDialog.tsx`; GET and POST `/api/admin/shares`, `?entry=` or
 `?campaign=`, editors; `src/lib/share/links.ts`; table `share_links`, migrations `*_share_links.sql` and
 `*_share_links_campaigns.sql`: `entry_id` or `campaign_id`, one of the two; the server's only, not synced
-or backed up) makes private links to an entry with a page or a newsletter draft: `/share/<token>/` (a random 32
-characters, `src/pages/share/[token].astro`, noindex, never cached, `Referrer-Policy: same-origin`).
-Each has a `mode` (`view`: the preview; `edit`: the editor, drafts only), an `access` (`login`: signed-in
-editors and admins, others sent to sign in; `password`: scrypt `password_hash`, wrong tries limited per
-link and visitor, `share-password` in `src/lib/auth/attempts.ts`; `anyone`), an optional `label` and
-`expires_at`, and counts its uses (`uses`, `last_used_at`). Revoking (`revoked_at`), expiry and the entry
-going to the trash, or the campaign leaving `draft` or Mailing Lists being off, end it (`liveLink`);
-scheduling, sending, approving or cancelling a campaign revokes its links (`revokeCampaignShares`), so
-going back to a draft doesn't bring them back. Login links send editors to `/admin/preview/<id>/` or
-`/admin/edit/<id>/`. Password and anyone links set a guest's cookie, one per entry or campaign (`site.share.<entry id>`,
-`site.share.c<campaign id>`, so several links work side by side; HttpOnly, a week or until the link expires) signed with a key
-made from `AUTH_SECRET` over the token, access and password hash (`cookieValue`), so a new password or
-protection ends it too. The middleware finds the entry or campaign a request is about from its address,
-else from the editor page that made it (its Referer, same origin only; `requestSubject`), reads that
-cookie and link again on each request (`guestLink`) and, for someone without an editor's session, lets it reach
-only that entry's preview and, for edit links, its editor, `/api/admin/db`, its `PUT
-/api/admin/entries/<id>`, `/api/admin/me` and `/api/admin/share-data` (`guestMay`), as the `guest` role
-(`locals.user.role`, `locals.share`; `Ctx.entryId` or `campaignId`), without clearing the page cache (a guest saves drafts only). Links
-are made on the address of the copy answering (`share_links` isn't synced). Uses are counted over the
-count read (`countUse`), so opens at once all count.
+or backed up) makes private links to an entry with a page or a newsletter draft: `/share/<token>/` (a
+random 32 characters, `src/pages/share/[token].astro`, noindex, never cached, `Referrer-Policy:
+same-origin`). Each has a `mode`: `view` (the page's preview, or the newsletter's email, with comments) or
+`edit` (the page's editor or the campaign screen), an `access`: `login` (signed-in editors and admins,
+others sent to sign in), `password` (scrypt `password_hash`, wrong tries limited per link and visitor,
+`share-password` in `src/lib/auth/attempts.ts`) or `anyone`; an edit link is always `login`
+(`shareProblem`; one made otherwise doesn't open, `liveLink`), since only editors and admins edit. A link
+has an optional `label` and `expires_at`, and counts its uses (`uses`, `last_used_at`, `countUse`, over the
+count read, so opens at once all count). Revoking (`revoked_at`), expiry, the entry going to the trash, or
+the campaign leaving `draft` or Mailing Lists being off end it (`liveLink`); scheduling, sending, approving
+or cancelling a campaign revokes its links (`revokeCampaignShares`), so going back to a draft doesn't bring
+them back. Links are made on the address of the copy answering (`share_links` isn't synced).
 
-The `guest` role (`src/lib/db/access.ts`, `editorsOrGuests`) reads its entry (and its unpublished changes
-and revisions), published entries that aren't members-only, terms, media, templates and the `site` and
-`options` settings, and writes nothing; it calls no functions. Its preview renders the page with the rest of the site read as
-visitors see it, through the server (`renderPreview`, `src/lib/admin/preview.ts`, `guest`; `renderRequest`'s
-`asVisitor`), so forms, totals, lists and stock show; its editor's canvas gets those from `GET
-/api/admin/share-data` (`guestCanvasData`, `src/lib/share/guest-state.ts`: active forms' definitions,
-goals' totals, public mailing lists, products' stock). The editor (`guest` prop) shows Save draft
-only (no Publish, Discard, Unpublish, Compose, Share or Duplicate), the entry form's title, excerpt,
-featured image, an event's dates and the type's fields (`EntryForm`'s `guest`), no HTML or Embed blocks
-to insert (those on the page can be moved or removed, not edited); a page in layout mode isn't editable.
-A guest's save (`guestSave` in the entries API, then saved as the server) takes `draft` only and no
-template; `guestContent` (`src/lib/share/guest-content.ts`) refuses an HTML or Embed block (`GUEST_BLOCKED`)
-or imported markup (`props.html`, `props.saved`) added or changed, and a block id the page didn't have
-that isn't letters, digits, `-` and `_` (`GUEST_ID`; renderers put ids in markup; a site block that
-writes a setting or id unescaped is not covered: escape it), and cleans every value the guest
-changed (inline formatting and safe links, `cleanInlineHtml`; addresses in `*href`, `*url`, `*src`,
-`*link`, `*poster`, `*website` settings, `isSafeUrl`); `guestEntry` keeps the address, template, terms and
-tags as they were (on a published page with no changes kept aside, the guest's changes go on the page's
-full settings, `entryState`, so an editor opening the draft finds them), and of the fields takes only the type's own (`guestFieldKeys`: `fieldsFor` less `seo`,
-`access`, `ticket`, `tickets`, `shop`, `featured`, `template`, `imported_from`; an event's `timezone` and
-`recurrence` too), the rest as they were; the entry form shows a guest only those. The same checks apply to a guest's
-unsaved preview. Its revisions have no author and the note `Saved through a share link (<label>)`.
+Guests (password and anyone view links) get a cookie, one per entry or campaign (`site.share.<entry id>`,
+`site.share.c<campaign id>`, so several links work side by side; HttpOnly, a week or until the link
+expires), signed with a key made from `AUTH_SECRET` over the token, access and password hash
+(`cookieValue`), so a new password or protection ends it too. A page's: the middleware reads the cookie for
+the page a request's address names and its link again on each request (`requestSubject`, `guestLink`)
+and, for someone without an editor's session, lets it reach only that page's preview, by GET
+(`guestMay`), as the `guest` role (`locals.user.role`, `locals.share`), which reads nothing itself; the
+preview reads the page and its unpublished changes as the server, and the rest of the site as visitors see
+it (`renderPreview`, `src/lib/admin/preview.ts`, `guest`; `renderRequest`'s `asVisitor`), so forms, totals,
+lists and stock show and members-only content doesn't. A newsletter's view link shows its email on the
+share page, as a sample subscriber gets it (`previewCampaign`, `src/lib/mailing/preview.ts`, which the email
+builder's Preview tab uses too), in a sandboxed frame, with its plain text.
 
-**Newsletter drafts.** A campaign's view link shows its email at `/share/<token>/`, as a sample subscriber
-gets it (`previewCampaign`, `src/lib/mailing/preview.ts`, which the email builder's Preview tab uses too), in
-a sandboxed frame, with its plain text; a login link that edits leads to the campaign screen. An edit link
-leads its guest to `/admin/shared-email/<id>/` (`src/admin/SharedEmailEditor.tsx`): the subject and the
-email builder with the mailing kit, without the Templates panel and with only the preview text of the
-email's look settings (`EmailKit.lockLook`), saved with `PUT
-/api/admin/shared-email/<id>` (only the link's guest; the campaign still a draft, in the update itself;
-`base`, a stale save refused with 409): subject, design and plain text only, the design through
-`guestEmail` (a block id the design didn't have must be plain; the root's look, written into the email's
-styles, stays as it was, its `preheader` taken), saved as the server. The email renderer escapes, cleans or
-checks every block setting, so blocks are taken as they are. The guest also reaches the media library's
-reads (`/api/admin/db`; the guest role reads published entries that aren't members-only, media, terms,
-templates and the site's settings, no entry's drafts and no campaigns), `/api/admin/mailing/preview` and
-`/api/admin/email-events`, which read as the server for a guest.
+**Comments** (`src/lib/share/comments.ts`; table `share_comments`, migration `*_share_comments.sql`,
+editors read, the server writes; not synced or backed up): guests on a view link and signed-in editors and
+admins leave comments on one block or section of a page or newsletter, or on the whole of it. A preview,
+an editor's or a guest's, marks the page's own blocks (not its template's: `blockIdsOf`, `RenderCtx.markBlocks`,
+the renderer adding `data-block` and `data-block-type` to each one's first element, `markBlock` in
+`src/render/engine.ts`), and `public/assets/js/share-comments.js` adds a **Comment** button: in comment mode
+the block under the pointer is outlined, and a click on it (or Enter on a focused one) opens a form (a
+guest's name, kept in the browser, and the comment). A newsletter's share page has a form under the email:
+a block of the email (Sections, Columns, Spacers and Dividers left out) or the whole email, a name and the
+comment. Both post to `POST /api/share/comment` (JSON, or a form with `back`, a `/share/` address it
+returns to with `?commented=1` or `?comment_error=`): a signed-in editor or admin who can read it comments
+as themselves (`author_id`); a guest needs that page's or newsletter's cookie fitting a live view link that
+isn't `login` (`link_id`, with the name given; `GUEST_COMMENTS_PER_HOUR`, 30, per link). The block must be
+in what is stored (the content, its unpublished changes, the design: `blocksOf`); the comment keeps its
+type and a few of its words (`quote`), up to `COMMENT_MAX` (2,000) characters of plain text, shown escaped.
+Editors see them in the page editor's **Comments** panel (`src/puck/CommentsPanel.tsx`: open first, Show
+selects the block, Resolve, Reopen, Delete, and Add a comment on the selected block or the whole page) and
+on the campaign screen (`src/admin/CampaignComments.tsx`), through `GET` and `POST
+/api/admin/share-comments` (`add`, `resolve`, `reopen`, `delete`; only for what the editor can read; it
+doesn't clear the page cache).
 
 ## Redirects
 
@@ -1351,12 +1339,11 @@ never subscribes anyone again); the settings are, with the others. Migration `*_
   **History** (`src/admin/CampaignHistory.tsx`, table `campaign_revisions`, migration
   `*_campaign_revisions.sql`, editors read, the server writes; `recordCampaignRevision` in
   `src/lib/mailing/revisions.ts`): each save that changes the name, subject, design or plain text keeps a
-  version (an editor's with its author; a share link's with none and the note `Saved through a share link
-  (<label>)`), the newest `KEEP_VERSIONS` (100) kept, none when the email is the same as the last (designs
+  version (with its author), the newest `KEEP_VERSIONS` (100) kept, none when the email is the same as the last (designs
   compared whatever their keys' order, `stableJson`); View renders one through the preview, Restore puts it
   in the form, kept on Save (the latest too while the form has unsaved changes). A save carries `base`, the
-  `updated_at` the form is based on: when someone else (an editor, a share link's guest) saved since, it is
-  refused with 409 and the screen asks before saving over theirs. Not synced or backed up. **Share** on a draft: see Share links.
+  `updated_at` the form is based on: when someone else saved since, it is refused with 409 and the screen
+  asks before saving over theirs. **Comments** from the share page and editors: see Share links. Not synced or backed up. **Share** on a draft: see Share links.
 - **Rendering** (`src/lib/mailing/render.ts`): the email builder's renderer, each tag a Mailgun
   recipient variable (`%recipient.v1%`, escaped for HTML as `v1_h`, plain in the subject and text;
   values escaped once, by the site), and a footer under the design that it can't remove: why they get
@@ -2020,8 +2007,7 @@ takes more, so local runs don't show these): a row's `json_object` has 16 column
   campaigns only as drafts, change digests only while off and change their
   own profile but not its role; anyone else gets nothing. Reads a role may not make return no rows;
   refused inserts, and writes whose rows fail a check, are errors and write nothing.
-- A share link's guest (`role: 'guest'`, `entryId` or `campaignId`) reads only what its editor needs and
-  writes nothing (see Share links).
+- A share link's guest (`role: 'guest'`) reads and writes nothing itself (see Share links).
 - The admin screens in the browser (`browserClient`, `src/lib/db/browser.ts`) send their queries
   to `POST /api/admin/db`, which runs them as the signed-in editor; only its writes clear the page
   cache. Of the functions, editors may call `campaign_stats` and `ticket_sold`; the rest are the

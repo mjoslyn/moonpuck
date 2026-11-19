@@ -1,5 +1,5 @@
 // Admin routes require a session (src/lib/auth) whose profile role is editor or admin, or a share link's
-// cookie (src/lib/share) for its entry's editor and preview only (the `guest` role). Site settings and
+// cookie (src/lib/share) for its page's preview only (the `guest` role: a view link; editing is for editors). Site settings and
 // users are for admins only. locals.db reads and writes as that role (src/lib/db/policies.ts).
 import { defineMiddleware } from 'astro:middleware';
 import { sessionDb, siteDb } from './lib/db/site';
@@ -125,15 +125,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const user = await sessionUser(context.request);
   const { data: profile } = user ? await siteDb().from('profiles').select('role, display_name').eq('id', user.id).maybeSingle() : { data: null };
   if (!user || !profile || !['editor', 'admin'].includes(profile.role)) {
-    // Someone without an editor's account, with a share link's cookie: its entry's or newsletter's editor or preview only.
+    // Someone without an editor's account, with a share link's cookie: its page's preview only (a view link).
     const link = await guestLink(context.request, pathname);
     if (link && guestMay(link, context.request.method, pathname)) {
-      context.locals.db = sessionDb({ role: 'guest', ...(link.campaign_id ? { campaignId: link.campaign_id } : { entryId: link.entry_id ?? undefined }) });
+      context.locals.db = sessionDb({ role: 'guest' });
       context.locals.user = { id: '', email: '', role: 'guest', name: link.label ? `Guest (${link.label})` : 'Guest' };
       context.locals.share = link;
-      // Links followed from the editor or preview don't tell other sites where they came from (same-origin, not
+      // Links followed from the preview don't tell other sites where they came from (same-origin, not
       // no-referrer: that makes browsers send Origin: null on form posts, which the same-site check refuses).
-      // Not purgeAfter: a guest saves drafts only, which change no public page.
+      // Not purgeAfter: a guest only reads.
       return withHeaders(await noindex(next()), (h) => h.set('Referrer-Policy', 'same-origin'));
     }
   }

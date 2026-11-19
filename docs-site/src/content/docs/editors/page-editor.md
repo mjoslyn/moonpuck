@@ -32,7 +32,7 @@ The toolbar under it has:
 - **Compose**: opens Claude beside the page (see [Writing with Claude](/editors/writing-with-claude/)).
 - **Preview**: the page as it will look, including changes you haven't saved.
 - **View live**: the published page, in a new tab.
-- **Share**: a private link to view or edit the page (see
+- **Share**: a private link to view and comment on the page, or for editors to edit it (see
   [Sharing a private link](/editors/saving-and-publishing/#sharing-a-private-link)).
 - **Duplicate**: makes a draft copy of the page and opens it.
 - **Save draft** and **Publish** (or **Publish changes**).
@@ -55,6 +55,8 @@ The icons down the left side open:
 - **A11y**: an accessibility check of the page (see [Accessibility](/editors/accessibility/)).
 - **Revisions**: earlier versions of the page (see
   [Saving and publishing](/editors/saving-and-publishing/#going-back-to-an-earlier-version)).
+- **Comments**: comments on the page's blocks, from people with a link to it and from editors (see
+  [Comments](/editors/saving-and-publishing/#comments)).
 
 ### The page in the middle
 

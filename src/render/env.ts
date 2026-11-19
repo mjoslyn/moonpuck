@@ -42,6 +42,9 @@ export interface RenderCtx {
   headScripts?: string[];
   /** Rendering inside the visual editor (show placeholders for unconfigured blocks). */
   editor?: boolean;
+  /** Blocks to mark for comments (a share link's preview, src/lib/share/comments.ts): each one's first
+   *  element gets `data-block` (its id) and `data-block-type`. */
+  markBlocks?: Set<string>;
   /** Who is viewing (src/lib/members/viewer.ts): set only when the page is rendered again for a signed-in visitor. */
   viewer?: Viewer | null;
   /** The page depends on who views it (members-only content, member prices, the account page): it is

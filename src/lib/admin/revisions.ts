@@ -17,8 +17,7 @@ export interface RevisionInput {
   fields: unknown;
   entry: unknown;
   action: string;
-  /** Who saved it; null for a guest with a share link (src/lib/share), whose versions carry a note. */
-  author_id: string | null;
+  author_id: string;
   restored_from?: number;
   restored_edited?: boolean;
   /** Said with the save (a page published with accessibility problems left open, and why). */
