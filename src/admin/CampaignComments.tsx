@@ -1,7 +1,9 @@
 // A newsletter's comments on the campaign screen (src/lib/share/comments.ts, GET and POST
 // /api/admin/share-comments): left by guests on its share page and by editors, open ones first, each naming
-// the block of the email it is on. Resolve, Reopen and Delete; Add a comment on one block or the whole email.
+// the block of the email it is on. Resolve, Reopen and Delete; Add a comment on one block or the whole email,
+// whose @handles email the editors and admins they name (src/lib/share/mentions.ts).
 import { useEffect, useMemo, useState } from 'react';
+import MentionTextarea, { withMentions } from './MentionTextarea';
 
 interface Row {
   id: number;
@@ -98,7 +100,7 @@ export default function CampaignComments({ campaignId, design, tz }: { campaignI
                 </option>
               ))}
             </select>
-            <textarea className={`${field} min-w-60 flex-1`} rows={2} maxLength={2000} placeholder="Add a comment" value={text} onChange={(e) => setText(e.target.value)} />
+            <MentionTextarea className={`${field} min-w-60`} rows={2} maxLength={2000} placeholder="Add a comment (type @ to mention someone)" ariaLabel="Comment" value={text} onChange={setText} />
             <button disabled={busy || !text.trim()} className="self-start rounded-sm bg-admin-ink px-3 py-1.5 text-xs font-semibold text-white hover:bg-admin-accent disabled:opacity-50">
               Add
             </button>
@@ -117,7 +119,7 @@ export default function CampaignComments({ campaignId, design, tz }: { campaignI
                 <span className="font-medium text-admin-ink">{r.block_type || 'The whole email'}</span>
                 {r.quote && <span>: {r.quote.slice(0, 80)}</span>}
               </div>
-              <p className="my-1 whitespace-pre-wrap">{r.body}</p>
+              <p className="my-1 whitespace-pre-wrap">{withMentions(r.body)}</p>
               <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs text-admin-muted">
                 <span>
                   {r.author}

@@ -7,6 +7,9 @@ import type { APIRoute } from 'astro';
 import { sessionUser } from '../../../lib/auth';
 import { sessionDb, siteDb } from '../../../lib/db/site';
 import { cookieFits, cookieToken, liveLink, subjectOf, type ShareSubject } from '../../../lib/share/links';
+import { afterAnswer } from '../../../lib/platform';
+import { mailOrigin } from '../../../lib/mailing/contacts';
+import { notifyMentions } from '../../../lib/share/mentions';
 import { COMMENT_ERRORS, addComment, type CommentError, type Commenter } from '../../../lib/share/comments';
 
 const NO_STORE = { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' };
@@ -46,5 +49,8 @@ export const POST: APIRoute = async ({ request }) => {
   const who = await commenter(request, subject);
   if (!who) return answer(403, { ok: false, code: 'link' });
   const r = await addComment({ subject, block: String(body.block ?? ''), body: String(body.body ?? ''), name: String(body.name ?? '') }, who);
-  return r.ok ? answer(200, { ok: true, comment: r.comment }) : answer(r.status, { ok: false, code: r.code });
+  if (!r.ok) return answer(r.status, { ok: false, code: r.code });
+  // An editor's @mentions email those named, after the answer.
+  afterAnswer(notifyMentions(r.comment, mailOrigin(new URL(request.url).origin)).catch((e) => console.error('comment mentions', e)));
+  return answer(200, { ok: true, comment: r.comment });
 };

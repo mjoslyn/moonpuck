@@ -1,0 +1,52 @@
+---
+// Your profile (the account menu's Your profile): the signed-in editor's or admin's own name, shown on
+// their comments and around the admin, and their @handle for comment mentions (src/lib/share/mentions.ts,
+// saveProfile). Saved by a form post to this page, written as the server for this person only.
+import Admin from '../../layouts/Admin.astro';
+import { siteDb } from '../../lib/db/site';
+import { HANDLE_MAX, mentionablePeople, saveProfile } from '../../lib/share/mentions';
+
+const me = Astro.locals.user;
+let error = '';
+let saved = false;
+let sent: { name?: string; handle?: string } = {};
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  sent = { name: String(form.get('name') ?? ''), handle: String(form.get('handle') ?? '') };
+  const r = await saveProfile(me.id, sent);
+  if (r.ok) return Astro.redirect('/admin/profile/?saved=1', 303);
+  error = r.error;
+}
+saved = Astro.url.searchParams.has('saved');
+const { data: profile } = await siteDb().from('profiles').select('display_name, handle').eq('id', me.id).maybeSingle();
+const current = (await mentionablePeople()).find((p) => p.id === me.id);
+const name = sent.name ?? profile?.display_name ?? me.name ?? '';
+const handle = sent.handle ?? profile?.handle ?? '';
+---
+<Admin title="Your profile">
+  <div class="mx-auto max-w-lg">
+    <h1 class="text-3xl font-normal">Your profile</h1>
+    <p class="mt-1 text-sm text-admin-muted">{me.email} · {me.role === 'admin' ? 'Admin' : 'Editor'}</p>
+    {saved && <p role="status" class="mt-6 rounded border border-[#6b8f71]/30 bg-[#6b8f71]/5 px-3 py-2 text-sm text-[#4d6b52]">Saved.</p>}
+    {error && <p role="alert" class="mt-6 rounded border border-[#c4592a]/30 bg-[#c4592a]/5 px-3 py-2 text-sm text-[#c4592a]">{error}</p>}
+    <form method="post" class="mt-6 space-y-5 rounded bg-white p-5 text-sm shadow-[0_0_0_1px_rgba(26,26,46,0.08)]">
+      <label class="block">
+        <span class="mb-1 block font-medium">Name</span>
+        <input name="name" required maxlength={80} autocomplete="name" value={name} class="w-full rounded border border-admin-ink/20 px-3 py-2 outline-none focus:border-admin-accent" />
+        <span class="mt-1 block text-xs text-admin-muted">Shown on your comments and in the admin.</span>
+      </label>
+      <label class="block">
+        <span class="mb-1 block font-medium">Handle</span>
+        <span class="flex items-center rounded border border-admin-ink/20 focus-within:border-admin-accent">
+          <span class="pl-3 text-admin-muted">@</span>
+          <input name="handle" maxlength={HANDLE_MAX} autocomplete="off" spellcheck="false" placeholder={current && !profile?.handle ? current.handle : ''} value={handle} class="w-full rounded px-1 py-2 outline-none" />
+        </span>
+        <span class="mt-1 block text-xs text-admin-muted">
+          Others type @{current?.handle ?? 'handle'} in a comment to email you about it. Letters, digits, dots, dashes and
+          underscores. Leave it empty to use the start of your email address.
+        </span>
+      </label>
+      <button class="rounded-sm bg-admin-ink px-4 py-2 font-semibold text-white hover:bg-admin-accent">Save</button>
+    </form>
+  </div>
+</Admin>

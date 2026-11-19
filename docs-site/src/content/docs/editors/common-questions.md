@@ -30,6 +30,15 @@ tries. Please wait a while and try again later." Wait a while before you try aga
 You signed in with an account that can't use the admin screens, such as a member's account. Ask an admin
 to give your account the editor role (see [People and access](/admins/people/)).
 
+### How do I change my name or handle?
+
+1. Click your initial at the top right of the admin, then **Your profile**.
+2. Change either:
+   - **Name**: shown on your comments and in the admin.
+   - **Handle**: what others type after **@** to mention you in a comment. Letters, digits, dots, dashes
+     and underscores. Leave it empty to use the start of your email address.
+3. Click **Save**. A handle someone else has is refused.
+
 ### Why was I signed out?
 
 You stay signed in while you keep using the site. After seven days without using it, the site asks you

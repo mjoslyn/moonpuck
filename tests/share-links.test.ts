@@ -372,3 +372,62 @@ describe('newsletter drafts: editors and links', async () => {
     expect((await svc.from('share_links').select('revoked_at').eq('id', link.id).single()).data!.revoked_at).not.toBeNull();
   });
 });
+
+describe('@mentions and profiles', async () => {
+  const { cleanHandle, handlesIn, mentionablePeople, mentionedIn, notifyMentions, saveProfile, withHandles } = await import('../src/lib/share/mentions');
+  const svc = siteDb();
+  const ids = ['00000000-0000-0000-0000-0000000000d1', '00000000-0000-0000-0000-0000000000d2', '00000000-0000-0000-0000-0000000000d3'];
+  let page = 0;
+  beforeAll(async () => {
+    const people = [
+      { id: ids[0], email: 'dana@example.org', name: 'Dana', role: 'editor' },
+      { id: ids[1], email: 'dana@other.example', name: 'Dana Two', role: 'admin' },
+      { id: ids[2], email: 'viewer-mention@example.org', name: 'Vera', role: 'viewer' },
+    ];
+    for (const p of people) {
+      await svc.from('users').insert({ id: p.id, email: p.email, name: p.name });
+      await svc.from('profiles').upsert({ id: p.id, display_name: p.name, role: p.role });
+    }
+    page = (await svc.from('entries').insert({ type: 'page', slug: 'mentions', title: 'Mentions', status: 'draft', content: doc(block('text', 'mt1', { content: 'Hello' })) }).select('id').single()).data!.id;
+  });
+  afterAll(async () => {
+    await svc.from('entries').delete().eq('id', page);
+    await svc.from('users').delete().in('id', ids);
+  });
+
+  it('finds @handles, not email addresses, and gives clashing addresses a number', () => {
+    expect(handlesIn('@dana, see this. Mail x@dana.org or @Dana2.')).toEqual(['dana', 'dana2']);
+    const people = withHandles([
+      { id: 'b', name: 'B', email: 'sam@b.org' },
+      { id: 'a', name: 'A', email: 'sam@a.org' },
+      { id: 'c', name: 'C', email: 'other@c.org', handle: 'sam2' },
+    ]);
+    expect(Object.fromEntries(people.map((p) => [p.id, p.handle]))).toEqual({ a: 'sam', b: 'sam3', c: 'sam2' });
+    expect(mentionedIn('thanks @sam3', people).map((p) => p.id)).toEqual(['b']);
+    expect(cleanHandle(' @Mike.J ')).toEqual({ handle: 'mike.j' });
+    expect(cleanHandle('-bad')).toHaveProperty('error');
+  });
+
+  it('lists only editors and admins, and emails those an editor’s comment mentions, never its author', async () => {
+    const people = await mentionablePeople();
+    expect(people.find((p) => p.id === ids[0])?.handle).toBe('dana');
+    expect(people.find((p) => p.id === ids[1])?.handle).toBe('dana2');
+    expect(people.some((p) => p.id === ids[2])).toBe(false);
+    const r = await addComment({ subject: { kind: 'entry', id: page }, block: 'mt1', body: '@dana2 and @dana, have a look. @vera too.' }, { editor: { id: ids[0], name: 'Dana' } });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(await notifyMentions(r.comment, 'https://site.test')).toEqual(['dana@other.example']);
+    // A guest's comment notifies nobody.
+    expect(await notifyMentions({ ...r.comment, author_id: null }, 'https://site.test')).toEqual([]);
+  });
+
+  it('saves a person’s own name and handle, refusing one someone else has', async () => {
+    expect(await saveProfile(ids[0], { name: 'Dana D', handle: '@DD' })).toEqual({ ok: true });
+    expect((await svc.from('profiles').select('display_name, handle').eq('id', ids[0]).single()).data).toEqual({ display_name: 'Dana D', handle: 'dd' });
+    expect((await mentionablePeople()).find((p) => p.id === ids[0])?.handle).toBe('dd');
+    expect(await saveProfile(ids[1], { name: 'Dana Two', handle: 'dd' })).toMatchObject({ ok: false });
+    expect(await saveProfile(ids[1], { name: '', handle: '' })).toMatchObject({ ok: false });
+    expect(await saveProfile(ids[0], { name: 'Dana', handle: '' })).toEqual({ ok: true });
+    expect((await mentionablePeople()).find((p) => p.id === ids[0])?.handle).toBe('dana');
+  });
+});

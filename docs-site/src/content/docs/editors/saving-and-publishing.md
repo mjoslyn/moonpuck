@@ -157,6 +157,22 @@ You see them in the editor's **Comments** panel (the speech bubble in the left r
 - To add your own, select a block on the page (or nothing, for the whole page), type in the box at the top
   of the panel and click **Add comment**.
 
+#### Mentioning someone
+
+In a comment, type **@** and the start of an editor's or admin's handle or name. A list of matching people
+opens:
+
+- Arrow keys move through the list.
+- **Enter** or **Tab** puts the handle in.
+- **Escape** closes the list.
+
+Each person you mention gets an email with the comment and a link to the page. You don't get one for
+mentioning yourself. Mentions work in the editor's **Comments** panel, on a campaign's comments, and in the
+**Comment** box on your own **Preview** (type the handle there, with no list). People commenting through a
+link can't mention anyone.
+
+Your handle is on **Your profile** (see [Changing your name or handle](/editors/common-questions/#how-do-i-change-my-name-or-handle)).
+
 ### Turning a link off
 
 The **Share** box lists the page's links, with who can open each, when it expires, and how many times it

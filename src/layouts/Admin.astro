@@ -101,6 +101,7 @@ const link = (on: boolean) => (on ? 'bg-admin-on-bar/15 text-admin-on-bar' : 'te
                 <div class="absolute right-0 z-50 mt-2 w-64 rounded-lg border border-admin-ink/10 bg-white p-3 text-admin-muted shadow-lg">
                   <div class="truncate font-medium text-admin-ink">{user.email}</div>
                   <div class="mb-3 text-xs">{user.role === 'admin' ? 'Admin' : 'Editor'}</div>
+                  <a href="/admin/profile/" class="mb-2 block rounded border border-admin-ink/15 px-3 py-1.5 hover:border-admin-accent hover:text-admin-accent">Your profile</a>
                   <form method="post" action="/api/auth/logout">
                     <button class="w-full rounded border border-admin-ink/15 px-3 py-1.5 text-left hover:border-admin-accent hover:text-admin-accent">Sign out</button>
                   </form>
