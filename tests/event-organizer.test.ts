@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { siteDb } from '../src/lib/db/site';
 import { renderRequest } from '../src/render/page';
 import { withEvents, EVENT_TYPES } from '../src/lib/events/types';
+import { typeDef } from '../src/lib/site';
 
 const doc = (content: unknown[]) => ({ root: { props: {} }, content, zones: {} });
 
@@ -39,7 +40,8 @@ describe('event organizers', () => {
       content: doc([]),
     });
     const html = (await renderRequest(new URL('http://localhost/event/class/'), db)).html;
-    expect(html).toContain('>Organizer</h2>'); // the type's singular name
+    // Headed by the type's singular name: Organizer here, whatever a site calls them.
+    expect(html).toContain(`>${typeDef('organizer')?.singular}</h2>`);
     expect(html).toContain('Jo Smith');
     expect(html).toContain('href="mailto:jo@example.org"');
     expect(html).toContain('href="tel:7165550100"');
