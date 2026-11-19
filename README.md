@@ -110,7 +110,7 @@ environment variables (`.env.example`). These win over saved ones.
   Notifications go to each form's addresses, or to `FORMS_ADMIN_EMAIL`, or to `adminEmail` in the
   site config. Locally, `SMTP_URL=smtp://127.0.0.1:1025` sends to a mail catcher such as Mailpit (inbox
   at http://127.0.0.1:8025).
-- **Events.** Turn them on under Settings > Events (admins): event and venue types, the calendar at
+- **Events.** Turn them on under Settings > Events (admins): event, venue and organizer types, the calendar at
   `/events/`, event categories, `.ics` feeds and the event blocks, plus the default time zone (an event
   can choose its own). Turning them on adds the event templates (an event's page and the calendar) if
   they aren't there; `npm run seed` adds a sample event and venue.

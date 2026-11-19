@@ -1,8 +1,8 @@
-// A single event: hero, description with a details sidebar (date, time, venue, cost, categories, add to
-// calendar), and the day-by-day schedule when the event has one.
+// A single event: hero, description with a details sidebar (date, time, venue, organizer, cost,
+// categories, add to calendar), and the day-by-day schedule when the event has one.
 import type { Env, Renderer } from '../env';
 import type { Entry } from '../../lib/types';
-import { eventTimes, venueIdOf, hasEnded, SITE_TZ } from '../../lib/events/model';
+import { eventTimes, venueIdOf, organizerIdOf, hasEnded, SITE_TZ } from '../../lib/events/model';
 import { mediaImage, mediaImgTag, markImages } from '../../lib/media/image';
 import { permalink, termLink, byTermOrder } from '../../lib/permalink';
 import { renderItems } from '../engine';
@@ -35,6 +35,24 @@ function venueOf(env: Env, e: Entry): Entry | undefined {
   const id = venueIdOf(e);
   const v = id ? env.ctx.loader.entries.get(id) : undefined;
   return v?.type === 'venue' ? v : undefined;
+}
+
+function organizerOf(env: Env, e: Entry): Entry | undefined {
+  const id = organizerIdOf(e);
+  const o = id ? env.ctx.loader.entries.get(id) : undefined;
+  return o?.type === 'organizer' ? o : undefined;
+}
+
+/** The organizer's name and how to reach them: email, phone, website. */
+function organizerBox(o: Entry): string {
+  const f = o.fields ?? {};
+  const line = (s: string) => `<p class="c-event__address">${s}</p>`;
+  return (
+    `<p class="c-event__venue">${entryTitle(o)}</p>` +
+    (f.email ? line(`<a href="mailto:${esc(f.email)}">${esc(f.email)}</a>`) : '') +
+    (f.phone ? line(`<a href="tel:${esc(String(f.phone).replace(/[^0-9+]/g, ''))}">${esc(f.phone)}</a>`) : '') +
+    (f.website ? line(`<a href="${esc(f.website)}" target="_blank" rel="noopener">${esc(String(f.website).replace(/^https?:\/\/(www\.)?|\/$/g, ''))}</a>`) : '')
+  );
 }
 
 function address(v: Entry): string[] {
@@ -82,6 +100,8 @@ function details(env: Env, e: Entry): string {
         (map ? `<p class="c-event__map"><a href="${esc(map)}" target="_blank" rel="noopener">Get directions</a></p>` : ''),
     );
   }
+  const organizer = organizerOf(env, e);
+  if (organizer) out += box('Organizer', organizerBox(organizer));
   // Tickets sold here: their prices and a link to the form below the content.
   const tickets = ticketPriceSummary(env);
   if (tickets) out += box('Tickets', `<p>${esc(tickets)}</p><p class="c-event__map"><a href="${pageTicketsAnchor(env.ctx)}">Get tickets</a></p>`);

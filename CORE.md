@@ -153,7 +153,7 @@ shows the theme's logo.
 
 Entries have a `type` (from the site config) and terms a `taxonomy`; custom values live in
 `entries.fields` under plain names (the type's `fields`). Events use `start`/`end` (wall-clock in
-`timezone`), `all_day`, `cost`, `website`, `venue` (entry id), `featured`, `recurrence`, `schedule`.
+`timezone`), `all_day`, `cost`, `website`, `venue` and `organizer` (entry ids), `featured`, `recurrence`, `schedule`.
 Image fields hold a media id (imports, Compose) or an image's address (what the editor's picker saves). `entries.body_text` is the entry's readable text, filled from its
 content by the query layer whenever `content` is written (`src/lib/content/body-text.ts`), for search
 and event descriptions. Site-wide values are in `settings` (`site`, `options`). Schema:
@@ -948,7 +948,8 @@ cents, which amounts assume).
 `src/lib/events/model.ts` loads events (occurrences included) as `CalEvent`s;
 `src/render/events/calendar.ts` renders the `events-calendar` block, `event-calendar.ts` the month
 grid / list block for any page (`public/assets/js/event-calendar.js`) and `single.ts` the
-`event-details` block (styles `src/styles/events.css`). URLs: `/events/` (upcoming list),
+`event-details` block (styles `src/styles/events.css`; its sidebar shows the date, venue, organizer, tickets
+or cost, website and categories). URLs: `/events/` (upcoming list),
 `/events/past/`, `/events/month/<Y-m>/`, `/events/day/<Y-m-d>/`, with `?q=` search and `?from=<Y-m-d>`.
 Feeds (`src/lib/events/ical.ts`): `/events.ics` (same `q`, `month`, `past` filters) and
 `/event/<slug>/[<Y-m-d>/]event.ics`; they describe `SITE_TZ` from the runtime's time zone data
@@ -957,15 +958,16 @@ further than the first and last event (and today); a view outside that range is 
 
 Events is an optional feature, off until an admin turns it on (Settings > Events:
 `settings.site.events.enabled`; `eventsOn`, `src/lib/events/on.ts`; migration `*_events_setting.sql`
-turned it on for sites that already had events). The core supplies the `event` and `venue` types and the
-`event_category` taxonomy (`src/lib/events/types.ts`, added to the config by `withEvents` in
-`src/lib/site`). A site extends them with its config's `events` (`EventsConfig`: `event` and `venue`
-take any type option plus `fields`, added to the core's or replacing one by key, and `removeFields`;
-`category` the taxonomy's options; `extendType`), or lists its own `event`, `venue` or `event_category`
-to replace one whole (the calendar views stay under `/events/`). The core reads these field keys: on events `venue`, `cost`,
-`website` and `schedule`; on venues `address`, `city`, `state`, `zip`, `country`, `phone` and `website`.
+turned it on for sites that already had events). The core supplies the `event`, `venue` and `organizer`
+(record) types and the `event_category` taxonomy (`src/lib/events/types.ts`, added to the config by `withEvents` in
+`src/lib/site`). A site extends them with its config's `events` (`EventsConfig`: `event`, `venue` and
+`organizer` take any type option plus `fields`, added to the core's or replacing one by key, and `removeFields`;
+`category` the taxonomy's options; `extendType`), or lists its own `event`, `venue`, `organizer` or
+`event_category` to replace one whole (the calendar views stay under `/events/`). The core reads these field keys: on events `venue`, `organizer`,
+`cost`, `website` and `schedule`; on venues `address`, `city`, `state`, `zip`, `country`, `phone` and
+`website`; on organizers `email`, `phone` and `website`.
 
-Off, nothing is deleted, but the admin hides events, venues and event categories (Content's menu,
+Off, nothing is deleted, but the admin hides events, venues, organizers and event categories (Content's menu,
 Taxonomies, Settings > Types and Search; `showsType`, `showsTaxonomy` in `src/lib/features.ts`, as for the
 Shop) and the site shows none:
 `resolve` answers Not found for the event listing, calendar views, event pages and occurrences and the

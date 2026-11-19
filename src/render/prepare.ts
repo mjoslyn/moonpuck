@@ -305,8 +305,8 @@ async function walk(items: PuckItem[], ctx: RenderCtx, state: WalkState) {
         if (!e) break;
         ctx.data.set('event-details', true);
         await prepareTickets(ctx);
-        const venue = Number(e.fields?.venue) || 0;
-        if (venue) await ctx.loader.entriesByIds([venue]);
+        const linked = [Number(e.fields?.venue) || 0, Number(e.fields?.organizer) || 0].filter(Boolean);
+        if (linked.length) await ctx.loader.entriesByIds(linked);
         await loadDoc(ctx, `content:${e.id}`, async () => e.content?.content as PuckItem[], state);
         break;
       }

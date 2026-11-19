@@ -150,6 +150,8 @@ export interface EventsConfig {
   event?: TypeExtension;
   /** The venue type. */
   venue?: TypeExtension;
+  /** The organizer type. */
+  organizer?: TypeExtension;
   /** The event category taxonomy: its options replace the core's (label, singular, base, fields). */
   category?: Partial<Omit<Taxonomy, 'name'>>;
 }

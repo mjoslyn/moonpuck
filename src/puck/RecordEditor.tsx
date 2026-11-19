@@ -1,4 +1,4 @@
-// Editor for entries that are data only, with no page of their own (venues): name, status and fields,
+// Editor for entries that are data only, with no page of their own (venues, organizers): name, status and fields,
 // plus the entries that refer to it.
 import { useEffect, useState } from 'react';
 import { SITE_TZ } from '../lib/site';
@@ -11,6 +11,9 @@ interface Record_ { id: number; type: string; title: string; slug: string; statu
 interface Ref { id: number; title: string; event_start: string | null }
 
 
+/** The event field that picks records of this type (venue, organizer), if any. */
+const linkKey = (type: string | undefined) => (type ? fieldsFor('event').find((f) => f.type === 'entry' && f.entryType === type)?.key : undefined);
+
 export default function RecordEditor({ entryId, singular }: { entryId: number; singular: string }) {
   const [rec, setRec] = useState<Record_ | null>(null);
   const [usedBy, setUsedBy] = useState<Ref[]>([]);
@@ -19,9 +22,14 @@ export default function RecordEditor({ entryId, singular }: { entryId: number; s
 
   useEffect(() => {
     const db = browserClient();
-    db.from('entries').select('id, type, title, slug, status, fields, updated_at').eq('id', entryId).single().then(({ data }) => setRec(data as Record_));
-    db.from('entries').select('id, title, event_start').eq('type', 'event').neq('status', 'trash').eq('fields->>venue', String(entryId)).order('event_start', { ascending: false }).limit(50)
-      .then(({ data }) => setUsedBy((data ?? []) as Ref[]));
+    db.from('entries').select('id, type, title, slug, status, fields, updated_at').eq('id', entryId).single().then(({ data }) => {
+      setRec(data as Record_);
+      // The events that choose this record in their field for its type (Venue, Organizer).
+      const key = linkKey((data as Record_ | null)?.type);
+      if (key)
+        db.from('entries').select('id, title, event_start').eq('type', 'event').neq('status', 'trash').eq(`fields->>${key}`, String(entryId)).order('event_start', { ascending: false }).limit(50)
+          .then(({ data }) => setUsedBy((data ?? []) as Ref[]));
+    });
   }, [entryId]);
 
   if (!rec) return <p className="text-admin-muted">Loading…</p>;
@@ -63,8 +71,8 @@ export default function RecordEditor({ entryId, singular }: { entryId: number; s
           <span className="text-xs text-admin-muted">{status || (dirty ? 'Unsaved changes' : '')}</span>
         </div>
       </section>
-      <aside>
-        <h2 className="mb-2 text-xs font-semibold tracking-wider text-admin-muted uppercase">Events at this {singular.toLowerCase()}</h2>
+      {linkKey(rec.type) && <aside>
+        <h2 className="mb-2 text-xs font-semibold tracking-wider text-admin-muted uppercase">Events {rec.type === 'venue' ? 'at' : 'by'} this {singular.toLowerCase()}</h2>
         {usedBy.length ? (
           <ul className="space-y-1 text-sm">
             {usedBy.map((e) => (
@@ -77,7 +85,7 @@ export default function RecordEditor({ entryId, singular }: { entryId: number; s
         ) : (
           <p className="text-sm text-admin-muted">None yet. Choose this {singular.toLowerCase()} in an event's details.</p>
         )}
-      </aside>
+      </aside>}
     </div>
   );
 }

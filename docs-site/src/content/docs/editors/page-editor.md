@@ -817,7 +817,7 @@ These come with events and tickets, and show only while your site uses them. See
 
 #### Event details
 
-An event's page: its picture, title, description, date, venue and ticket form. Only on events.
+An event's page: its picture, title, description, date, venue, organizer and ticket form. Only on events.
 
 ![The Event details block on a page](../../../assets/guide/blocks/event-details.png)
 

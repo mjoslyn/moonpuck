@@ -1,7 +1,7 @@
 // The Events feature's content types and taxonomy (Settings > Events, src/lib/events/on.ts). The core
 // adds them to the site's config (src/lib/site), so a site needs none of them in its config.ts. A site
 // changes them with its config's `events` (fields added, replaced or left out; labels, URLs...); one that
-// lists its own `event`, `venue` or `event_category` keeps that whole. Safe in the browser.
+// lists its own `event`, `venue`, `organizer` or `event_category` keeps that whole. Safe in the browser.
 import type { ContentType, EventsConfig, FieldDef, Taxonomy, TypeExtension } from '../site/types';
 
 const ADDRESS: FieldDef[] = [
@@ -22,6 +22,7 @@ export const EVENT_TYPE: ContentType = {
   card: 'event',
   fields: [
     { key: 'venue', label: 'Venue', type: 'entry', entryType: 'venue', create: ADDRESS },
+    { key: 'organizer', label: 'Organizer', type: 'entry', entryType: 'organizer', create: [{ key: 'email', label: 'Email', type: 'email' }] },
     { key: 'cost', label: 'Cost', type: 'text', compose: 'price as written, e.g. "$25, kids free"' },
     { key: 'website', label: 'Event website', type: 'url', compose: 'event website or tickets URL' },
     {
@@ -51,6 +52,20 @@ export const VENUE_TYPE: ContentType = {
   fields: [...ADDRESS, { key: 'country', label: 'Country', type: 'text' }, { key: 'phone', label: 'Phone', type: 'text' }, { key: 'website', label: 'Website', type: 'url' }],
 };
 
+/** Who runs an event: a person or a group, with how to reach them (the Event details block shows them). */
+export const ORGANIZER_TYPE: ContentType = {
+  type: 'organizer',
+  label: 'Organizers',
+  singular: 'Organizer',
+  base: 'organizer',
+  record: true,
+  fields: [
+    { key: 'email', label: 'Email', type: 'email' },
+    { key: 'phone', label: 'Phone', type: 'text' },
+    { key: 'website', label: 'Website', type: 'url' },
+  ],
+};
+
 /** Tickets (src/lib/tickets/setup.ts): their own records, one pool of ticket types, capacity, orders and
  * waitlist each; events attach to one (`fields.ticket`). Kept out of the admin's types (`hidden`): they are
  * managed under People > Tickets. */
@@ -66,7 +81,7 @@ export const TICKET_TYPE: ContentType = {
 export const EVENT_CATEGORY: Taxonomy = { name: 'event_category', label: 'Event category', base: 'events/category' };
 
 /** The content types that belong to Events: hidden from the admin's tabs and pickers while it is off. */
-export const EVENT_TYPES = ['event', 'venue', 'ticket'];
+export const EVENT_TYPES = ['event', 'venue', 'organizer', 'ticket'];
 
 /** A core type with a site's changes (its `events` config): options replaced, fields added, replaced or left out by key. */
 export function extendType(base: ContentType, ext: TypeExtension | undefined): ContentType {
@@ -80,13 +95,13 @@ export function extendType(base: ContentType, ext: TypeExtension | undefined): C
 }
 
 /**
- * The site's types and taxonomies with the Events feature's added: the core's event and venue types and
- * event categories, extended by the site's `events` config. A site that lists its own `event` or `venue`
- * type, or `event_category` taxonomy, keeps it whole instead.
+ * The site's types and taxonomies with the Events feature's added: the core's event, venue and organizer
+ * types and event categories, extended by the site's `events` config. A site that lists its own `event`,
+ * `venue` or `organizer` type, or `event_category` taxonomy, keeps it whole instead.
  */
 export function withEvents(types: ContentType[], taxonomies: Taxonomy[], ext: EventsConfig = {}): { types: ContentType[]; taxonomies: Taxonomy[] } {
   const has = (t: string) => types.some((c) => c.type === t);
-  const add = [extendType(EVENT_TYPE, ext.event), extendType(VENUE_TYPE, ext.venue), TICKET_TYPE].filter((t) => !has(t.type));
+  const add = [extendType(EVENT_TYPE, ext.event), extendType(VENUE_TYPE, ext.venue), extendType(ORGANIZER_TYPE, ext.organizer), TICKET_TYPE].filter((t) => !has(t.type));
   // Before the first type without a page (records, globals), so the admin's tabs keep pages first.
   const at = types.findIndex((t) => t.record || t.pageless);
   const merged = at < 0 ? [...types, ...add] : [...types.slice(0, at), ...add, ...types.slice(at)];

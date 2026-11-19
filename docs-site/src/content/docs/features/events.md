@@ -5,7 +5,7 @@ sidebar:
   order: 3
 ---
 
-Events is optional: turn it on under **Settings > Events** (admins). It brings the event and venue
+Events is optional: turn it on under **Settings > Events** (admins). It brings the event, venue and organizer
 types under Content, event pages, the calendar at `/events/`, event categories, calendar feeds, tickets,
 and the event and ticket blocks. The site's config doesn't need to define anything.
 
@@ -28,7 +28,7 @@ home page, only while Events is on.
 
 ## Extending the event types
 
-The core supplies the `event` and `venue` types and the `event_category` taxonomy
+The core supplies the `event`, `venue` and `organizer` types and the `event_category` taxonomy
 (`src/lib/events/types.ts`). Extend them with `events` in `src/site/config.ts`. Whatever you leave out
 stays as the core has it:
 
@@ -50,28 +50,31 @@ export default defineSite({
     venue: {
       fields: [{ key: 'parking', label: 'Parking', type: 'textarea' }],
     },
+    organizer: { label: 'Hosts', singular: 'Host' },
     category: { label: 'Kind of event', base: 'events/kind' },
   },
 });
 ```
 
-- `event` and `venue` take any content type option (`label`, `singular`, `base`, `describe`, `card`,
-  `taxonomies`, `order`...) plus `fields` and `removeFields`. The type names stay `event` and `venue`.
+- `event`, `venue` and `organizer` take any content type option (`label`, `singular`, `base`, `describe`,
+  `card`, `taxonomies`, `order`...) plus `fields` and `removeFields`. The type names stay `event`, `venue`
+  and `organizer`.
 - `category` takes the taxonomy's options (`label`, `singular`, `base`, `fields`).
 - Keep `archive: '/events/'` (the default): the calendar views live under it.
-- To replace a type whole instead, list your own `event` or `venue` in `types` (or `event_category` in
+- To replace a type whole instead, list your own `event`, `venue` or `organizer` in `types` (or `event_category` in
   `taxonomies`). The core then uses yours as it is and ignores `events` for it.
 
 The date, time, all-day, time zone, recurrence, featured and Tickets settings are built into the event
 sidebar and don't go in `fields`. The core reads these field keys:
 
-- on events: `venue`, `cost`, `website` and `schedule` (a repeater of days, each with items)
+- on events: `venue`, `organizer`, `cost`, `website` and `schedule` (a repeater of days, each with items)
 - on venues: `address`, `city`, `state`, `zip`, `country`, `phone` and `website`
+- on organizers: `email`, `phone` and `website`
 
 ## Data
 
-Events use `start` and `end` (wall-clock times in `timezone`), `all_day`, `cost`, `website`, `venue`
-(an entry id), `featured`, `recurrence` and `schedule`. `src/lib/events/model.ts` loads events,
+Events use `start` and `end` (wall-clock times in `timezone`), `all_day`, `cost`, `website`, `venue` and
+`organizer` (entry ids), `featured`, `recurrence` and `schedule`. `src/lib/events/model.ts` loads events,
 occurrences included, as `CalEvent`s.
 
 ## Pages and blocks
@@ -89,7 +92,7 @@ All take `?q=` (search) and `?from=<Y-m-d>`.
 | --- | --- |
 | `events-calendar` | The calendar pages above (`src/render/events/calendar.ts`) |
 | `event-calendar` | A month grid or list for any page (`event-calendar.ts`, `public/assets/js/event-calendar.js`) |
-| `event-details` | An event's date, venue and details (`single.ts`) |
+| `event-details` | An event's date, venue, organizer and details (`single.ts`) |
 | `event-schedule` | The `schedule` field |
 | `event-date` | An event's date, for cards |
 

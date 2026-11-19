@@ -1,12 +1,13 @@
 ---
 title: Events and tickets
-description: "Adding events and venues, repeating events, the calendar, and selling tickets or taking sign-ups, from setting them up to the door."
+description: "Adding events, venues and organizers, repeating events, the calendar, and selling tickets or taking sign-ups, from setting them up to the door."
 sidebar:
   order: 8
 ---
 
 If your site lists events, they appear under **Content**, **Events**, and on your site's calendar at
-`/events/`. Places are kept under **Content**, **Venues**. Tickets and sign-ups are under **People**,
+`/events/`. Places are kept under **Content**, **Venues**, and the people or groups who run events under
+**Content**, **Organizers**. Tickets and sign-ups are under **People**,
 **Tickets**.
 
 :::note
@@ -50,6 +51,7 @@ page has (**Title**, **Slug**, **Template**, **Excerpt**, **Featured image**, **
 | **All-day event** | Turn on for an event with no set times. The site then says **All day** instead of a time. |
 | **Repeats** | For an event that happens more than once. See [Events that repeat](#events-that-repeat). |
 | **Venue** | Where it happens (under **Details**). |
+| **Organizer** | Who runs it (under **Details**). Choose, add, change, edit or remove one as you would a venue (see [Choosing a venue](#choosing-a-venue)). |
 | **Cost** | The price as you want it written, for example "$25, kids free". The event's details show it. If the event sells tickets, they show the ticket prices instead. |
 | **Event website** | A link to another website about the event. Click **Find** beside it to link to a page of your own site instead. |
 | **Schedule** | A programme, day by day. See [A schedule](#a-schedule). |
@@ -143,6 +145,27 @@ directions** link to a map. Venues have no page of their own.
 
 To add a venue without an event, click **Content**, **Venues**, then **New Venue**.
 
+## Organizers
+
+An organizer is the person or group who runs an event. Like venues, you add one once and choose it on
+each event they run. Find them under **Content**, **Organizers**, or click **Edit** beside an event's
+organizer.
+
+An organizer's page has:
+
+- **Name**.
+- **Status**: **Published** or **Draft**.
+- **Email**.
+- **Phone**.
+- **Website**.
+
+Click **Save** when done. On the right, **Events by this organizer** lists their events.
+
+An event's page shows its organizer's name, email, phone number and website. Organizers have no page of
+their own.
+
+To add an organizer without an event, click **Content**, **Organizers**, then **New Organizer**.
+
 ## The calendar on your site
 
 The site makes its calendar pages for you:
@@ -175,7 +198,7 @@ These blocks are offered in the page editor while events are on. See
 | --- | --- | --- |
 | **Events calendar** | Lists and listings | Upcoming events on any page, such as the home page, as a month calendar or a list. Visitors switch between **Calendar** and **List** and move between months without leaving the page, and **All events** links to the full calendar. Settings: **Title** (none if empty), **Shows first** (**Calendar** or **List**), **Events in the list** (6 if empty), **Categories (any of)** and **Tagged with (any of)** to show only some events. |
 | **Events page (list, month, day)** | Lists and listings | The full calendar with its search, views and subscribe links. It belongs in the template of the calendar pages at `/events/`. It has no settings. |
-| **Event details** | Site | The event's page in one block: its picture, title and categories, the description, and beside it the date and time, venue, tickets or cost, website and category, then the schedule. The event template uses it. It is offered only on events and in templates. |
+| **Event details** | Site | The event's page in one block: its picture, title and categories, the description, and beside it the date and time, venue, organizer, tickets or cost, website and category, then the schedule. The event template uses it. It is offered only on events and in templates. |
 | **Event schedule** | Site | The event's **Schedule** on its own, for a template that places it somewhere else. |
 | **Event date** | Card fields | An event's date in a card of a **Collection** (a list of events). **Date format (PHP)** sets how it looks: `M j, Y` (the default) gives "Nov 14, 2026", `l j F` gives "Saturday 14 November". An event over several days shows both dates. |
 | **Tickets** | Site | The booking form for a ticket. See [The Tickets block](#the-tickets-block). |

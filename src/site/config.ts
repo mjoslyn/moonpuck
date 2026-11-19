@@ -1,6 +1,6 @@
 // The site's configuration: identity, content types (fields, URLs, what Compose may fill) and
 // taxonomies. The core reads it through src/lib/site; see src/lib/site/types.ts for every option.
-// Events (the event and venue types, event categories) come with the core: turn them on under
+// Events (the event, venue and organizer types, event categories) come with the core: turn them on under
 // Settings > Events, and change them with `events` below.
 // This is the example site: replace it with your own.
 import { defineSite } from '../lib/site/types';
@@ -16,7 +16,6 @@ export default defineSite({
   types: [
     { type: 'page', label: 'Pages', singular: 'Page', describe: 'a page on the site' },
     { type: 'post', label: 'Posts', singular: 'Post', archive: '/news/', category: 'category', describe: 'a news post (listed with the site news)' },
-    { type: 'organizer', label: 'Organizers', singular: 'Organizer', base: 'organizer', record: true, hidden: true },
     { type: 'global', label: 'Globals', singular: 'Global', pageless: true },
   ],
 

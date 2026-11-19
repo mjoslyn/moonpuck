@@ -43,6 +43,7 @@ export function eventTimes(e: Entry): { start: string; end: string; allDay: bool
 }
 
 export const venueIdOf = (e: Entry) => Number(e.fields?.venue) || 0;
+export const organizerIdOf = (e: Entry) => Number(e.fields?.organizer) || 0;
 
 const stripHtml = (s: string) =>
   s
