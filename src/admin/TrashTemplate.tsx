@@ -2,6 +2,7 @@
 // dialog first says what uses it, and what those pages show without it. Shown in the templates list.
 import { useState } from 'react';
 import type { TemplateUses } from '../lib/admin/template-trash';
+import { tell } from '../lib/admin/dialogs';
 
 const KIND = { template: 'template', part: 'template part', pattern: 'pattern' } as Record<string, string>;
 const listed = (names: string[]) => (names.length > 5 ? `${names.slice(0, 5).join(', ')} and ${names.length - 5} more` : names.join(', '));
@@ -16,7 +17,7 @@ export default function TrashTemplate({ kind, slug, title }: { kind: string; slu
     setBusy(true);
     const res = await post('uses');
     setBusy(false);
-    if (!res?.ok) return window.alert((res && (await res.text())) || 'Couldn’t check what uses it. Try again.');
+    if (!res?.ok) return (await tell((res && (await res.text())) || 'Couldn’t check what uses it. Try again.'));
     setUses(await res.json());
   };
   const trash = async () => {

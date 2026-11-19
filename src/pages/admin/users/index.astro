@@ -82,7 +82,7 @@ const when = (s?: string | null) => (s ? new Date(s).toLocaleDateString('en-US',
           </td>
           <td class="px-4 py-2.5 text-right">
             {u.id !== me && (
-              <form method="post" action="/api/admin/users" class="text-xs" onsubmit={`return confirm(${JSON.stringify(`Delete ${u.email}? They can no longer sign in, and any membership goes too. What they made stays.`)})`}>
+              <form method="post" action="/api/admin/users" class="text-xs" data-confirm={`Delete ${u.email}? They can no longer sign in, and any membership goes too. What they made stays.`}>
                 <input type="hidden" name="action" value="delete" />
                 <input type="hidden" name="id" value={u.id} />
                 <button class="text-[#c4592a] underline">Delete</button>

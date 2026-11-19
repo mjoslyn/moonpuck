@@ -199,6 +199,7 @@ const decode = (s: string) => s.replace(/&#8217;/g, '’').replace(/&#038;|&amp;
     <span class="text-xs text-admin-muted" data-bulk-count></span>
   </form>
   <script>
+  import { ask } from '../../lib/admin/dialogs';
     // Bulk actions: the header box selects every row; Apply needs a selection and an action, and
     // deleting permanently asks first.
     const bulk = document.querySelector<HTMLFormElement>('form[data-bulk]');
@@ -228,9 +229,16 @@ const decode = (s: string) => s.replace(/&#8217;/g, '’').replace(/&#038;|&amp;
       document.addEventListener('change', (e) => {
         if ((e.target as HTMLElement).matches('input[name="ids"], select[name="action"], select[name="term"]')) sync();
       });
-      bulk.addEventListener('submit', (e) => {
+      // Deleting for good asks first, in the admin's own box; once confirmed the form is sent again.
+      let confirmed = false;
+      bulk.addEventListener('submit', async (e) => {
+        if (confirmed || action.value !== 'delete') return;
+        e.preventDefault();
+        const submitter = (e as SubmitEvent).submitter as HTMLButtonElement | null;
         const n = boxes().filter((b) => b.checked).length;
-        if (action.value === 'delete' && !confirm(`Delete ${n} ${n === 1 ? 'entry' : 'entries'} permanently? This can't be undone.`)) e.preventDefault();
+        if (!(await ask(`Delete ${n} ${n === 1 ? 'entry' : 'entries'} permanently? This can’t be undone.`, { confirm: 'Delete' }))) return;
+        confirmed = true;
+        bulk.requestSubmit(submitter ?? undefined);
       });
       sync();
     }

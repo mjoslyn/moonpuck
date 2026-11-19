@@ -60,11 +60,56 @@
     update();
   });
 
-  document.querySelectorAll('.c-donate__action[data-confirm]').forEach((f) =>
-    f.addEventListener('submit', (e) => {
-      if (!confirm(f.dataset.confirm)) e.preventDefault();
-    }),
-  );
+  // Asks first (Cancel a monthly gift), in a box on the page in the site's style rather than the browser's:
+  // Keep it has the focus first, Escape keeps it.
+  const ask = (message, yes) =>
+    new Promise((resolve) => {
+      const d = document.createElement('dialog');
+      d.className = 'c-donate__confirm';
+      d.setAttribute('aria-labelledby', 'c-donate-confirm-t');
+      d.style.cssText = 'max-width:24rem;width:calc(100% - 32px);border:0;border-radius:12px;padding:20px;color:var(--color-text);background:var(--color-surface,#fff);box-shadow:0 20px 50px rgb(0 0 0/.25)';
+      const p = document.createElement('p');
+      p.id = 'c-donate-confirm-t';
+      p.style.cssText = 'margin:0 0 16px;font-weight:600';
+      p.textContent = message;
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap';
+      const keep = document.createElement('button');
+      keep.type = 'button';
+      const btn = 'border-radius:var(--form-button-radius,4px);padding:.55rem 1rem;font:inherit;font-weight:600;cursor:pointer;';
+      keep.style.cssText = `${btn}border:1px solid currentColor;background:transparent;color:var(--color-text)`;
+      keep.textContent = 'Keep it';
+      const go = document.createElement('button');
+      go.type = 'button';
+      go.style.cssText = `${btn}border:1px solid transparent;background:var(--color-accent-fill,var(--color-accent));color:var(--color-on-accent,#fff)`;
+      go.textContent = yes;
+      row.append(keep, go);
+      d.append(p, row);
+      document.body.append(d);
+      const done = (v) => {
+        d.close();
+        d.remove();
+        resolve(v);
+      };
+      keep.addEventListener('click', () => done(false));
+      go.addEventListener('click', () => done(true));
+      d.addEventListener('cancel', (e) => {
+        e.preventDefault();
+        done(false);
+      });
+      d.showModal();
+      keep.focus();
+    });
+  document.querySelectorAll('.c-donate__action[data-confirm]').forEach((f) => {
+    let asked = false;
+    f.addEventListener('submit', async (e) => {
+      if (asked) return;
+      e.preventDefault();
+      if (!(await ask(f.dataset.confirm, f.querySelector('button')?.textContent?.trim() || 'Yes'))) return;
+      asked = true;
+      f.requestSubmit ? f.requestSubmit() : f.submit();
+    });
+  });
 
   // Back from the payment page (the browser's page cache): the button works again.
   window.addEventListener('pageshow', () => document.querySelectorAll('.c-donate__submit').forEach((b) => (b.disabled = false)));

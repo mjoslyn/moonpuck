@@ -6,6 +6,7 @@ import { FieldsForm, fieldsFor } from './entry-fields';
 import { Select, Text } from './fields';
 import { browserClient } from '../lib/db/browser';
 import { isPlaceholderSlug, slugify } from '../lib/slug';
+import { ask } from '../lib/admin/dialogs';
 
 interface Record_ { id: number; type: string; title: string; slug: string; status: string; fields: Record<string, any>; updated_at: string }
 interface Ref { id: number; title: string; event_start: string | null }
@@ -43,7 +44,7 @@ export default function RecordEditor({ entryId, singular }: { entryId: number; s
         body: JSON.stringify({ base, entry: { title: rec.title, slug, status: rec.status, fields: rec.fields } }),
       });
     let res = await put(rec.updated_at);
-    if (res.status === 409 && window.confirm(`${await res.text()}\n\nSaving now replaces their version with yours. To see theirs first, cancel and reload the page (your unsaved changes here will be lost).\n\nSave anyway?`)) res = await put();
+    if (res.status === 409 && (await ask(`${await res.text()}\n\nSaving now replaces their version with yours. To see theirs first, cancel and reload the page (your unsaved changes here will be lost).\n\nSave anyway?`))) res = await put();
     if (res.status === 409) return setStatus('Not saved: someone else saved this since you opened it.');
     if (!res.ok) return setStatus(`Save failed: ${await res.text()}`);
     const r = await res.json().catch(() => ({}));

@@ -317,7 +317,7 @@ const name = ticket.title || 'Tickets';
     const res = await fetch('/api/admin/tickets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     if (!res.ok) {
       status.textContent = '';
-      alert(await res.text());
+      (await window.adminTell(await res.text()));
       return null;
     }
     status.textContent = '';
@@ -357,11 +357,11 @@ const name = ticket.title || 'Tickets';
 
   for (const b of document.querySelectorAll('[data-action]')) {
     b.addEventListener('click', async () => {
-      if (b.dataset.confirm && !confirm(b.dataset.confirm)) return;
+      if (b.dataset.confirm && !(await window.adminAsk(b.dataset.confirm))) return;
       const r = await post({ action: b.dataset.action, id: Number(b.dataset.id) });
       if (r && b.dataset.action === 'resend') status.textContent = 'Confirmation sent.';
       else if (r) {
-        if (r.message) alert(r.message);
+        if (r.message) (await window.adminTell(r.message));
         location.reload();
       }
     });
@@ -373,9 +373,9 @@ const name = ticket.title || 'Tickets';
       const m = form.amount.value.trim().replace(/[$,\s]/g, '').match(/^(\d*)(?:\.(\d{0,2}))?$/);
       const cents = m && (m[1] || m[2]) ? Number(m[1] || 0) * 100 + Number((m[2] ?? '').padEnd(2, '0')) : 0;
       const left = Number(form.dataset.left);
-      if (!cents || cents > left) return alert(`Refund between ${money(1, form.dataset.currency)} and ${money(left, form.dataset.currency)}.`);
+      if (!cents || cents > left) return (await window.adminTell(`Refund between ${money(1, form.dataset.currency)} and ${money(left, form.dataset.currency)}.`));
       const full = cents === left;
-      if (!confirm(`Refund ${money(cents, form.dataset.currency)} to ${form.dataset.name}?${full ? ' This refunds the whole order and puts its tickets back on sale.' : ''} The money goes back to their card; this can't be undone.`)) return;
+      if (!(await window.adminAsk(`Refund ${money(cents, form.dataset.currency)} to ${form.dataset.name}?${full ? ' This refunds the whole order and puts its tickets back on sale.' : ''} The money goes back to their card; this can't be undone.`))) return;
       const r = await post({ action: 'refund', id: Number(form.dataset.refund), amount: cents });
       if (r) location.reload();
     });
@@ -384,16 +384,16 @@ const name = ticket.title || 'Tickets';
   const notify = async (ids) => {
     const r = await post({ action: 'notify', event: eventId, date, ids });
     if (r) {
-      alert(r.sent ? `Emailed ${r.sent} ${r.sent === 1 ? 'person' : 'people'}.` : 'Nobody was emailed: no one waiting fits the tickets free now.');
+      (await window.adminTell(r.sent ? `Emailed ${r.sent} ${r.sent === 1 ? 'person' : 'people'}.` : 'Nobody was emailed: no one waiting fits the tickets free now.'));
       location.reload();
     }
   };
-  document.getElementById('notify-selected')?.addEventListener('click', () => {
+  document.getElementById('notify-selected')?.addEventListener('click', async () => {
     const ids = [...document.querySelectorAll('[data-pick]:checked')].map((b) => Number(b.dataset.pick));
-    if (!ids.length) return alert('Tick the people to notify.');
-    if (confirm(`Email ${ids.length} ${ids.length === 1 ? 'person' : 'people'} that tickets are available?`)) notify(ids);
+    if (!ids.length) return (await window.adminTell('Tick the people to notify.'));
+    if ((await window.adminAsk(`Email ${ids.length} ${ids.length === 1 ? 'person' : 'people'} that tickets are available?`))) notify(ids);
   });
-  document.getElementById('notify-next')?.addEventListener('click', () => {
-    if (confirm('Email the people waiting, in order, as far as the tickets on sale now go?')) notify(undefined);
+  document.getElementById('notify-next')?.addEventListener('click', async () => {
+    if ((await window.adminAsk('Email the people waiting, in order, as far as the tickets on sale now go?'))) notify(undefined);
   });
 </script>

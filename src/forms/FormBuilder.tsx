@@ -20,6 +20,7 @@ import { formEmailKit } from './form-email';
 import ComposeForm, { type ComposeAsk, type Composed } from './ComposeForm';
 import { takeStart, type ComposeStart } from '../lib/compose/start';
 import { defaultEmail, emailFromMessage, type EmailDoc } from '../lib/forms/email';
+import { ask } from '../lib/admin/dialogs';
 
 const input = 'w-full rounded border border-admin-ink/15 bg-white px-2 py-1.5 text-sm outline-none focus:border-admin-accent';
 const labelCls = 'mb-1 block text-xs font-medium text-admin-muted';
@@ -104,9 +105,9 @@ const num = (v: string) => (v.trim() === '' || isNaN(Number(v)) ? undefined : Nu
 function ChoicesEditor({ form, field, onChange }: { form: FormDef; field: Field; onChange: (patch: Partial<Field>) => void }) {
   /** The fields whose conditions test this field for a value. */
   const usedBy = (value: string) => form.fields.filter((f) => logicOf(f)?.rules.some((r) => r.field === field.id && String(r.value).trim() === value.trim())).map((f) => f.label || f.id);
-  const remove = (i: number) => {
+  const remove = async (i: number) => {
     const users = usedBy(choices[i].value);
-    if (users.length && !confirm(`${users.join(', ')} ${users.length === 1 ? 'shows or hides' : 'show or hide'} based on "${choices[i].label}". Remove the choice anyway?`)) return;
+    if (users.length && !(await ask(`${users.join(', ')} ${users.length === 1 ? 'shows or hides' : 'show or hide'} based on "${choices[i].label}". Remove the choice anyway?`))) return;
     commit(choices.filter((_, j) => j !== i));
   };
   const choices: Choice[] = field.choices ?? [];
@@ -682,10 +683,10 @@ export default function FormBuilder({ formId }: { formId: number }) {
     }
     setFields(fields);
   };
-  const removeField = () => {
+  const removeField = async () => {
     if (!field) return;
     const used = form.fields.filter((f) => logicOf(f)?.rules.some((r) => r.field === field.id));
-    if (used.length && !confirm(`${used.map((f) => f.label).join(', ')} ${used.length === 1 ? 'uses' : 'use'} this field in conditional logic. Delete anyway?`)) return;
+    if (used.length && !(await ask(`${used.map((f) => f.label).join(', ')} ${used.length === 1 ? 'uses' : 'use'} this field in conditional logic. Delete anyway?`))) return;
     const i = form.fields.findIndex((f) => f.id === field.id);
     const fields = form.fields.filter((f) => f.id !== field.id);
     setFields(fields);

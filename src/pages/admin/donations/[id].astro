@@ -76,7 +76,7 @@ const rows = [
     const res = await fetch('/api/admin/donations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: giftId, ...body }) });
     status.textContent = '';
     if (!res.ok) {
-      alert(await res.text());
+      (await window.adminTell(await res.text()));
       return null;
     }
     return res.json();
@@ -89,7 +89,7 @@ const rows = [
     const amount = Math.round(Number(String(e.target.amount.value).replace(/[^\d.]/g, '')) * 100);
     if (!amount) return;
     const shown = new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount / 100);
-    if (!confirm(`Refund ${shown} to the donor’s card? They are emailed.`)) return;
+    if (!(await window.adminAsk(`Refund ${shown} to the donor’s card? They are emailed.`))) return;
     if (await post({ action: 'refund', amount })) location.reload();
   });
 </script>

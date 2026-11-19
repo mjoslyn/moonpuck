@@ -13,6 +13,7 @@ import { inline } from '../lib/compose/build';
 import { uploadMedia, VIDEO_TYPES } from '../lib/media/upload';
 import { layoutName, type Layout } from '../lib/compose/layout';
 import { takeStart } from '../lib/compose/start';
+import { ask } from '../lib/admin/dialogs';
 
 /** Claude's replies: paragraphs and "- " lists with inline Markdown (escaped first). */
 function Reply({ text }: { text: string }) {
@@ -288,8 +289,8 @@ export default function Composer({ entryId, templateKey, layout, live, selection
               type="button"
               className="ml-auto rounded border border-admin-ink/15 px-2 py-0.5 text-xs text-admin-muted hover:text-admin-ink"
               title="Start a new conversation for this page (the page stays as it is)"
-              onClick={() => {
-                if (!confirm('Start a new conversation? Claude starts fresh, without this conversation\'s messages and materials. The page stays as it is.')) return;
+              onClick={async () => {
+                if (!(await ask('Start a new conversation? Claude starts fresh, without this conversation\'s messages and materials. The page stays as it is.'))) return;
                 setSessionId(null);
                 setPrefix('');
                 setTurns([]);

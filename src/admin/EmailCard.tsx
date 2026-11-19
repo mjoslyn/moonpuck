@@ -6,6 +6,7 @@ import { Text } from '../puck/fields';
 import type { EmailDoc } from '../lib/forms/email';
 import { browserClient } from '../lib/db/browser';
 import { defaultTemplate } from '../lib/email-templates';
+import { ask } from '../lib/admin/dialogs';
 
 const btn = 'rounded-sm border border-admin-ink/20 px-3 py-1.5 text-xs font-semibold hover:border-admin-ink/50';
 
@@ -73,7 +74,7 @@ export function EmailCard({
         </button>
         <span className="text-xs text-admin-muted">{value.design ? 'Designed here' : 'Not changed yet'}</span>
         {value.design && onReset && (
-          <button type="button" className="text-xs text-[#b3261e]" onClick={() => confirm('Go back to the default email? This design is removed.') && onReset()}>
+          <button type="button" className="text-xs text-[#b3261e]" onClick={async () => (await ask('Go back to the default email? This design is removed.')) && onReset()}>
             Reset to the default
           </button>
         )}

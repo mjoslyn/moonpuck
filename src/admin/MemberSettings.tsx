@@ -3,6 +3,7 @@
 // everyone else. The members themselves are managed on the Members screen.
 import { Segmented, Select, Text, Toggle } from '../puck/fields';
 import type { MemberLevel, MemberSettings } from '../lib/members/config';
+import { ask, askText } from '../lib/admin/dialogs';
 
 const idFor = (name: string, taken: MemberLevel[]) => {
   const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'level';
@@ -28,7 +29,7 @@ export default function MemberSettingsPanel({ value, onChange }: { value: Partia
           {levels.map((l, i) => (
             <div key={l.id} className="mb-2 flex items-center gap-2">
               <input aria-label="Level name" className="w-full rounded border border-admin-ink/15 bg-white px-2 py-1.5 text-sm" value={l.name} onChange={(e) => setLevel(i, e.target.value)} />
-              <button type="button" className="text-xs text-[#c4592a]" onClick={() => confirm(`Remove the level “${l.name}”?`) && set({ levels: levels.filter((_, j) => j !== i) })}>
+              <button type="button" className="text-xs text-[#c4592a]" onClick={async () => (await ask(`Remove the level “${l.name}”?`)) && set({ levels: levels.filter((_, j) => j !== i) })}>
                 Remove
               </button>
             </div>
@@ -36,8 +37,8 @@ export default function MemberSettingsPanel({ value, onChange }: { value: Partia
           <button
             type="button"
             className="mb-4 rounded-sm border border-admin-ink/20 px-2 py-1 text-xs font-semibold hover:border-admin-ink/50"
-            onClick={() => {
-              const name = prompt('Level name (e.g. Business, Individual, Patron)')?.trim();
+            onClick={async () => {
+              const name = (await askText('Level name (e.g. Business, Individual, Patron)'))?.trim();
               if (name) set({ levels: [...levels, { id: idFor(name, levels), name }] });
             }}
           >

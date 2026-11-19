@@ -2,7 +2,7 @@
 // on shared pages' and newsletters' blocks, and newsletters' history and conflicting saves.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sessionDb, siteDb } from '../src/lib/db/site';
-import { cookieFits, cookieValue, countUse, createShare, guestCookie, SHARE_DEFAULT_DAYS, guestLink, guestMay, isLive, liveLink, passwordOpens, revokeShare, shareProblem, sharesOf } from '../src/lib/share/links';
+import { cookieFits, cookieValue, countUse, createShare, guestCookie, modeFor, SHARE_DEFAULT_DAYS, guestLink, guestMay, isLive, liveLink, passwordOpens, revokeShare, shareProblem, sharesOf } from '../src/lib/share/links';
 import { addComment, blocksOf, commentErrorText, commentsOf, GUEST_COMMENTS_PER_HOUR } from '../src/lib/share/comments';
 
 const block = (type: string, id: string, attrs: Record<string, any> = {}, extra: Record<string, any> = {}) => ({ type, props: { id, attrs, ...extra } });
@@ -39,6 +39,13 @@ describe('links', () => {
     await svc.from('share_links').update({ password_hash: 'other' }).eq('id', link.id);
     expect(await guestLink(withCookie(value))).toBeNull();
     expect(cookieFits(link, value.split('.')[1] + 'x')).toBe(false);
+  });
+
+  it('without a mode, gives signed-in editors the editor and guests view and comments', async () => {
+    expect(modeFor('login')).toBe('edit');
+    expect((await createShare({ entry, access: 'login' }, null)).mode).toBe('edit');
+    expect((await createShare({ entry, access: 'anyone' }, null)).mode).toBe('view');
+    expect((await createShare({ entry, access: 'password', password: 'secret-pass' }, null)).mode).toBe('view');
   });
 
   it('expires in 30 days unless an expiry, or none, is given', async () => {

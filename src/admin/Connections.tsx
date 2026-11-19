@@ -5,6 +5,7 @@
 // keys ask for the admin's password, and every change is emailed to the admins. Saves as it goes.
 import { useEffect, useState } from 'react';
 import type { KeyStatus, Service } from '../lib/site-keys';
+import { ask } from '../lib/admin/dialogs';
 
 interface Info {
   services: Record<Service, { label: string; secret: string[]; plain: string[]; guarded: boolean }>;
@@ -70,7 +71,7 @@ function Card({ service, info, onKeys }: { service: Service; info: Info; onKeys:
     setPassword('');
     onKeys(out.keys);
   };
-  const disconnect = () => window.confirm(`Remove ${def.label}’s saved keys? What uses them stops working until it is connected again.`) && send({ remove: true });
+  const disconnect = async () => (await ask(`Remove ${def.label}’s saved keys? What uses them stops working until it is connected again.`)) && send({ remove: true });
   // A choice on screen needs an answer before Save.
   const ready = !busy && (!def.guarded || password) && (choose ? !!values[choose.name] : values[main]?.trim() || connected);
   return (

@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { TicketsForm } from '../puck/TicketsForm';
 import { TICKETS_KEY } from '../lib/tickets/config';
+import { ask } from '../lib/admin/dialogs';
 
 /** An event, as the setup lists it. */
 export interface TicketEvent {
@@ -63,8 +64,8 @@ export default function TicketSetup({ ticketId, name: savedName, tickets, events
   };
 
   const act = async (body: Record<string, unknown>, question: string, then = () => location.reload()) => {
-    if (dirty && !confirm('You have unsaved changes to the ticket types. Carry on without saving them?')) return;
-    if (!confirm(question)) return;
+    if (dirty && !(await ask('You have unsaved changes to the ticket types. Carry on without saving them?'))) return;
+    if (!(await ask(question))) return;
     setStatus('Saving…');
     const problem = await post(body);
     if (problem) return setStatus(`Not saved: ${problem}`);

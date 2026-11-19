@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { RULE_TYPES, cleanTags, describeSegment, type Rule, type RuleType, type Segment } from '../lib/mailing/segments';
 import type { ContactField, MailList } from '../lib/mailing/config';
 import type { MemberLevel } from '../lib/members/config';
+import { ask } from '../lib/admin/dialogs';
 
 const input = 'rounded border border-admin-ink/15 bg-white px-2 py-1.5 text-sm outline-none focus:border-admin-accent';
 const primary = 'rounded-sm bg-admin-ink px-4 py-2 text-xs font-semibold tracking-wider text-white uppercase hover:bg-admin-accent disabled:opacity-50';
@@ -220,7 +221,7 @@ export default function SegmentEditor({ segment, lists, levels, tags, fields, de
             type="button"
             className="mt-4 text-xs text-[#c4592a] underline"
             onClick={async () => {
-              if (!confirm('Delete this segment?')) return;
+              if (!(await ask('Delete this segment?'))) return;
               try {
                 await post({ action: 'delete', id: s.id });
                 location.href = '/admin/mailing-lists/?tab=segments';

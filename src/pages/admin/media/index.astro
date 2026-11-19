@@ -61,6 +61,7 @@ const link = (p: number) => `?${new URLSearchParams({ ...(q ? { q } : {}), page:
   )}
   <MediaDetail client:load />
   <script>
+  import { tell } from '../../../lib/admin/dialogs';
     import { uploadMedia } from '../../../lib/media/upload';
     for (const b of document.querySelectorAll<HTMLButtonElement>('[data-media]')) {
       b.addEventListener('click', () => window.dispatchEvent(new CustomEvent('cms:media-open', { detail: Number(b.dataset.media) })));
@@ -76,7 +77,7 @@ const link = (p: number) => `?${new URLSearchParams({ ...(q ? { q } : {}), page:
         const res = await uploadMedia(f);
         if (!res.ok) failed.push(`${f.name}: ${await res.text()}`);
       }
-      if (failed.length) alert(failed.join('\n'));
+      if (failed.length) (await tell(failed.join('\n')));
       location.reload();
     });
   </script>

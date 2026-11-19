@@ -430,7 +430,9 @@ others sent to sign in), `password` (scrypt `password_hash`, wrong tries limited
 `share-password` in `src/lib/auth/attempts.ts`) or `anyone`; an edit link is always `login`
 (`shareProblem`; one made otherwise doesn't open, `liveLink`), since only editors and admins edit. A link
 has an optional `label` and `expires_at` (`SHARE_DEFAULT_DAYS`, 30 days, when it isn't given; null for
-none; the Share dialog's mode is a list whose edit choice is off unless the access is `login`), and counts its uses (`uses`, `last_used_at`, `countUse`, over the
+none). Without a `mode` the access decides it (`modeFor`): `login` edits, the others view and comment; the
+Share dialog offers only the access (three cards), with a name and expiry under More options and Turn off
+asked in `ConfirmModal`, and counts its uses (`uses`, `last_used_at`, `countUse`, over the
 count read, so opens at once all count). Revoking (`revoked_at`), expiry, the entry going to the trash, or
 the campaign leaving `draft` or Mailing Lists being off end it (`liveLink`); scheduling, sending, approving
 or cancelling a campaign revokes its links (`revokeCampaignShares`), so going back to a draft doesn't bring
@@ -1911,7 +1913,14 @@ whose label, keywords (`SettingsSection.keywords`) or settings' own words have e
 in its lists and what is typed in its fields, `panelText`); Enter opens the first, Escape clears it.
 
 Every admin page (`src/layouts/AdminTheme.astro`) stops the scroll wheel changing a focused number field, which
-would otherwise set it (from empty, to its minimum) as the page scrolls.
+would otherwise set it (from empty, to its minimum) as the page scrolls. It also puts the admin's own confirm, message and
+question boxes in place of the browser's (`src/lib/admin/dialogs.ts`: `ask`, `tell`, `askText`, promises;
+Cancel focused first, Escape cancels, the confirming button named by the question's verb and red for what
+can't be taken back), as `window.adminAsk`, `adminTell` and `adminAskText` for pages' inline scripts, and asks
+first for any form with `data-confirm` (its words; `data-confirm-label` its button) before sending it.
+React screens use `src/admin/ConfirmModal.tsx` where the box belongs to the screen (Turn off a share link,
+Delete a comment). Nothing in the admin calls `confirm()`, `alert()` or `prompt()`; the Donate block's
+Cancel a monthly gift asks in a `<dialog>` of its own (`public/assets/js/donate.js`).
 
 Admin colors and logo (Settings > Theme, Admin screens; `settings.site.admin_theme`, `src/lib/admin-theme.ts`):
 **Match the site** (on while `admin_theme` is empty) takes the site theme's accent (its button fill, else

@@ -3,6 +3,7 @@
 // template editor's header; a new address reopens the editor there.
 import { useState } from 'react';
 import { TEMPLATE_TITLE_MAX, templateSlug } from '../lib/admin/rename-template';
+import { tell } from '../lib/admin/dialogs';
 
 export default function RenameTemplate({ kind, slug, title, dirty, onRenamed, className }: { kind: string; slug: string; title: string; dirty?: boolean; onRenamed?: (title: string) => void; className?: string }) {
   const [open, setOpen] = useState(false);
@@ -26,7 +27,7 @@ export default function RenameTemplate({ kind, slug, title, dirty, onRenamed, cl
     setBusy(false);
     if (!res?.ok) return setError((res && (await res.text())) || 'Couldn’t rename it. Try again.');
     const saved = (await res.json()) as { title: string; slug: string; failed: number };
-    if (saved.failed) window.alert(`Renamed, but ${saved.failed} place${saved.failed === 1 ? '' : 's'} naming the old address couldn’t be changed. They still find it by its old address.`);
+    if (saved.failed) (await tell(`Renamed, but ${saved.failed} place${saved.failed === 1 ? '' : 's'} naming the old address couldn’t be changed. They still find it by its old address.`));
     setOpen(false);
     if (saved.slug !== slug && onRenamed) location.replace(`/admin/templates/${kind}/${saved.slug}/`);
     else if (onRenamed) onRenamed(saved.title);

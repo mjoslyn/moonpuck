@@ -14,6 +14,7 @@ import CampaignComments from './CampaignComments';
 import { CAMPAIGN_STATUS, rate, sendAction, type Audience, type Campaign, type CampaignStats, type ContactField, type MailList } from '../lib/mailing/config';
 import type { MemberLevel } from '../lib/members/config';
 import type { EmailDoc } from '../lib/forms/email';
+import { ask as askBox } from '../lib/admin/dialogs';
 
 export interface LinkRow {
   id: number;
@@ -149,7 +150,7 @@ export default function CampaignEditor({ campaign, lists, levels, stats, links, 
     try {
       saved = await post({ action: 'save', id: c.id, campaign: now, base: base.current });
     } catch (e) {
-      if (!(e instanceof PostError && e.status === 409) || !window.confirm(`${e.message} Save over their version? Theirs stays in History.`)) throw e;
+      if (!(e instanceof PostError && e.status === 409) || !(await askBox(`${e.message} Save over their version? Theirs stays in History.`))) throw e;
       saved = await post({ action: 'save', id: c.id, campaign: now });
     }
     base.current = saved.updated_at;
@@ -365,7 +366,7 @@ export default function CampaignEditor({ campaign, lists, levels, stats, links, 
                 )}
                 <p className="mt-1 text-xs text-admin-muted">Times are in the site's time zone ({tz.replace(/_/g, ' ')}).</p>
                 {(c.status === 'paused' || c.status === 'scheduled') && (
-                  <button type="button" className="mt-2 text-xs text-[#c4592a] underline" disabled={busy} onClick={() => confirm('Cancel this campaign? Whatever has gone out stays sent; nothing more goes.') && run(() => post({ action: 'cancel', id: c.id }), 'Cancelled.', true)}>
+                  <button type="button" className="mt-2 text-xs text-[#c4592a] underline" disabled={busy} onClick={async () => (await askBox('Cancel this campaign? Whatever has gone out stays sent; nothing more goes.')) && run(() => post({ action: 'cancel', id: c.id }), 'Cancelled.', true)}>
                     Cancel the campaign
                   </button>
                 )}
@@ -399,7 +400,7 @@ export default function CampaignEditor({ campaign, lists, levels, stats, links, 
           Duplicate
         </button>
         {(c.status === 'draft' || (admin && ['cancelled', 'skipped', 'failed'].includes(c.status) && !c.started_at)) && (
-          <button type="button" className="text-[#c4592a] underline" onClick={() => confirm('Delete this campaign?') && run(async () => (await post({ action: 'delete', id: c.id }), (location.href = '/admin/mailing-lists/')), 'Deleted.')}>
+          <button type="button" className="text-[#c4592a] underline" onClick={async () => (await askBox('Delete this campaign?')) && run(async () => (await post({ action: 'delete', id: c.id }), (location.href = '/admin/mailing-lists/')), 'Deleted.')}>
             Delete
           </button>
         )}

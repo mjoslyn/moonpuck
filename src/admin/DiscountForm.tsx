@@ -7,6 +7,7 @@ import { Num, Row, Select, Text, Toggle, inputClass } from '../puck/fields';
 import { PriceInput } from '../puck/TicketsForm';
 import { EntriesField } from '../puck/entry-fields';
 import type { Discount } from '../lib/shop/discounts';
+import { ask } from '../lib/admin/dialogs';
 
 type Form = Partial<Discount> & { automatic?: boolean };
 
@@ -35,7 +36,7 @@ export default function DiscountForm({ discount, categories, levels, membersOn }
     else setStatus('Saved.');
   };
   const remove = async () => {
-    if (!discount || !confirm('Delete this discount? Orders that used it keep its code.')) return;
+    if (!discount || !(await ask('Delete this discount? Orders that used it keep its code.'))) return;
     const res = await fetch('/api/admin/shop/discounts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', id: discount.id }) });
     if (res.ok) location.href = '/admin/shop/discounts/';
     else setStatus(await res.text());

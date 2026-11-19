@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { CONSENT_STARTER, POPUP_FREQUENCIES, POPUP_LAYOUTS, POPUP_TRIGGERS, type Popup } from '../lib/popups';
 import { inputClass } from '../puck/fields';
+import { ask } from '../lib/admin/dialogs';
 
 interface Part {
   slug: string;
@@ -66,7 +67,7 @@ export default function PopupsSettings({ value, parts: initialParts, onChange }:
               <a className={button} href={`/admin/templates/part/${p.part}/`} target="_blank" rel="noopener">
                 Edit content
               </a>
-              <button type="button" className={button} onClick={() => confirm(`Remove “${p.name}”? Its content stays under Templates > Parts.`) && onChange(value.filter((_, k) => k !== i))}>
+              <button type="button" className={button} onClick={async () => (await ask(`Remove “${p.name}”? Its content stays under Templates > Parts.`)) && onChange(value.filter((_, k) => k !== i))}>
                 Remove
               </button>
             </div>

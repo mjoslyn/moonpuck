@@ -4,6 +4,7 @@
 // and snapshots are on the Backups tab, src/admin/Backups.tsx). Each site can protect itself from syncs.
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import type { GroupPlan, SyncConflict, SyncPlan } from '../lib/sync';
+import { ask } from '../lib/admin/dialogs';
 
 type Direction = 'push' | 'pull';
 interface Group {
@@ -66,7 +67,7 @@ export default function Sync() {
   const targetProtected = direction === 'push' ? info.protected.there === true : info.protected.here;
 
   const protect = async (value: boolean) => {
-    if (!value && !window.confirm('Allow syncs to overwrite this site’s content?')) return;
+    if (!value && !(await ask('Allow syncs to overwrite this site’s content?'))) return;
     try {
       await post({ action: 'protect', value });
       setInfo({ ...info, protected: { ...info.protected, here: value } });
