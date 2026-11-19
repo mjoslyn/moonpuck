@@ -443,11 +443,14 @@ featured image, an event's dates and the type's fields (`EntryForm`'s `guest`), 
 to insert (those on the page can be moved or removed, not edited); a page in layout mode isn't editable.
 A guest's save (`guestSave` in the entries API, then saved as the server) takes `draft` only and no
 template; `guestContent` (`src/lib/share/guest-content.ts`) refuses an HTML or Embed block (`GUEST_BLOCKED`)
-or imported markup (`props.html`, `props.saved`) added or changed (a site block that writes a setting
-unescaped is not covered: escape it), and cleans every value the guest
+or imported markup (`props.html`, `props.saved`) added or changed, and a block id the page didn't have
+that isn't letters, digits, `-` and `_` (`GUEST_ID`; renderers put ids in markup; a site block that
+writes a setting or id unescaped is not covered: escape it), and cleans every value the guest
 changed (inline formatting and safe links, `cleanInlineHtml`; addresses in `*href`, `*url`, `*src`,
 `*link`, `*poster`, `*website` settings, `isSafeUrl`); `guestEntry` keeps the address, template, terms and
-tags, and the fields `access`, `ticket` and `tickets`, as they were. The same checks apply to a guest's
+tags as they were, and of the fields takes only the type's own (`guestFieldKeys`: `fieldsFor` less `seo`,
+`access`, `ticket`, `tickets`, `shop`, `featured`, `template`, `imported_from`; an event's `timezone` and
+`recurrence` too), the rest as they were; the entry form shows a guest only those. The same checks apply to a guest's
 unsaved preview. Its revisions have no author and the note `Saved through a share link (<label>)`.
 
 ## Redirects

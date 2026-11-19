@@ -33,7 +33,7 @@ export const POST: APIRoute = async ({ params, locals, request, url }) => {
     // A guest's unsaved state passes the same checks as their save (no raw markup), and never a layout of their own.
     const id = Number(params.id);
     const [{ data: current }, { data: kept }] = await Promise.all([
-      locals.db.from('entries').select('slug, title, excerpt, content, fields').eq('id', id).maybeSingle(),
+      locals.db.from('entries').select('type, slug, title, excerpt, content, fields').eq('id', id).maybeSingle(),
       locals.db.from('entry_drafts').select('draft').eq('entry_id', id).maybeSingle(),
     ]);
     if (!current) return new Response('Not found', { status: 404 });

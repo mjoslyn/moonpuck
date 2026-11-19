@@ -1,7 +1,7 @@
 // Share links (src/lib/share): what a guest may save, what the guest role reads, and the links themselves.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sessionDb, siteDb } from '../src/lib/db/site';
-import { guestContent, guestEntry, GUEST_BLOCKED_MESSAGE } from '../src/lib/share/guest-content';
+import { guestContent, guestEntry, GUEST_BLOCKED_MESSAGE, GUEST_ID_MESSAGE } from '../src/lib/share/guest-content';
 import { cookieFits, cookieValue, createShare, guestCookie, guestLink, guestMay, isLive, liveLink, passwordOpens, revokeShare, shareProblem, sharesOf } from '../src/lib/share/links';
 
 const block = (type: string, id: string, attrs: Record<string, any> = {}, extra: Record<string, any> = {}) => ({ type, props: { id, attrs, ...extra } });
@@ -42,6 +42,13 @@ describe('guestContent', () => {
     expect(r.content.content[2].props.attrs.href).toBe('https://example.org/');
   });
 
+  it('refuses a new block whose id isn’t plain, and keeps an id the page already had', () => {
+    for (const id of ['x"><img src=x onerror=alert(1)>', 'a b', 'x'.repeat(101)]) expect(guestContent(doc(block('subscribe', id)), before)).toEqual({ ok: false, error: GUEST_ID_MESSAGE });
+    const odd = doc(block('text', 'old:id', { content: 'Hi' }));
+    expect(guestContent(odd, odd).ok).toBe(true);
+    expect(guestContent(doc(block('text', 'text-1a2B_3'), block('donate', 'donate-9')), before).ok).toBe(true);
+  });
+
   it('cleans blocks inside containers', () => {
     const r = guestContent(doc(block('section', 's1', {}, { children: [block('text', 'n1', { content: '<script>x()</script>Hi' })] })), before);
     expect(r.ok && r.content.content[0].props.children[0].props.attrs.content).toBe('Hi');
@@ -49,10 +56,15 @@ describe('guestContent', () => {
 });
 
 describe('guestEntry', () => {
-  const current = { slug: 'about', title: 'About', excerpt: '', fields: { access: { members: true }, ticket: 4, color: 'red' } };
-  it('takes the title, excerpt and fields, keeps the address, access and ticket', () => {
-    const e = guestEntry({ title: 'A <new> title', slug: 'evil', template: 'other', excerpt: '<script>x</script>Short', fields: { access: null, ticket: 9, color: 'blue', website: 'javascript:alert(1)' }, tags: ['x'] }, null, current);
-    expect(e).toEqual({ slug: 'about', title: 'A <new> title', excerpt: 'Short', fields: { access: { members: true }, ticket: 4, color: 'blue', website: '' } });
+  const current = { type: 'page', slug: 'about', title: 'About', excerpt: '', fields: { access: { members: true }, ticket: 4, seo: { noindex: false }, shop: { price: 1000 } } };
+  it('takes the title and excerpt, keeps the address and every field a guest may not change', () => {
+    const e = guestEntry({ title: 'A <new> title', slug: 'evil', template: 'other', excerpt: '<script>x</script>Short', fields: { access: null, ticket: 9, seo: { noindex: true }, shop: { price: 1 }, color: 'blue' }, tags: ['x'] }, null, current);
+    expect(e).toEqual({ slug: 'about', title: 'A <new> title', excerpt: 'Short', fields: current.fields });
+  });
+  it('takes an event’s own fields, time zone and repeat rule, cleaned', () => {
+    const ev = { ...current, type: 'event', fields: { cost: 'Free', website: 'https://example.org/', timezone: 'Europe/Paris', seo: { title: 'kept' } } };
+    const e = guestEntry({ fields: { cost: '<b>£5</b><img src=x onerror=y>', website: 'javascript:alert(1)', recurrence: { freq: 'weekly' }, seo: { title: 'changed' } } }, null, ev);
+    expect(e.fields).toEqual({ cost: '<b>£5</b>', website: '', recurrence: { freq: 'weekly' }, seo: { title: 'kept' } });
   });
   it('keeps the settings an editor kept aside', () => {
     const e = guestEntry({ title: 'Guest' }, { slug: 'renamed', template: 'wide', title: 'Editor' }, current);
