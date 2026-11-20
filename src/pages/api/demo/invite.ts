@@ -8,6 +8,6 @@ export const POST: APIRoute = async ({ request, redirect, url }) => {
   if (!isDemo()) return new Response('Not Found', { status: 404 });
   const form = await request.formData();
   const origin = env('SITE_URL')?.replace(/\/$/, '') || url.origin;
-  const code = await demoInvite(String(form.get('email') ?? ''), request, origin, String(form.get('website') ?? ''));
+  const code = await demoInvite(String(form.get('email') ?? ''), request, origin, String(form.get('website') ?? ''), String(form.get('cf-turnstile-response') ?? ''));
   return redirect(`/admin/login/?demo=${code}`, 303);
 };

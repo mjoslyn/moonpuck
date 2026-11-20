@@ -43,9 +43,16 @@ You, as an admin, aren't limited by any of this.
    ```
 
 3. Set up email (Email Service or SMTP), so invitations reach visitors.
-4. Connect Claude under Settings > Connections, or leave it off to turn Compose off on the demo.
-5. Make the content visitors start from, signed in as an admin.
-6. Save it as the starting point. With the deployed database's and bucket's keys in the environment
+4. Put the sign-up behind Cloudflare Turnstile, so bots can't use it to send invitations. Add a widget in
+   the Cloudflare dashboard (Turnstile, with the demo's domain), put its site key in `vars` as
+   `TURNSTILE_SITE_KEY`, and set its secret:
+
+   ```bash
+   npx wrangler secret put TURNSTILE_SECRET_KEY
+   ```
+5. Connect Claude under Settings > Connections, or leave it off to turn Compose off on the demo.
+6. Make the content visitors start from, signed in as an admin.
+7. Save it as the starting point. With the deployed database's and bucket's keys in the environment
    (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `D1_DATABASE_ID` and the `STORAGE_*` variables):
 
    ```bash
@@ -53,6 +60,16 @@ You, as an admin, aren't limited by any of this.
    ```
 
    Save again whenever you change the starting content. Only the newest starting point is kept.
+
+## Who tried it
+
+Each new invitation emails the demo's admins: the address that asked, when, and the country it came
+from. To send these somewhere else, set `DEMO_NOTIFY_EMAIL` (one address, or several separated by commas).
+Keep it out of your repository as a secret:
+
+```bash
+npx wrangler secret put DEMO_NOTIFY_EMAIL
+```
 
 ## Resets
 
@@ -82,6 +99,9 @@ All are Worker variables:
 - `DEMO_ANTHROPIC_MODEL`: the model the demo answers with. Default `claude-haiku-5-5`.
 - `DEMO_INVITES_DAILY`: invitations the demo sends a day. Default 200. Each address gets at most 3 a day,
   and each visitor 5.
+- `DEMO_NOTIFY_EMAIL`: where the notice of each new invitation goes. Default: every admin's address.
+- `TURNSTILE_SITE_KEY` and the secret `TURNSTILE_SECRET_KEY`: Cloudflare Turnstile's check on the sign-up
+  form. Without both, the form has no check.
 
 ## The word list
 

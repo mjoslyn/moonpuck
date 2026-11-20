@@ -2139,8 +2139,12 @@ A public copy of a site where anyone can try the editor (`src/lib/demo/`), on wh
   page's **Try the editor** form emails an editor's invitation (`invite`, `src/lib/admin/invite.ts`; the
   profile made `editor`), or the invitation again to an account still waiting for its password; the answer
   is the same either way, and a filled honeypot sends nothing. At most 3 a day per address, 5 per visitor
-  and `DEMO_INVITES_DAILY` (200) in all (`underDailyLimit`). The page shows the answer by code
-  (`?demo=sent|limit|bad`, `DEMO_INVITE_MESSAGES`).
+  and `DEMO_INVITES_DAILY` (200) in all (`underDailyLimit`). With Turnstile's keys set (`TURNSTILE_SITE_KEY`, a
+  variable, and `TURNSTILE_SECRET_KEY`, a secret; `src/lib/turnstile.ts`) the form carries Cloudflare's check,
+  verified (`verifyTurnstile`) before anything is counted or sent; without them nothing is asked. Each new
+  invitation emails the demo's owners (`notifyOwners`: the address, when and the visitor's country; to
+  `DEMO_NOTIFY_EMAIL`, else every admin's address), a `Mail.owner` email that goes out on a demo. The page
+  shows the answer by code (`?demo=sent|limit|bad|check`, `DEMO_INVITE_MESSAGES`).
 - **Off**: Stripe, Square, Shippo and Mailgun keys are never read (`env()` skips `DEMO_OFF_KEYS`, wherever
   they are set), and Settings > Connections refuses them; only account emails go out (`sendMail` logs the
   rest as not sent, via `demo`); uploads are images only (JPEG, PNG, WebP, GIF, AVIF) up to `DEMO_IMAGE_MB`

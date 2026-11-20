@@ -1,6 +1,6 @@
 // Demo mode (src/lib/demo): what it refuses in visitors' saves, the keys and mail it keeps off, the blocks
 // it renders without markup, Claude's and invitations' daily limits, and when it resets.
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { blockedText, offensive, stringsOf, unsafeMarkup, wordHash } from '../src/lib/demo/content';
 import { claudeAllowed, demoGuard, publishes, readableText } from '../src/lib/demo/guard';
 import { nextReset, resetDue } from '../src/lib/demo';
@@ -162,6 +162,49 @@ describe('invitations', () => {
     expect(await demoInvite('bot@example.org', new Request('https://demo.example/'), 'https://demo.example', 'spam')).toBe('sent');
     const { data } = await siteDb().from('users').select('id').eq('email', 'bot@example.org');
     expect(data).toEqual([]);
+  });
+});
+
+describe('invitations with Turnstile and the owners told', () => {
+  afterEach(() => {
+    delete process.env.TURNSTILE_SITE_KEY;
+    delete process.env.TURNSTILE_SECRET_KEY;
+    delete process.env.DEMO_NOTIFY_EMAIL;
+    vi.unstubAllGlobals();
+  });
+  const req = () => new Request('https://demo.example/api/demo/invite', { method: 'POST', headers: { 'cf-connecting-ip': '203.0.113.20', 'cf-ipcountry': 'NZ' } });
+  it('refuses a form whose check Cloudflare turns down, and makes no account', async () => {
+    on();
+    process.env.TURNSTILE_SITE_KEY = 'site-key';
+    process.env.TURNSTILE_SECRET_KEY = 'secret-key';
+    const fetches: string[] = [];
+    vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
+      fetches.push(url);
+      const token = (init.body as FormData).get('response');
+      return new Response(JSON.stringify({ success: token === 'good-token' }));
+    });
+    expect(await demoInvite('robot@example.org', req(), 'https://demo.example', '', '')).toBe('check');
+    expect(await demoInvite('robot@example.org', req(), 'https://demo.example', '', 'bad-token')).toBe('check');
+    const { data } = await siteDb().from('users').select('id').eq('email', 'robot@example.org');
+    expect(data).toEqual([]);
+    expect(fetches.every((u) => u.startsWith('https://challenges.cloudflare.com/turnstile/'))).toBe(true);
+    expect(await demoInvite('person@example.org', req(), 'https://demo.example', '', 'good-token')).toBe('sent');
+  });
+  it('emails the owners about each new invitation, past the demo’s own mail limit', async () => {
+    on();
+    process.env.DEMO_NOTIFY_EMAIL = 'owner@example.org';
+    const mail = await import('../src/lib/forms/mail');
+    const sent: { to: string[]; subject: string; text?: string }[] = [];
+    const spy = vi.spyOn(mail, 'sendMail').mockImplementation(async (m) => (sent.push(m), true));
+    expect(await demoInvite('newcomer@example.org', req(), 'https://demo.example')).toBe('sent');
+    const notice = sent.find((m) => m.to.includes('owner@example.org'));
+    expect(notice?.subject).toBe('Demo: newcomer@example.org asked to try the editor');
+    expect(notice?.text).toContain('Country: NZ');
+    spy.mockRestore();
+  });
+  it('lets a notice to the owners out on a demo, and nothing else of its kind', async () => {
+    on();
+    expect(await sendMail({ to: ['someone@example.org'], subject: 'Mention', html: '<p>Hi</p>', kind: 'admin' })).toBe(false);
   });
 });
 

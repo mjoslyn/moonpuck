@@ -30,6 +30,8 @@ export interface Mail {
   kind?: MailKind;
   /** It carries a sign-in, password, invitation or confirmation link: the email log keeps it without its body. */
   secret?: boolean;
+  /** To the site's own owners about the demo itself (src/lib/demo): goes out on a demo too. */
+  owner?: boolean;
 }
 
 function fromHeader(fromName?: string) {
@@ -78,8 +80,9 @@ export async function sendMail(message: Mail): Promise<boolean> {
   const log = async (status: 'sent' | 'failed' | 'not-sent', via: string, error?: string) =>
     (await import('../mail-log')).logMail({ kind: mail.kind, to: mail.to, from: fromHeader(mail.fromName), replyTo: mail.replyTo, subject: mail.subject, html: mail.html, text, secret: mail.secret, status, via, error });
   // A demo (src/lib/demo) sends only account emails (its invitations, password links), so visitors can't
-  // use its forms, tickets or mentions to email anyone; the rest is logged as not sent.
-  if (mail.kind !== 'account' && isDemo()) {
+  // use its forms, tickets or mentions to email anyone; the rest is logged as not sent. Its notices to its
+  // owners (`owner`, never set from anything a visitor sends) go out too.
+  if (mail.kind !== 'account' && !mail.owner && isDemo()) {
     await log('not-sent', 'demo');
     return false;
   }
