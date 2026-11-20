@@ -22,7 +22,7 @@ export const contentHref = (type: string) => `/admin/?type=${type}`;
 
 /**
  * What the bar offers this person: Content's types (those shown, `types`), Taxonomies and, in a section
- * of its own, Templates; Media, Stats and Comments; Donations while it is on; Compose, for each thing it makes (an entry of a type with a page, `composable`,
+ * of its own, Templates; Donations while it is on; Compose, for each thing it makes (an entry of a type with a page, `composable`,
  * then a form and, while Mailing is on, a campaign, then a template, part or pattern); optional features
  * only while they are on (the Shop's Orders among them); admin screens to admins. The site's plugins'
  * links (`plugins`, src/lib/site/plugins.ts, `navLinksOf`) go in the dropdown they name (an existing one,
@@ -65,8 +65,6 @@ export function adminNav(o: { isAdmin: boolean; ticketsOn: boolean; mailOn: bool
     },
     { href: '/admin/media/', label: 'Media' },
     { href: '/admin/stats/', label: 'Stats' },
-    // Every page's and newsletter's comments (src/admin/CommentsScreen.tsx).
-    { href: '/admin/comments/', label: 'Comments' },
     // Gifts and monthly donors while donations are on (Settings > Donations).
     ...(o.donationsOn ? [{ href: '/admin/donations/', label: 'Donations' }] : []),
     // A group of one is just its link.

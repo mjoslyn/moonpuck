@@ -1,8 +1,7 @@
 // A page's or newsletter's comments (src/lib/share/comments.ts), for editors: the page editor's Comments
 // panel and the campaign screen. GET ?entry=<id> or ?campaign=<id>: its comments, open first, with who
 // resolved each; GET ?people: the editors and admins to @mention (src/lib/share/mentions.ts), whom an
-// added comment emails. GET ?all&status=open|resolved|all&q=&page=: every page's and newsletter's comments,
-// for the Comments screen (listComments); GET ?pages=<words>: pages to comment on from there. POST { action: 'add', entry or campaign, block?, body } (as the editor), or
+// added comment emails. POST { action: 'add', entry or campaign, block?, body } (as the editor), or
 // { action: 'resolve' | 'reopen' | 'delete', id }. Only for what this editor can read; doesn't clear the
 // page cache.
 import type { APIRoute } from 'astro';
@@ -11,9 +10,7 @@ import type { ShareSubject } from '../../../lib/share/links';
 import { afterAnswer } from '../../../lib/platform';
 import { mailOrigin } from '../../../lib/mailing/contacts';
 import { mentionablePeople, notifyMentions } from '../../../lib/share/mentions';
-import { addComment, commentsOf, deleteComment, listComments, pagesToComment, setCommentStatus, subjectOfComment } from '../../../lib/share/comments';
-import { COMPOSABLE_TYPES } from '../../../lib/site';
-import { featuresOf, showsType } from '../../../lib/features';
+import { addComment, commentsOf, deleteComment, setCommentStatus, subjectOfComment } from '../../../lib/share/comments';
 
 const NO_STORE = { 'Cache-Control': 'private, no-store' };
 
@@ -29,18 +26,6 @@ const readable = async (db: App.Locals['db'], s: ShareSubject) => !!(await db.fr
 export const GET: APIRoute = async ({ url, locals }) => {
   // The editors and admins a comment can @mention (no addresses).
   if (url.searchParams.has('people')) return Response.json((await mentionablePeople()).map(({ id, name, handle }) => ({ id, name, handle })), { headers: NO_STORE });
-  if (url.searchParams.has('all')) {
-    const p = url.searchParams;
-    return Response.json(await listComments(locals.db, { status: p.get('status') ?? 'open', q: p.get('q') ?? '', page: Number(p.get('page')) || 1 }), { headers: NO_STORE });
-  }
-  if (url.searchParams.has('pages')) {
-    // Types with a page of their own, those the admin shows (an optional feature's only while it is on).
-    const site = (await locals.db.from('settings').select('value').eq('key', 'site').maybeSingle()).data?.value as Record<string, any> | undefined;
-    const types = COMPOSABLE_TYPES.filter((t) => showsType(t.type, featuresOf(site)));
-    const label = new Map(types.map((t) => [t.type, t.singular]));
-    const pages = await pagesToComment(locals.db, url.searchParams.get('pages') ?? '', [...label.keys()]);
-    return Response.json(pages.map((e) => ({ ...e, type_label: label.get(e.type) ?? e.type })), { headers: NO_STORE });
-  }
   const subject = subjectFrom({ entry: url.searchParams.get('entry'), campaign: url.searchParams.get('campaign') });
   if (!subject) return new Response('Which page or newsletter?', { status: 400 });
   if (!(await readable(locals.db, subject))) return new Response('Not found', { status: 404 });

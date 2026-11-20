@@ -5,7 +5,6 @@
 // the block's type and a few words of it to show where it was. Editors read them, resolve, reopen and delete
 // them (/api/admin/share-comments). Written as the server; the text is plain and shown escaped.
 import { siteDb } from '../db/site';
-import type { Db } from '../db/query';
 import type { ShareLink, ShareSubject } from './links';
 
 /** The longest comment, name and quote kept. */
@@ -193,64 +192,3 @@ export async function deleteComment(id: number): Promise<void> {
 
 /** What a comment is on, from its row. */
 export const subjectOfComment = (c: Pick<ShareComment, 'entry_id' | 'campaign_id'>): ShareSubject => (c.campaign_id ? { kind: 'campaign', id: c.campaign_id } : { kind: 'entry', id: c.entry_id ?? 0 });
-
-/** Comments shown a page at a time on the Comments screen. */
-export const COMMENTS_PER_PAGE = 50;
-
-/** A comment as the Comments screen lists it: what it is on (its title, its editor and, for a page, its preview). */
-export interface ListedComment extends ShareComment {
-  guest: boolean;
-  resolved_by_name: string;
-  on: { kind: 'entry' | 'campaign'; id: number; title: string; type: string; editor: string; preview: string | null; trashed: boolean };
-}
-
-/**
- * Every page's and newsletter's comments, for the Comments screen (the admin bar's Comments): `status` open,
- * resolved or all, newest first, `q` in the comment, its author or the words of its block, a page of
- * `COMMENTS_PER_PAGE`, read as `db` (editors read them all). With the total and how many are open.
- */
-export async function listComments(db: Db, o: { status?: string; q?: string; page?: number } = {}): Promise<{ comments: ListedComment[]; total: number; open: number }> {
-  const status = o.status === 'resolved' || o.status === 'all' ? o.status : 'open';
-  // Characters the filter syntax gives meaning to are left out of a search.
-  const q = String(o.q ?? '').replace(/[,()%*\\]/g, ' ').trim().slice(0, 100);
-  const page = Math.max(1, Math.min(9999, Math.floor(Number(o.page) || 1)));
-  let query = db.from('share_comments').select(COLUMNS, { count: 'exact' });
-  if (status !== 'all') query = query.eq('status', status);
-  if (q) query = query.or(`body.ilike.%${q}%,author.ilike.%${q}%,quote.ilike.%${q}%`);
-  const [{ data, count, error }, { count: open }] = await Promise.all([
-    query.order('id', { ascending: false }).range((page - 1) * COMMENTS_PER_PAGE, page * COMMENTS_PER_PAGE - 1),
-    db.from('share_comments').select('id', { count: 'exact', head: true }).eq('status', 'open'),
-  ]);
-  if (error) throw new Error(error.message);
-  const rows = (data ?? []) as ShareComment[];
-  const ids = (k: 'entry_id' | 'campaign_id') => [...new Set(rows.map((r) => r[k]).filter((v): v is number => !!v))];
-  const people = [...new Set(rows.map((r) => r.resolved_by).filter(Boolean))] as string[];
-  const [entries, campaigns, names] = await Promise.all([
-    ids('entry_id').length ? db.from('entries').select('id, title, type, status').in('id', ids('entry_id')) : { data: [] },
-    ids('campaign_id').length ? db.from('campaigns').select('id, name').in('id', ids('campaign_id')) : { data: [] },
-    people.length ? db.from('profiles').select('id, display_name').in('id', people) : { data: [] },
-  ]);
-  const entry = new Map(((entries.data ?? []) as { id: number; title: string; type: string; status: string }[]).map((e) => [e.id, e]));
-  const campaign = new Map(((campaigns.data ?? []) as { id: number; name: string }[]).map((c) => [c.id, c]));
-  const name = new Map(((names.data ?? []) as { id: string; display_name: string | null }[]).map((p) => [p.id, p.display_name ?? '']));
-  const comments = rows.map((r): ListedComment => {
-    const subject = subjectOfComment(r);
-    const on: ListedComment['on'] =
-      subject.kind === 'campaign'
-        ? { kind: 'campaign', id: subject.id, title: campaign.get(subject.id)?.name || 'A newsletter', type: 'Newsletter', editor: `/admin/mailing-lists/campaigns/${subject.id}/`, preview: null, trashed: false }
-        : { kind: 'entry', id: subject.id, title: entry.get(subject.id)?.title || '(untitled)', type: entry.get(subject.id)?.type ?? '', editor: `/admin/edit/${subject.id}/`, preview: `/admin/preview/${subject.id}/`, trashed: entry.get(subject.id)?.status === 'trash' };
-    return { ...r, guest: !!r.link_id, resolved_by_name: r.resolved_by ? (name.get(r.resolved_by) ?? '') : '', on };
-  });
-  return { comments, total: count ?? 0, open: open ?? 0 };
-}
-
-/** Pages to comment on from the Comments screen: entries of the types given (those with a page) whose title
- * has what was typed, not in the trash, latest edited first. */
-export async function pagesToComment(db: Db, query: string, types: string[], limit = 8): Promise<{ id: number; title: string; type: string; status: string }[]> {
-  const term = query.replace(/[%\\]/g, ' ').trim().slice(0, 100);
-  if (!types.length) return [];
-  let q = db.from('entries').select('id, title, type, status').in('type', types).neq('status', 'trash');
-  if (term) q = q.ilike('title', `%${term}%`);
-  const { data } = await q.order('updated_at', { ascending: false }).limit(limit);
-  return (data ?? []) as { id: number; title: string; type: string; status: string }[];
-}

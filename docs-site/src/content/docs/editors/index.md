@@ -111,7 +111,6 @@ The bar across the top of every admin screen takes you to each part of the site:
 | **Compose** ▾ | Have Claude make something new: each kind of content with a page. Below a line, **Form** and **Campaign** (with mailing lists). Below another, **Template**, **Template part** and **Pattern**. See [Writing with Claude](/editors/writing-with-claude/). |
 | **Media** | Your photos, images, videos and documents. See [Images and files](/editors/images-and-files/). |
 | **Stats** | How many people visit, and what they read. See [Stats](/editors/stats/). |
-| **Comments** | Every comment on the site's pages and newsletters in one list, and a box to add one. See [The Comments screen](/editors/saving-and-publishing/#the-comments-screen). |
 | **Forms** ▾ | **Forms** (contact forms, sign-up forms and the like) and **Submissions** (what people sent through them). See [Forms](/editors/forms/). |
 | **People** ▾ | **Mailing Lists** and **Tickets**, each only when your site uses it. Admins also see **Users** and **Members**. With only one of these, it shows as that link instead of a menu. With none, it isn't there. |
 | **Shop** ▾ | **Orders**, **Discounts**, **Stock** and **Stats**, only when your site has a shop. See [The shop](/editors/shop/). |

@@ -473,12 +473,7 @@ as themselves (`author_id`); a guest needs that page's or newsletter's cookie fi
 isn't `login` (`link_id`, with the name given; `GUEST_COMMENTS_PER_HOUR`, 30, per link, checked again after the insert so comments sent at once can't pass it together). The block must be
 in what is stored (the content, its unpublished changes, the design: `blocksOf`); the comment keeps its
 type and a few of its words (`quote`), up to `COMMENT_MAX` (2,000) characters of plain text, shown escaped.
-**The Comments screen** (the admin bar's **Comments**, `/admin/comments/`, editors; `src/admin/CommentsScreen.tsx`):
-every page's and newsletter's comments, open, resolved or all, newest first, searched by their words, author or
-block's words, 50 a page (`listComments`, `GET /api/admin/share-comments?all&status=&q=&page=`), each with what it
-is on and links to its editor and a page's preview; Resolve, Reopen and Delete; and **Add a comment** on the whole
-of a page found by title (`pagesToComment`, `GET ?pages=<words>`: types with a page, shown ones, not in the trash).
-Editors also see them in the page editor's **Comments** panel (`src/puck/CommentsPanel.tsx`: open first, Show
+Editors see them in the page editor's **Comments** panel (`src/puck/CommentsPanel.tsx`: open first, Show
 selects the block, Resolve, Reopen, Delete, and Add a comment on the selected block or the whole page) and
 on the campaign screen (`src/admin/CampaignComments.tsx`), through `GET` and `POST
 /api/admin/share-comments` (`add`, `resolve`, `reopen`, `delete`; only for what the editor can read; it
@@ -487,7 +482,7 @@ doesn't clear the page cache).
 emails them after the answer (`notifyMentions`, kind `admin`: the comment, the block and a link to the page's
 editor or the campaign screen; never the author; guests' comments notify nobody). Handles (`withHandles`):
 `profiles.handle` (migration `*_profiles_handle.sql`, unique), else the email's local part cleaned, a taken
-one numbered in order of address. The editor's Comments panel, the Comments screen's and the campaign screen's boxes suggest people as
+one numbered in order of address. The editor's Comments panel and the campaign screen's box suggest people as
 `@` is typed (`src/admin/MentionTextarea.tsx`, `GET /api/admin/share-comments?people`: ids, names and handles
 of editors and admins only) and show handles in bold (`withMentions`). **Your profile** (`/admin/profile/`,
 the account menu; `saveProfile`, written as the server for that person) changes one's own name and handle
@@ -1873,7 +1868,7 @@ The admin bar (`src/layouts/Admin.astro`, its items from `adminNav` in `src/lib/
 dropdown (each type shown, its list at `/admin/?type=<type>`, then Taxonomies, then Templates in a section
 of its own, `section`; the content list has no tabs of its own for the types), a **Compose** dropdown
 (each type with a page, at `/admin/compose/?type=<type>`; then Form and, while Mailing is on, Campaign;
-then Template, Template part and Pattern), Media, Stats, Comments (see Share links), a **Forms** dropdown (Forms, Submissions), a **People** dropdown (Users and Members
+then Template, Template part and Pattern), Media, Stats, a **Forms** dropdown (Forms, Submissions), a **People** dropdown (Users and Members
 for admins, Mailing Lists and Tickets, each while its feature is on; a group of one shows as its link)
 Donations while it is on, and a **Shop** dropdown (Orders, Discounts, Stock, Stats) while the shop is on,
 then a gear for Settings (admins), the command palette's button, **?**, View site and the account menu. Below
