@@ -171,9 +171,17 @@ bar at the top of the page shows how many are open. Click it for the list:
 - **Resolve**, **Reopen** and **Delete** work as in the editor's panel. **Delete** asks again: click
   **Delete for good**, or **Keep it**.
 - Tick **Show resolved** to see resolved comments too.
-- To add a comment on the whole page, type in the box and click **Add comment**. To comment on one block,
-  click **the preview** and use its **Comment** button.
+- To add a comment on the whole page, type in the box and click **Add comment**.
 - Click outside the list, or press **Escape**, to close it.
+
+To comment on one block of the page:
+
+1. Click **Comments** in the editor bar.
+2. Turn on **Comment on blocks**. The page loads again, and moving the pointer over it outlines the block
+   or section under it.
+3. Click a block or section. A small box opens, showing which one it is.
+4. Type the comment and click **Send**. The count on **Comments** goes up.
+5. Click **Done commenting** in the editor bar to use the page normally again.
 
 #### Mentioning someone
 

@@ -20,6 +20,7 @@ import { modernizeImages } from '../lib/media/modernize';
 import { esc } from './html';
 import { headMeta } from './meta';
 import { findRedirect } from '../lib/redirects';
+import { blockIdsOf } from '../lib/share/blocks';
 import { safeDecode } from '../lib/url';
 import { chosenTemplate, defaultTaxonomyTemplates, defaultTemplates, listingOn, termPagesOn, termTemplate, type TaxonomyTemplates, type TemplateMap } from '../lib/templates';
 import { seoOf } from '../lib/seo';
@@ -323,7 +324,20 @@ export async function notFoundPage(site: Record<string, any> | undefined, loader
   return id ? loader.entryById(id) : null;
 }
 
-export async function renderRequest(url: URL, db: Db, form?: FormResult, preview?: PreviewOverride, viewer?: Viewer | null): Promise<PageResult> {
+/** Options for a live page's render: `comment`, its blocks marked for comments and the comment script
+ * added, in comment mode (a signed-in editor's `?comment`, src/pages/[...path].ts; never cached). */
+export interface RenderOptions {
+  comment?: boolean;
+}
+
+/** The entry a live page in comment mode takes comments on (a recurring event's series), and its blocks. */
+function commentTarget(q: Queried): { id: number; blocks: Set<string> } | null {
+  if (q.kind !== 'singular' || !q.entry || q.notFound || q.entry.locked) return null;
+  const id = q.entry.series_id ?? q.entry.id;
+  return id > 0 ? { id, blocks: blockIdsOf(q.entry.content) } : null;
+}
+
+export async function renderRequest(url: URL, db: Db, form?: FormResult, preview?: PreviewOverride, viewer?: Viewer | null, opts: RenderOptions = {}): Promise<PageResult> {
   // The site's view: published entries, members-only ones for whoever may see them. Previews read with
   // the editor's own session, whose database policies decide instead.
   const loader = new Loader(db, undefined, preview && !preview.asVisitor ? undefined : { published: true, viewer });
@@ -350,7 +364,9 @@ export async function renderRequest(url: URL, db: Db, form?: FormResult, preview
     const entry = await notFoundPage(settings.site, loader);
     if (entry) queried = { kind: 'singular', entry, page: 1, url, notFound: true };
   }
-  const ctx: RenderCtx = { loader, queried, settings, queries: new Map(), docs: new Map(), css: [], assets: new Set(), data: new Map(), scripts: [], rendered: [], viewer: who ?? null, ...(preview?.markBlocks ? { markBlocks: preview.markBlocks } : {}) };
+  const commenting = !preview && opts.comment ? commentTarget(queried) : null;
+  const markBlocks = preview?.markBlocks ?? commenting?.blocks;
+  const ctx: RenderCtx = { loader, queried, settings, queries: new Map(), docs: new Map(), css: [], assets: new Set(), data: new Map(), scripts: [], rendered: [], viewer: who ?? null, ...(markBlocks ? { markBlocks } : {}) };
 
   if (form) ctx.data.set('form-result', form);
   let template: PuckItem[] | null = preview?.template ?? null;
@@ -367,7 +383,7 @@ export async function renderRequest(url: URL, db: Db, form?: FormResult, preview
   }
   await prepare(template ?? [], ctx);
   // Popups shown here (Settings > Popups; the consent banner on every page), prepared with the page.
-  const popups: Popup[] = preview ? [] : [...new Set([consentPopup(settings.site?.popups), ...popupsFor(settings.site?.popups, url.pathname)].filter((p): p is Popup => !!p))];
+  const popups: Popup[] = preview || commenting ? [] : [...new Set([consentPopup(settings.site?.popups), ...popupsFor(settings.site?.popups, url.pathname)].filter((p): p is Popup => !!p))];
   if (popups.length) await prepare(popups.map(popupItem), ctx);
   // A list (or a picked entry) left out members-only entries: a member's view of the page differs (while
   // Members is off nobody is one, and the page stays shared).
@@ -402,7 +418,9 @@ export async function renderRequest(url: URL, db: Db, form?: FormResult, preview
   if (popupHtml || Object.values(snippets.consent ?? {}).some(Boolean)) scripts.push('<script src="/assets/js/popups.js" defer></script>');
   const stats = (settings.site?.stats ?? {}) as { cookies?: boolean };
   const banner = !!consentPopup(settings.site?.popups);
-  if (!preview && queried.kind !== '404' && !queried.notFound) scripts.push(`<script src="/assets/js/stats.js"${stats.cookies ? ' data-cookie="1"' : ''}${banner ? ' data-consent="1"' : ''} defer></script>`);
+  // Comment mode: the preview's comment script, started on, its switch in the editor bar.
+  if (commenting) scripts.push(`<script src="/assets/js/share-comments.js" data-kind="entry" data-id="${commenting.id}" data-start="on" data-bar="1" defer></script>`);
+  if (!preview && !commenting && queried.kind !== '404' && !queried.notFound) scripts.push(`<script src="/assets/js/stats.js"${stats.cookies ? ' data-cookie="1"' : ''}${banner ? ' data-consent="1"' : ''} defer></script>`);
 
   // A calendar view names itself ("Events for October 2026"), unless its listing has a search title of its own.
   const title = ctx.data.get('calendar') && !ownTitle(queried, site) ? `${esc((ctx.data.get('calendar') as { title: string }).title)} &#8211; ${site.name ?? ''}` : documentTitle(queried, site);
@@ -427,5 +445,5 @@ ${scripts.join('\n')}
 ${snippetAt(snippets, 'footer')}</body>
 </html>
 `;
-  return { status: queried.kind === '404' || queried.notFound ? 404 : 200, html, personal: !!ctx.personal, locked: !!queried.entry?.locked };
+  return { status: queried.kind === '404' || queried.notFound ? 404 : 200, html, personal: !!ctx.personal || !!commenting, locked: !!queried.entry?.locked };
 }

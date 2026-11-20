@@ -502,3 +502,37 @@ describe('sharing a version', async () => {
     expect(await addComment({ subject: { kind: 'campaign', id: campaign }, block: 'Text-old', body: 'Hm', name: 'G' }, { link })).toMatchObject({ ok: true });
   });
 });
+
+describe('comment mode on the live page', async () => {
+  const { renderRequest } = await import('../src/render/page');
+  const { GET: page } = await import('../src/pages/[...path]');
+  const svc = siteDb();
+  let id = 0;
+  beforeAll(async () => {
+    await svc.from('templates').upsert({ kind: 'template', slug: 'page', title: 'Page', content: doc({ type: 'entry-content', props: { id: 'pc', attrs: {} } }) }, { onConflict: 'kind,slug' });
+    id = (await svc.from('entries').insert({ type: 'page', slug: 'comment-mode', title: 'Comment mode', status: 'publish', content: doc(block('section', 'cm-s', {}, { children: [block('text', 'cm-t', { content: 'Opening hours' })] })) }).select('id').single()).data!.id;
+  });
+  afterAll(async () => {
+    await svc.from('entries').delete().eq('id', id);
+  });
+
+  it('marks the page’s blocks and starts the comment script, never cached', async () => {
+    const on = await renderRequest(new URL('http://localhost/comment-mode/?comment=1'), svc, undefined, undefined, null, { comment: true });
+    expect(on.html).toContain('data-block="cm-t"');
+    expect(on.html).toContain(`<script src="/assets/js/share-comments.js" data-kind="entry" data-id="${id}" data-start="on" data-bar="1" defer>`);
+    expect(on.personal).toBe(true);
+    const off = await renderRequest(new URL('http://localhost/comment-mode/'), svc);
+    expect(off.html).not.toContain('data-block=');
+    expect(off.html).not.toContain('share-comments.js');
+    expect(off.personal).toBe(false);
+  });
+
+  it('ignores ?comment for anyone not signed in as an editor', async () => {
+    const res = await page({ url: new URL('http://localhost/comment-mode/?comment=1'), request: new Request('http://localhost/comment-mode/?comment=1'), cache: { enabled: false }, cookies: {} } as any);
+    const html = await res.text();
+    expect(res.status).toBe(200);
+    expect(html).not.toContain('data-block=');
+    expect(html).not.toContain('share-comments.js');
+    expect(res.headers.get('X-Robots-Tag')).toBeNull();
+  });
+});

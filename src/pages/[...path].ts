@@ -75,7 +75,12 @@ export const GET: APIRoute = async ({ url, request, cache, cookies }) => {
     const { status, html } = await renderRequest(page, siteDb(), form ?? undefined);
     return new Response(html, { status, headers: { 'Content-Type': 'text/html; charset=UTF-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' } });
   }
-  const result = await asViewer(await renderRequest(url, siteDb()), request, cookies, (viewer) => renderRequest(url, siteDb(), undefined, undefined, viewer));
+  // Comment mode (the editor bar's Comment on blocks, ?comment): the page as a signed-in editor sees it, its
+  // blocks marked for comments, never cached. Anyone else gets the page as usual.
+  const commenter = url.searchParams.has('comment') ? await viewerOf(request, cookies) : null;
+  const result = commenter?.editor
+    ? { ...(await renderRequest(url, siteDb(), undefined, undefined, commenter, { comment: true })), personal: true }
+    : await asViewer(await renderRequest(url, siteDb()), request, cookies, (viewer) => renderRequest(url, siteDb(), undefined, undefined, viewer));
   const { status, html, location } = result;
   // A buyer's own order (?order=<token>), a checkout's outcome (?tickets=) and pages that depend on who
   // views them are never cached.
@@ -94,7 +99,7 @@ export const GET: APIRoute = async ({ url, request, cache, cookies }) => {
       'Cache-Control': personal ? 'private, no-store' : BROWSER_CACHE_CONTROL,
       // Members-only pages and one visitor's order, checkout outcome, gift or monthly gift stay out of search engines; pages
       // personal for other reasons (member prices, a Members only block) are public pages.
-      ...(keepOutOfSearch(url, result.locked) ? { 'X-Robots-Tag': 'noindex' } : {}),
+      ...(keepOutOfSearch(url, result.locked) || commenter?.editor ? { 'X-Robots-Tag': 'noindex' } : {}),
     },
   });
 };

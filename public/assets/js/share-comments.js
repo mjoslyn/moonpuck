@@ -3,12 +3,17 @@
 // block under the pointer is outlined, and a click on it (or Enter on a focused one) opens a small form.
 // A guest gives a name (kept in this browser), an editor comments as themselves. Comments go to
 // POST /api/share/comment (src/lib/share/comments.ts). Without this script the preview is just a preview.
+// On a live page in comment mode (src/render/page.ts, `?comment`) it starts on (data-start) and the editor
+// bar's Comment on blocks switch drives it (data-bar: no button of its own; the `c-comments:mode` event,
+// { on }, turns it on or off, and it tells the bar `c-comments:changed` with its mode and
+// `c-comments:sent` after a comment).
 (() => {
   const me = document.currentScript;
   if (!me) return;
   const kind = me.dataset.kind;
   const id = me.dataset.id;
   const guest = me.dataset.guest === '1';
+  const fromBar = me.dataset.bar === '1';
   const NAME_KEY = 'share-comments-name';
   const LABELS = { text: 'Paragraph', heading: 'Heading', image: 'Image', section: 'Section', columns: 'Columns', column: 'Column', buttons: 'Buttons', button: 'Button', list: 'List', quote: 'Quote', cover: 'Cover', hero: 'Hero', gallery: 'Gallery', 'media-text': 'Media and text', collection: 'Collection', form: 'Form', embed: 'Embed', video: 'Video', file: 'File' };
   const label = (type) => LABELS[type] || (type ? type.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase()) : 'Block');
@@ -53,6 +58,7 @@
   const status = document.createElement('div');
   status.className = 'sc-sr';
   status.setAttribute('role', 'status');
+  if (fromBar) button.hidden = true;
   document.body.append(button, status);
 
   let on = false;
@@ -80,6 +86,7 @@
       closePanel();
     }
     status.textContent = v ? 'Comment mode on: choose a block to comment on it.' : 'Comment mode off.';
+    document.dispatchEvent(new CustomEvent('c-comments:changed', { detail: { on: v } }));
   };
 
   const closePanel = () => {
@@ -149,6 +156,7 @@
         return;
       }
       closePanel();
+      document.dispatchEvent(new CustomEvent('c-comments:sent'));
       status.textContent = 'Comment sent. Thank you.';
       button.textContent = 'Comment sent ✓';
       setTimeout(() => on && (button.textContent = 'Done commenting'), 2000);
@@ -157,6 +165,9 @@
   };
 
   button.addEventListener('click', () => setMode(!on));
+  document.addEventListener('c-comments:mode', (e) => setMode(!!e.detail?.on));
+  window.__commentMode = true;
+  if (me.dataset.start === 'on') setMode(true);
   // The innermost block under the pointer: comments go on the block, not the section around it, unless the
   // section itself is pointed at.
   const blockAt = (target) => (target instanceof Element ? target.closest('[data-block]') : null);

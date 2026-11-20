@@ -1,9 +1,12 @@
 // Editor bar: for signed-in editors and admins, a bar above the page with links to the dashboard and to
-// edit what the page shows (body data-edit-entry / data-edit-template, set by the renderer), and the
+// edit what the page shows (body data-edit-entry / data-edit-template, set by the renderer: Edit page on an
+// entry's page, else Edit template for admins), and the
 // command palette (Go to, or Ctrl+K / ⌘K): the admin's screens, Settings' sections (admins) and entries
 // by title, from GET /api/admin/commands; and, on an entry's page, Comments: the page's comments (its count
 // open on the button), to resolve, reopen, delete or add one on the whole page (GET and POST
-// /api/admin/share-comments, as the page editor's Comments panel). Pages are cached and shared, so this runs in the browser: only
+// /api/admin/share-comments, as the page editor's Comments panel), and Comment on blocks: comment mode,
+// the page loaded again with ?comment (its blocks marked, src/render/page.ts) and share-comments.js on,
+// which this bar then turns on and off in place (Done commenting). Pages are cached and shared, so this runs in the browser: only
 // visitors with a sign-in cookie ask who they are.
 (() => {
   // site.signed_in: set beside the session's own cookie, which scripts can't read (src/lib/auth).
@@ -19,7 +22,8 @@
       const link = (href, text, primary) => `<a href="${href}"${primary ? ' class="is-primary"' : ''}>${text}</a>`;
       const links = [link('/admin/', 'Dashboard')];
       if (entry) links.push(link(`/admin/edit/${encodeURIComponent(entry)}/`, 'Edit page', true));
-      if (template && me.role === 'admin') links.push(link(`/admin/templates/template/${encodeURIComponent(template)}/`, 'Edit template', !entry));
+      // Edit template only where there is no page to edit (listings, term pages): an entry's page edits its template from the editor.
+      if (template && !entry && me.role === 'admin') links.push(link(`/admin/templates/template/${encodeURIComponent(template)}/`, 'Edit template', true));
       const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
       const style = document.createElement('style');
@@ -45,6 +49,19 @@
         .c-palette li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .c-palette li small { flex: none; color: #6b6b78; font-size: 12px; }
         .c-palette p { margin: 0; padding: 8px 16px; border-top: 1px solid rgba(15,15,28,.1); color: #6b6b78; font-size: 12px; }
+        .c-editor-bar [hidden] { display: none; }
+        .c-editor-bar button.is-on { background: #c87d37; color: #0f0f1c; font-weight: 600; }
+        .c-editor-bar button.is-on:hover { background: #e0a66b; }
+        .c-comments__mode { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 16px 0; padding: 10px 12px; border-radius: 6px; background: #f1efe9; }
+        .c-comments__mode span { font-size: 13px; }
+        .c-comments__mode small { display: block; }
+        .c-comments .c-switch { position: relative; flex: none; width: 40px; height: 22px; padding: 0; border-radius: 11px; background: #b8b8c2; text-decoration: none; }
+        .c-comments .c-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; }
+        .c-comments .c-switch[aria-checked="true"] { background: #c87d37; }
+        .c-comments .c-switch[aria-checked="true"]::after { transform: translateX(18px); }
+        .c-comments .c-switch:hover { background: #9a9aa6; }
+        .c-comments .c-switch[aria-checked="true"]:hover { background: #e0a66b; }
+        .c-comments .c-switch:focus-visible { outline: 2px solid #c87d37; outline-offset: 2px; }
         .c-editor-bar__count { margin-left: 6px; padding: 0 6px; border-radius: 9px; background: #c87d37; color: #0f0f1c; font-size: 11px; font-weight: 700; line-height: 18px; }
         .c-comments { position: absolute; top: 100%; right: 12px; z-index: 1001; box-sizing: border-box; width: min(26rem, calc(100vw - 24px)); max-height: min(70vh, 40rem);
           overflow-y: auto; border: 1px solid rgba(15,15,28,.12); border-radius: 8px; background: #fff; color: #0f0f1c; box-shadow: 0 20px 50px rgba(0,0,0,.25);
@@ -83,7 +100,7 @@
       const mac = /Mac|iPhone|iPad/.test(navigator.platform);
       bar.innerHTML =
         links.join('') +
-        (entry ? '<button type="button" data-comments aria-expanded="false" aria-controls="c-comments">Comments<span class="c-editor-bar__count" hidden></span></button>' : '') +
+        (entry ? '<button type="button" data-comments aria-expanded="false" aria-controls="c-comments">Comments<span class="c-editor-bar__count" hidden></span></button><button type="button" data-commenting class="is-on" hidden>Done commenting</button>' : '') +
         `<button type="button" data-palette title="Go to a screen, setting or entry">Go to<kbd>${mac ? '⌘K' : 'Ctrl K'}</kbd></button>` +
         `<span class="c-editor-bar__who">Signed in as ${esc(me.name)}</span>` +
         '<form method="post" action="/api/auth/logout"><button type="submit">Sign out</button></form>';
@@ -92,14 +109,14 @@
       if (skip) skip.after(bar);
       else body.prepend(bar);
       palette(bar.querySelector('[data-palette]'), esc);
-      if (entry) comments(bar, bar.querySelector('[data-comments]'), esc);
+      if (entry) comments(bar, bar.querySelector('[data-comments]'), bar.querySelector('[data-commenting]'), esc);
     })
     .catch(() => {});
 
   // Comments: a panel under the bar listing the page's comments, open ones first, with a box to add one on
   // the whole page. The live page doesn't mark its blocks (it is cached for everyone), so a block's comment
-  // shows its type and words, and Comment on a block opens the preview, which does.
-  function comments(bar, button, esc) {
+  // shows its type and words, and Comment on blocks loads the page again with them marked.
+  function comments(bar, button, done, esc) {
     if (!button) return;
     const panel = document.createElement('div');
     panel.className = 'c-comments';
@@ -110,7 +127,6 @@
     bar.appendChild(panel);
     const count = button.querySelector('.c-editor-bar__count');
     const api = '/api/admin/share-comments';
-    const preview = `/admin/preview/${encodeURIComponent(entry)}/`;
     let rows = null;
     let showResolved = false;
     let error = '';
@@ -120,6 +136,23 @@
     // A block type as the editor names it (as the page editor's Comments panel does).
     const LABELS = { text: 'Paragraph', 'media-text': 'Media and text', 'entry-content': 'Page content', 'video-gallery': 'Video gallery' };
     const typeLabel = (t) => (t ? (LABELS[t] ?? t.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase())) : 'Whole page');
+    // Comment mode: on while share-comments.js has the page in it (it marks <html> with sc-on).
+    const commenting = () => document.documentElement.classList.contains('sc-on');
+    const setCommenting = (on) => {
+      if (on && !window.__commentMode) {
+        // The live page's blocks aren't marked: load it again in comment mode.
+        const u = new URL(location.href);
+        u.searchParams.set('comment', '1');
+        location.href = u.toString();
+        return;
+      }
+      document.dispatchEvent(new CustomEvent('c-comments:mode', { detail: { on } }));
+      if (!on) {
+        // A reload after this shows the page as visitors see it.
+        const u = new URL(location.href);
+        if (u.searchParams.has('comment')) (u.searchParams.delete('comment'), history.replaceState(history.state, '', u.toString()));
+      }
+    };
     const when = (s) => new Date(s).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
     // @handles in bold, the rest escaped.
     const mentions = (s) => esc(s).replace(/(^|[^\w@.])(@[a-z0-9._-]+)/gi, '$1<b>$2</b>');
@@ -135,8 +168,9 @@
       const focused = document.activeElement?.closest?.('.c-comments') ? document.activeElement.name || '' : '';
       panel.innerHTML =
         '<h2>Comments on this page</h2>' +
+        `<div class="c-comments__mode"><span id="c-comments-mode">Comment on blocks<small>Click a block on the page to comment on it.</small></span><button type="button" role="switch" class="c-switch" data-mode aria-checked="${commenting()}" aria-labelledby="c-comments-mode"></button></div>` +
         '<form><label><small>Comment on the whole page</small><textarea name="body" maxlength="2000" required></textarea></label>' +
-        `<small>Type @ and someone's handle to email them. To comment on one block, use <a href="${preview}" target="_blank" rel="noopener">the preview</a>.</small>` +
+        "<small>Type @ and someone's handle to email them. To comment on one block, turn on Comment on blocks.</small>" +
         (error ? `<p class="is-error" role="alert">${esc(error)}</p>` : '') +
         `<p style="margin:8px 0 0"><button type="submit" class="is-primary"${busy ? ' disabled' : ''}>Add comment</button></p></form>` +
         `<div class="c-comments__head"><span>${rows ? `${open.length} open` : 'Loading…'}</span>` +
@@ -203,6 +237,14 @@
       }
     };
     button.addEventListener('click', () => toggle(panel.hidden));
+    done.addEventListener('click', () => setCommenting(false));
+    const showMode = () => {
+      done.hidden = !commenting();
+      if (!panel.hidden) draw();
+    };
+    document.addEventListener('c-comments:changed', showMode);
+    document.addEventListener('c-comments:sent', () => load());
+    showMode();
     panel.addEventListener('submit', (e) => {
       e.preventDefault();
       if (!draft.trim() || busy) return;
@@ -212,6 +254,13 @@
       if (e.target.name === 'resolved') (showResolved = e.target.checked), draw();
     });
     panel.addEventListener('click', (e) => {
+      if (e.target.closest('[data-mode]')) {
+        const on = !commenting();
+        // Turning it on closes the list, so the page can be clicked.
+        if (on) toggle(false);
+        setCommenting(on);
+        return;
+      }
       const b = e.target.closest('button[data-act]');
       if (!b) return;
       const id = Number(b.dataset.id);

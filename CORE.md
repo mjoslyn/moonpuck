@@ -473,7 +473,7 @@ as themselves (`author_id`); a guest needs that page's or newsletter's cookie fi
 isn't `login` (`link_id`, with the name given; `GUEST_COMMENTS_PER_HOUR`, 30, per link, checked again after the insert so comments sent at once can't pass it together). The block must be
 in what is stored (the content, its unpublished changes, the design: `blocksOf`); the comment keeps its
 type and a few of its words (`quote`), up to `COMMENT_MAX` (2,000) characters of plain text, shown escaped.
-Editors see them in the editor bar's **Comments** on the page itself (see How rendering works), in the page editor's **Comments** panel (`src/puck/CommentsPanel.tsx`: open first, Show
+Editors see them, and comment on the live page's blocks, in the editor bar's **Comments** on the page itself (see How rendering works), in the page editor's **Comments** panel (`src/puck/CommentsPanel.tsx`: open first, Show
 selects the block, Resolve, Reopen, Delete, and Add a comment on the selected block or the whole page) and
 on the campaign screen (`src/admin/CampaignComments.tsx`), through `GET` and `POST
 /api/admin/share-comments` (`add`, `resolve`, `reopen`, `delete`; only for what the editor can read; it
@@ -810,7 +810,16 @@ conversation.
   On an entry's page (`data-edit-entry`) the bar's **Comments** (its open count on the button) opens a panel
   of that page's comments (see Share links), open first: Resolve, Reopen, Delete (asked again in the panel),
   Show resolved, and a box to comment on the whole page; `GET` and `POST /api/admin/share-comments`, as the
-  page editor's panel. The live page doesn't mark its blocks, so commenting on one links to the preview.
+  page editor's panel. The live page doesn't mark its blocks (it is cached for everyone), so the panel's
+  **Comment on blocks** switch loads it again with `?comment`: for a signed-in editor (`viewerOf`, else the
+  parameter is ignored) the catch-all route renders it with `renderRequest`'s `comment` option
+  (`RenderOptions`; `commentTarget`: the entry, a recurring event's series, not a locked or Not found page)
+  as that editor, its blocks marked (`blockIdsOf`, `src/lib/share/blocks.ts`, safe in the browser), no
+  popups or stats, never cached and noindex, with `share-comments.js` started on (`data-start`) and driven
+  by the bar (`data-bar`: no button of its own; events `c-comments:mode`, `c-comments:changed`,
+  `c-comments:sent`): **Done commenting** in the bar turns it off in place (and drops `?comment` from the
+  address), and the switch turns it on again in place. **Edit page** shows on an entry's page; **Edit
+  template** (admins) only where there is none, such as listings and term pages.
 
 ## Media
 

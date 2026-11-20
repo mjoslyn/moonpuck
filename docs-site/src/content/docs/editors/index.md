@@ -150,7 +150,8 @@ Press **Escape** to close the box without going anywhere.
 pages:
 
 - **Dashboard** goes to the home screen.
-- **Edit page** opens the page you are looking at in the editor (admins also get **Edit template**).
+- **Edit page** opens the page you are looking at in the editor. On a listing or category page, which has
+  no page of its own to edit, admins get **Edit template** instead.
 - **Comments** (on a page you can edit) lists the page's comments, with how many are open beside it, and
   lets you add one. See [Comments](/editors/saving-and-publishing/#comments).
 - **Go to** opens the same Go to box (or press **Ctrl** and **K**, **⌘** and **K** on a Mac).

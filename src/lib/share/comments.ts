@@ -6,11 +6,13 @@
 // them (/api/admin/share-comments). Written as the server; the text is plain and shown escaped.
 import { siteDb } from '../db/site';
 import type { ShareLink, ShareSubject } from './links';
+import { blocksOf } from './blocks';
+
+export { blockIdsOf, blocksOf, plain, QUOTE_MAX } from './blocks';
 
 /** The longest comment, name and quote kept. */
 export const COMMENT_MAX = 2000;
 export const NAME_MAX = 80;
-export const QUOTE_MAX = 200;
 /** Comments a guest's link may leave in an hour (all its guests together). */
 export const GUEST_COMMENTS_PER_HOUR = 30;
 
@@ -49,43 +51,6 @@ export interface ShareComment {
 }
 
 const COLUMNS = 'id, link_id, entry_id, campaign_id, block, block_type, quote, body, author, author_id, status, resolved_at, resolved_by, created_at';
-
-type Item = { type: string; props?: Record<string, any> };
-
-/** Every block of a page's content (its blocks, those inside them and in its root's slots) or an email
- * design (its blocks and those in Sections and Columns), by id with its type and a few words of it. */
-export function blocksOf(doc: any): Map<string, { type: string; words: string }> {
-  const out = new Map<string, { type: string; words: string }>();
-  const walk = (items: unknown) => {
-    if (!Array.isArray(items)) return;
-    for (const item of items as Item[]) {
-      if (!item || typeof item !== 'object' || !item.props) continue;
-      const id = item.props.id;
-      if (id != null && id !== '') out.set(String(id), { type: String(item.type ?? ''), words: wordsOf(item) });
-      walk(item.props.children);
-      for (const v of Object.values(item.props.attrs ?? {})) walk(v);
-      // Email blocks keep their settings, and their inner blocks, on props itself.
-      for (const v of Object.values(item.props)) walk(v);
-    }
-  };
-  walk(doc?.content);
-  for (const v of Object.values(doc?.root?.props ?? {})) walk(v);
-  return out;
-}
-
-/** The ids of a page's blocks: those a preview marks for comments. */
-export const blockIdsOf = (doc: any): Set<string> => new Set(blocksOf(doc).keys());
-
-/** A few words of a block's own text, for showing which block a comment is on. */
-function wordsOf(item: Item): string {
-  const p = item.props ?? {};
-  const a = p.attrs ?? {};
-  const raw = [a.content, a.text, a.title, a.heading, a.label, a.caption, p.text, p.html, p.label, p.heading].find((v) => typeof v === 'string' && v.trim()) ?? '';
-  return plain(String(raw)).slice(0, QUOTE_MAX);
-}
-
-/** Text with its markup and runs of spaces taken out. */
-export const plain = (s: string) => s.replace(/<[^>]*>?/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
 /** The blocks of what is shared, as stored: a page's content and its unpublished changes; a newsletter's design. */
 async function sharedBlocks(subject: ShareSubject, link?: ShareLink): Promise<Map<string, { type: string; words: string }> | null> {
