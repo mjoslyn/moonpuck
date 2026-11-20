@@ -1,6 +1,7 @@
 // Content blocks: sections, columns, text, headings, images, buttons, lists, quotes, separators,
 // spacers, covers, galleries, embeds, raw HTML, media & text. Props are documented in
 // src/lib/content/types.ts; styles in ./style.ts; container layouts in ./layout.ts.
+import { demoOn } from '../../lib/demo/flag';
 import type { Renderer, Env } from '../env';
 import { mediaImage, mediaImgTag, mediaUrl } from '../../lib/media/image';
 import { docLabel, fileSize } from '../../lib/media/documents';
@@ -328,7 +329,8 @@ export const videoGallery = galleryOf(true);
 export const embed: Renderer = (b) => {
   const a = b.attrs;
   const d: Decl[] = a.ratio ? [['--embed-ratio', `${(100 / Number(a.ratio)).toFixed(2)}%`]] : [];
-  const body = a.html || (a.url ? `<a href="${escAttr(a.url)}">${esc(a.url)}</a>` : '');
+  // A demo (src/lib/demo) shows no embedded markup, only the link.
+  const body = (!demoOn() && a.html) || (a.url ? `<a href="${escAttr(a.url)}">${esc(a.url)}</a>` : '');
   return `<figure ${root(a, ['c-embed', a.provider ? `is-${a.provider}` : null, a.ratio ? 'is-responsive' : null], d)}><div class="c-embed__wrapper">${body}</div>${a.caption ? `<figcaption>${a.caption}</figcaption>` : ''}</figure>`;
 };
 
@@ -340,7 +342,8 @@ export const video: Renderer = (b) => {
   return `<figure ${root(a, ['c-video'])}><video src="${escAttr(a.src)}"${a.poster ? ` poster="${escAttr(a.poster)}"` : ''} ${flags} preload="metadata"></video>${a.caption ? `<figcaption>${a.caption}</figcaption>` : ''}</figure>`;
 };
 
-export const html: Renderer = (b) => String(b.attrs.html ?? '');
+/** Markup as written; on a demo (src/lib/demo), nothing. */
+export const html: Renderer = (b) => (demoOn() ? '' : String(b.attrs.html ?? ''));
 
 /**
  * File: a link to a document (a media library file, `mediaId`, or any address, `href`), with its type and

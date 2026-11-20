@@ -2129,6 +2129,46 @@ Files need an R2 bucket (`npx wrangler r2 bucket create`, its name in `wrangler.
 and breaks links already sent) and links in emails use the request's address (`SITE_URL` for Better
 Auth's own). Env: `.env.example`.
 
+## Demo mode
+
+A public copy of a site where anyone can try the editor (`src/lib/demo/`), on while the Worker's
+`DEMO_MODE` is `1` or `true` (a variable, never a setting, so nobody turns it on or off from the admin;
+`isDemo` in `src/lib/env.ts`). Set `SITE_NOINDEX` with it. Admins, the demo's owners, are never limited.
+
+- **Invitations** (`src/lib/demo/invite.ts`, POST `/api/demo/invite`, Not found off a demo): the sign-in
+  page's **Try the editor** form emails an editor's invitation (`invite`, `src/lib/admin/invite.ts`; the
+  profile made `editor`), or the invitation again to an account still waiting for its password; the answer
+  is the same either way, and a filled honeypot sends nothing. At most 3 a day per address, 5 per visitor
+  and `DEMO_INVITES_DAILY` (200) in all (`underDailyLimit`). The page shows the answer by code
+  (`?demo=sent|limit|bad`, `DEMO_INVITE_MESSAGES`).
+- **Off**: Stripe, Square, Shippo and Mailgun keys are never read (`env()` skips `DEMO_OFF_KEYS`, wherever
+  they are set), and Settings > Connections refuses them; only account emails go out (`sendMail` logs the
+  rest as not sent, via `demo`); uploads are images only (JPEG, PNG, WebP, GIF, AVIF) up to `DEMO_IMAGE_MB`
+  (10) for visitors (the media API); the editor offers no HTML or Embed block (`DEMO_OFF_BLOCKS`,
+  `buildConfig`, reading `window.__demo` from `AdminTheme.astro`, `demoOn` in `src/lib/demo/flag.ts`) and
+  the renderer shows neither's markup (an HTML block nothing, an Embed block its link).
+- **The guard** (`demoGuard`, `src/lib/demo/guard.ts`, from the middleware for every signed-in visitor's
+  write and for guests' comments): Claude's routes (`CLAUDE_PATHS`) answer each account
+  `DEMO_CLAUDE_TURNS` (10) times a day and the demo `DEMO_CLAUDE_DAILY` (150), past which they answer 429;
+  every string a write carries (`requestStrings`: a JSON body decoded, or a form's fields) is refused with
+  422 when it holds markup that runs script (`unsafeMarkup`: script-carrying tags, event handlers, script
+  addresses, character references decoded first) or an offensive word (`offensive`, `src/lib/demo/content.ts`:
+  whole words after `normalize`: case, accents, letter-for-digit swaps, stretched letters; the list in
+  `src/lib/demo/words.ts` as cyrb53 hashes, `wordHash`, so the repository doesn't spell the words out,
+  written by `npm run demo:words -- <list.txt>` from a list kept elsewhere). What visitors publish (an entry
+  made live, a template saved, comments: `publishes`) is also read by `ANTHROPIC_SEO_MODEL` (`moderate`,
+  structured output, the text as data), at most 1,000 times a day; without Claude, past that or on an error
+  the word list stands alone. Counts are `verifications` rows (`demo:<what>:<hash>`) that last a day.
+- **Reset** (`src/lib/demo/reset.ts`): the Worker's hourly run (`scheduledDemoReset`) resets on the UTC hours
+  dividing by `DEMO_RESET_HOURS` (12; one dividing 24, `resetDue`, `nextReset`), and purges the page cache.
+  The starting point is a snapshot named `<time>-snapshot-demo.json` (`takeSnapshot(db, 'demo')`,
+  `saveDemoStart`, `npm run demo -- save`; `demoSnapshot`), never pruned with the others, only by a newer
+  one. A reset restores it, deleting what was made since; deletes every stored file of the media rows it
+  doesn't have (visitors' uploads, `mediaObjects`); deletes every account but admins'; and empties share
+  links and comments, Compose's conversations and jobs, form submissions, revisions, the email log, Not
+  found addresses and the demo's day counts. `npm run demo -- reset` does it at once (only with
+  `DEMO_MODE=1` set). Admin pages show when it comes next.
+
 ## Commands
 
 ```
@@ -2148,6 +2188,7 @@ npx tsx scripts/db-schema.ts            # src/lib/db/schema.ts from the local D1
 npx tsx --env-file=.env scripts/copy-storage.ts [folder...]   # files from another S3-compatible store
 npx tsx scripts/checks/mailing.ts       # signed links, mailing emails, link tracking, click verdicts, digest times
 npx tsx --env-file=.env scripts/media-formats.ts   # backfill AVIF/WebP for existing media
+npm run demo -- save | reset            # a demo's starting point, or its reset now (Demo mode)
 ```
 
 `npm test` runs the unit tests (Vitest, `vitest.config.ts`, `tests/**/*.test.ts`, and the site's and its plugins' own under `src/site/`): each file gets a database of

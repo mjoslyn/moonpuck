@@ -2,9 +2,12 @@
 // The admin colors chosen under Settings > Appearance (src/lib/admin-theme.ts), and what every admin page
 // shares: the site icon in the browser tab (Settings > Social); a focused number field ignores the scroll wheel, which would otherwise change its value (from
 // empty, down to its minimum: a ticket's capacity of 0, sold out) while the page scrolls; and the admin's own
-// confirm, message and question boxes in place of the browser's (src/lib/admin/dialogs.ts).
+// confirm, message and question boxes in place of the browser's (src/lib/admin/dialogs.ts). On a demo
+// (src/lib/demo) it tells the browser so (window.__demo: the editor leaves out the HTML and Embed blocks) and
+// shows when the demo resets next.
 import { adminIconLinks, adminThemeCss, loadAdminTheme, type AdminTheme } from '../lib/admin-theme';
 import { siteDb } from '../lib/db/site';
+import { isDemo, nextReset } from '../lib/demo';
 
 interface Props {
   /** The saved theme, when the page has loaded it already. */
@@ -12,8 +15,39 @@ interface Props {
 }
 const css = adminThemeCss(Astro.props.theme ?? (await loadAdminTheme(Astro.locals.db ?? siteDb())));
 const icons = await adminIconLinks(Astro.locals.db ?? siteDb());
+const demoReset = isDemo() ? nextReset(new Date()).toISOString() : null;
 ---
 <Fragment set:html={icons} />
+{demoReset && (
+  <script is:inline define:vars={{ demoReset }}>
+    window.__demo = true;
+    addEventListener('DOMContentLoaded', () => {
+      try {
+        if (sessionStorage.getItem('demo-note') === 'closed') return;
+      } catch {}
+      const at = new Date(demoReset);
+      const mins = Math.max(1, Math.round((at.getTime() - Date.now()) / 60000));
+      const left = mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`;
+      const note = document.createElement('div');
+      note.className = 'fixed bottom-3 left-3 z-[2000] flex items-center gap-2 rounded-full bg-admin-ink px-3 py-1.5 text-xs text-white shadow-lg';
+      note.setAttribute('role', 'status');
+      note.textContent = `Demo: everything you make, and your account, is wiped in ${left} (${at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}).`;
+      const close = document.createElement('button');
+      close.type = 'button';
+      close.className = 'ml-1 rounded-full px-1.5 text-white/70 hover:text-white';
+      close.setAttribute('aria-label', 'Hide this note');
+      close.textContent = '×';
+      close.onclick = () => {
+        note.remove();
+        try {
+          sessionStorage.setItem('demo-note', 'closed');
+        } catch {}
+      };
+      note.append(close);
+      document.body.append(note);
+    });
+  </script>
+)}
 {css && <style is:inline id="admin-theme" set:html={css} />}
 <script is:inline>
   addEventListener('wheel', (e) => {

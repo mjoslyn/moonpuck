@@ -20,6 +20,14 @@ export function hostEnv(k: string): string | undefined {
   return dev === '' ? undefined : dev;
 }
 
+/** Demo mode (DEMO_MODE=1 or true; src/lib/demo): a public copy anyone can try the editor on. */
+export const isDemo = () => /^(1|true)$/i.test(hostEnv('DEMO_MODE')?.trim() ?? '');
+
+/** Keys a demo never reads, wherever they are set: payments, carriers' labels and Mailgun cost money or
+ *  reach people, so on a demo those services are not set up. */
+export const DEMO_OFF_KEYS = /^(STRIPE_|SQUARE_|SHIPPO_|MAILGUN_)/;
+
 export function env(k: string): string | undefined {
+  if (DEMO_OFF_KEYS.test(k) && isDemo()) return undefined;
   return hostEnv(k) ?? saved[k];
 }

@@ -1,6 +1,7 @@
 // Admin routes require a session (src/lib/auth) whose profile role is editor or admin, or a share link's
 // cookie (src/lib/share) for its page's preview only (the `guest` role: a view link; editing is for editors). Site settings and
 // users are for admins only. locals.db reads and writes as that role (src/lib/db/policies.ts).
+import { demoGuard } from './lib/demo/guard';
 import { defineMiddleware } from 'astro:middleware';
 import { sessionDb, siteDb } from './lib/db/site';
 import { isSessionCookie, refreshedCookies, sessionUser } from './lib/auth';
@@ -8,7 +9,7 @@ import { refreshSiteTimezone } from './lib/site/timezone';
 import { refreshSavedKeys } from './lib/site-keys';
 import { changesPages, PAGE_CACHE_TAG } from './lib/cache';
 import { AUTOSAVE } from './lib/admin/revisions';
-import { env } from './lib/env';
+import { env, isDemo } from './lib/env';
 import { adminOnlyIn, sitePlugins } from './lib/site/plugins';
 import { guestLink, guestMay } from './lib/share/links';
 // Server-only work the page renderer calls (src/render/hooks.ts).
@@ -119,7 +120,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const isAdmin = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
   // The admin is never indexed, nor is any page at an address other than the site's, nor any at all
   // while SITE_NOINDEX is set.
-  if (!isAdmin) return keepSession(context.request, pathname, noindexAll() || offSite(context.url) ? noindex(next()) : next());
+  if (!isAdmin) {
+    // A demo reads guests' comments as it reads editors' saves (src/lib/demo/guard.ts).
+    if (pathname === '/api/share/comment' && isDemo()) {
+      const refused = await demoGuard(context.request, pathname, { id: '', role: 'guest' });
+      if (refused) return refused;
+    }
+    return keepSession(context.request, pathname, noindexAll() || offSite(context.url) ? noindex(next()) : next());
+  }
   if (PUBLIC_ADMIN.some((p) => pathname.startsWith(p))) return noindex(next());
 
   const user = await sessionUser(context.request);
@@ -148,6 +156,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (profile.role !== 'admin' && (ADMIN_ONLY.some((p) => pathname.startsWith(p)) || adminOnlyIn(await sitePlugins(), pathname))) {
     if (pathname.startsWith('/api/')) return new Response('Admins only', { status: 403 });
     return context.redirect('/admin/?error=admins-only');
+  }
+  // A demo's limits on visitors (src/lib/demo): Claude's answers counted, saves read for script and offensive words.
+  if (isDemo()) {
+    const refused = await demoGuard(context.request, pathname, { id: user.id, role: profile.role });
+    if (refused) return refused;
   }
   context.locals.db = sessionDb({ role: profile.role, uid: user.id });
   context.locals.user = { id: user.id, email: user.email ?? '', role: profile.role, name: profile.display_name ?? '' };

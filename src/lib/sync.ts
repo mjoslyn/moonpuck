@@ -980,7 +980,9 @@ export async function diff(direction: Direction, group: string, key: string): Pr
 const BACKUP_BUCKET = 'sync-backups';
 // The marker only right after the time and with a trigger after it, so a sync backup whose source is
 // named like one (`-from-snapshot-scheduled.json`) is never taken for a snapshot.
-const SNAPSHOT = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z-snapshot-(scheduled|manual|before-restore)\.json$/;
+const SNAPSHOT = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z-snapshot-(scheduled|manual|before-restore|demo)\.json$/;
+/** A demo's starting point (src/lib/demo/reset.ts): never pruned with the others, only by a newer one. */
+const isDemoSnapshot = (name: string) => isSnapshot(name) && name.endsWith('-snapshot-demo.json');
 const isSnapshot = (name: string) => SNAPSHOT.test(name);
 
 /** A copy that keeps backups: this site, or the other copy. */
@@ -1147,7 +1149,9 @@ async function pruneBackups(db: Db, spare?: string): Promise<string[]> {
   const files = await listFiles(db);
   const old = [
     ...(keepBackups ? files.filter((f) => !f.snapshot).slice(keepBackups) : []),
-    ...(schedule.keep ? files.filter((f) => f.snapshot).slice(schedule.keep) : []),
+    ...(schedule.keep ? files.filter((f) => f.snapshot && !isDemoSnapshot(f.path)).slice(schedule.keep) : []),
+    // Only the newest demo starting point is kept.
+    ...files.filter((f) => isDemoSnapshot(f.path)).slice(1),
   ]
     .map((f) => f.path)
     .filter((p) => p !== spare);
@@ -1231,12 +1235,17 @@ async function readSnapshot(db: Db): Promise<Record<string, any[]>> {
 }
 
 /** Take a snapshot of a copy and keep it there; older snapshots beyond the number kept go. */
-export async function takeSnapshot(db: Db, trigger: 'scheduled' | 'manual' | 'before-restore', spare?: string): Promise<{ path: string; rows: number }> {
+export async function takeSnapshot(db: Db, trigger: 'scheduled' | 'manual' | 'before-restore' | 'demo', spare?: string): Promise<{ path: string; rows: number }> {
   const tables = await readSnapshot(db);
   const path = `${stamp()}-snapshot-${trigger}.json`;
   await saveFile(db, path, { kind: 'snapshot', created_at: new Date().toISOString(), trigger, note: 'Stored images are not included: files are backed up as their library rows only.', tables });
   await pruneBackups(db, spare).catch(() => []);
   return { path, rows: Object.values(tables).reduce((n, t) => n + t.length, 0) };
+}
+
+/** The newest demo starting point on this site (src/lib/demo/reset.ts), if any. */
+export async function demoSnapshot(): Promise<string | null> {
+  return (await listFiles(serviceClient())).find((f) => isDemoSnapshot(f.path))?.path ?? null;
 }
 
 /** Back up a copy now (Back up now). */

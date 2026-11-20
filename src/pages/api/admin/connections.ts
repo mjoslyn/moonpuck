@@ -4,7 +4,7 @@
 // the admin's password again, and every change is emailed to all admins.
 import type { APIRoute } from 'astro';
 import { serviceClient } from '../../../lib/db/site';
-import { env, hostEnv } from '../../../lib/env';
+import { DEMO_OFF_KEYS, env, hostEnv, isDemo } from '../../../lib/env';
 import { cannotSave, keyStatus, namesOf, saveKeys, SERVICES, type Service } from '../../../lib/site-keys';
 import { connect, ConnectError } from '../../../lib/connections';
 import { checkPassword } from '../../../lib/auth';
@@ -46,6 +46,8 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   const service = String(body.service ?? '') as Service;
   if (!(service in SERVICES)) return new Response('Unknown service.', { status: 400 });
   const def = SERVICES[service];
+  // A demo (src/lib/demo) never uses payments, carriers or Mailgun, so none of them is set up there.
+  if (isDemo() && namesOf(service).some((n) => DEMO_OFF_KEYS.test(n))) return new Response("This is a demo: payments, shipping labels and Mailgun stay off here.", { status: 403 });
   if (def.guarded) {
     const ok = await checkPassword(request, String(body.password ?? ''));
     if (!ok.ok) return new Response(ok.error, { status: 403 });

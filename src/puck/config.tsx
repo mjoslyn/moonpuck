@@ -1,4 +1,5 @@
 // Puck configuration: one component per block type, rendered through BlockView.
+import { demoOn } from '../lib/demo/flag';
 import type { Config, Fields } from '@puckeditor/core';
 import { BlockView } from './BlockView';
 import { JsonAttrs, Row, Select, Text, Toggle, inputClass, type Attrs } from './fields';
@@ -276,8 +277,10 @@ const APPLIES_TO: Record<string, string[]> = {
 export function buildConfig(types: string[], entryType?: string, opts: { members?: boolean; events?: boolean; mailing?: boolean; shop?: boolean; donations?: boolean } = {}): Config {
   // Event and ticket blocks are offered while events are on (Settings > Events).
   const applies = (t: string) => (!entryType || !APPLIES_TO[t] || APPLIES_TO[t].includes(entryType)) && (opts.events !== false || !EVENT_BLOCKS.includes(t));
+  // A demo (src/lib/demo) doesn't offer the blocks that put markup on the page as written.
+  const demo = demoOn();
   const offered = (cats: Record<string, { title?: string; components?: string[]; visible?: boolean }>) =>
-    Object.fromEntries(Object.entries(cats).map(([k, c]) => [k, c.components ? { ...c, components: c.components.filter(applies) } : c]));
+    Object.fromEntries(Object.entries(cats).map(([k, c]) => [k, c.components ? { ...c, components: c.components.filter((t) => applies(t) && !(demo && DEMO_OFF_BLOCKS.includes(t))) } : c]));
   const components: Config['components'] = {};
   for (const type of types) {
     const fields: Fields = {
@@ -326,6 +329,9 @@ export function buildConfig(types: string[], entryType?: string, opts: { members
     components,
   } as Config;
 }
+
+/** Blocks a demo doesn't offer: HTML and Embed (their markup would run as written). */
+export const DEMO_OFF_BLOCKS = ['html', 'embed'];
 
 export const EDITABLE_TYPES = [
   ...Object.keys(CONTENT_PANELS),

@@ -21,7 +21,9 @@
     "core:update": "node scripts/update-core.mjs",
     "plugins:add": "tsx scripts/plugins.ts add",
     "plugins:update": "tsx scripts/plugins.ts update",
-    "plugins:list": "tsx scripts/plugins.ts list"
+    "plugins:list": "tsx scripts/plugins.ts list",
+    "demo:words": "tsx scripts/demo-words.ts",
+    "demo": "tsx --env-file-if-exists=.env scripts/demo.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.129.0",

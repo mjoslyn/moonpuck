@@ -2,6 +2,8 @@
 import { site } from '../../lib/site';
 import Admin from '../../layouts/Admin.astro';
 import { needsFirstAdmin } from '../../lib/admin/first-run';
+import { isDemo, resetHours } from '../../lib/demo';
+import { DEMO_INVITE_MESSAGES } from '../../lib/demo/invite';
 // A site with no admin yet makes its first one (src/lib/admin/first-run.ts).
 if (await needsFirstAdmin()) return Astro.redirect('/admin/setup/');
 const error = Astro.url.searchParams.get('error');
@@ -9,9 +11,24 @@ const next = Astro.url.searchParams.get('next') ?? '/admin/';
 const message = error === 'forbidden' ? 'This account does not have editor access.' : error;
 const sent = Astro.url.searchParams.has('sent');
 const forgot = Astro.url.searchParams.has('forgot');
+// A demo (src/lib/demo) offers visitors an editor's invitation; its answer is a code with fixed words.
+const demo = isDemo();
+const demoNote = DEMO_INVITE_MESSAGES[Astro.url.searchParams.get('demo') ?? ''];
 ---
 <Admin title="Sign in">
   <div class="mx-auto mt-24 max-w-sm">
+    {demo && (
+      <section class="mb-10 rounded-lg border border-admin-accent/30 bg-admin-accent/5 p-5">
+        <h1 class="text-2xl font-normal">Try the editor</h1>
+        <p class="mt-2 text-sm text-admin-muted">This is a demo. Enter your email and we'll send you an editor's invitation. Everything here, your account included, is wiped every {resetHours()} hours.</p>
+        {demoNote && <p class:list={['mt-4 rounded border px-3 py-2 text-sm', demoNote.ok ? 'border-[#6b8f71]/30 bg-[#6b8f71]/5 text-[#4d6b52]' : 'border-[#c4592a]/30 bg-[#c4592a]/5 text-[#c4592a]']} role="status">{demoNote.text}</p>}
+        <form method="post" action="/api/demo/invite" class="mt-4 flex gap-2">
+          <input name="email" type="email" required aria-label="Your email" placeholder="Your email" class="min-w-0 flex-1 rounded border border-admin-ink/20 bg-white px-3 py-2 text-sm outline-none focus:border-admin-accent" />
+          <input name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" class="absolute -left-[9999px] h-px w-px" />
+          <button class="rounded-sm bg-admin-accent px-4 py-2 text-sm font-semibold text-white hover:bg-admin-ink">Send invitation</button>
+        </form>
+      </section>
+    )}
     <h1 class="text-3xl font-normal">Sign in</h1>
     <p class="mt-2 text-sm text-admin-muted">{site.organization} site editor.</p>
     {sent && <p class="mt-6 rounded border border-[#6b8f71]/30 bg-[#6b8f71]/5 px-3 py-2 text-sm text-[#4d6b52]">If that address has an account, a link to set a new password is on its way.</p>}

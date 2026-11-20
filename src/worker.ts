@@ -32,7 +32,7 @@ const SCHEDULES: Record<string, { name: string; slot?: ScheduleSlot; run: () => 
   // Ticket reminders, follow-ups, expired holds, waitlists (src/lib/tickets/orders.ts), and yesterday's
   // visitor hashes and old site statistics pruned (src/lib/stats.ts), and the email log's old entries
   // (src/lib/mail-log.ts), the shop's expired holds (src/lib/shop/orders.ts) and donations' unpaid
-  // checkouts (src/lib/donations/donations.ts); hourly.
+  // checkouts (src/lib/donations/donations.ts), and on a demo its reset when due (src/lib/demo); hourly.
   '0 * * * *': {
     name: 'hourly',
     slot: 'hourly',
@@ -43,7 +43,10 @@ const SCHEDULES: Record<string, { name: string; slot?: ScheduleSlot; run: () => 
       const shop = await (await import('./lib/shop/orders')).expireShopHolds(db).then(() => 'shop holds expired', (e: Error) => `shop holds failed: ${e.message}`);
       const donations = await (await import('./lib/donations/donations')).expireDonations(db).then((n) => `${n} gifts expired`, (e: Error) => `donations failed: ${e.message}`);
       const tracking = await (await import('./lib/shop/fulfilment')).refreshDueTracking().then((n) => `${n} parcels tracked`, (e: Error) => `tracking failed: ${e.message}`);
-      return `${await (await import('./lib/tickets/orders')).sendDueTicketEmails()}; ${stats}; ${log}; ${shop}; ${tracking}; ${donations}`;
+      // A demo goes back to its starting point every few hours (src/lib/demo/reset.ts); its pages go from the CDN.
+      const demo = await (await import('./lib/demo/reset')).scheduledDemoReset().catch((e: Error) => `demo reset failed: ${e.message}`);
+      if (demo.startsWith('demo reset:') && typeof cache?.purge === 'function') await cache.purge({ tags: [PAGE_CACHE_TAG] }).catch((e: Error) => console.error(`page cache purge failed: ${e.message}`));
+      return `${await (await import('./lib/tickets/orders')).sendDueTicketEmails()}; ${stats}; ${log}; ${shop}; ${tracking}; ${donations}; ${demo}`;
     },
   },
 };

@@ -4,12 +4,13 @@
 // src/lib/media/documents.ts). Images come as a form (field `file`); a video comes as the
 // request's body (its type as Content-Type, its name in X-File-Name; src/lib/media/upload.ts) and is
 // streamed to the store as it arrives, since the Worker has 128 MB of memory. A form is read whole,
-// so it is refused over FORM_MAX_MB.
+// so it is refused over FORM_MAX_MB. A demo's visitors upload images only (src/lib/demo).
 import type { APIRoute } from 'astro';
 import { serviceClient } from '../../../../lib/db/site';
 import { MediaStore, PathTaken, processUpload } from '../../../../lib/media/process';
 import { VIDEO_MAX_MB, VIDEO_TYPES } from '../../../../lib/media/upload';
 import { DOC_MAX_MB, contentMatches, docType } from '../../../../lib/media/documents';
+import { DEMO_IMAGE_MB, DEMO_IMAGE_TYPES, isDemo } from '../../../../lib/demo';
 
 const FORM_MAX_MB = 90;
 const MB = 1024 * 1024;
@@ -19,6 +20,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const sent = Number(request.headers.get('content-length') ?? NaN);
   const rawType = (request.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
   let file: { name: string; type: string; size: number; stream: () => ReadableStream<Uint8Array>; bytes: () => Promise<Uint8Array> };
+  // A demo (src/lib/demo) takes images only, and smaller ones, before reading anything.
+  const demo = isDemo() && locals.user?.role !== 'admin';
+  if (demo && (VIDEO_TYPES.includes(rawType) || sent > (DEMO_IMAGE_MB + 1) * MB)) return new Response(`This demo takes images only (JPEG, PNG, WebP, GIF or AVIF), up to ${DEMO_IMAGE_MB} MB.`, { status: 413 });
   if (VIDEO_TYPES.includes(rawType)) {
     if (!request.body || !Number.isFinite(sent) || sent <= 0) return new Response('No file (or no Content-Length)', { status: 411 });
     if (sent > VIDEO_MAX_MB * MB) return new Response(`Videos can be up to ${VIDEO_MAX_MB} MB (on Cloudflare's Free and Pro plans, up to 100 MB)`, { status: 413 });
@@ -34,6 +38,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (!(form instanceof File)) return new Response('No file', { status: 400 });
     file = { name: form.name, type: form.type, size: form.size, stream: () => form.stream(), bytes: async () => new Uint8Array(await form.arrayBuffer()) };
   }
+  if (demo && (!DEMO_IMAGE_TYPES.includes(file.type) || file.size > DEMO_IMAGE_MB * MB)) return new Response(`This demo takes images only (JPEG, PNG, WebP, GIF or AVIF), up to ${DEMO_IMAGE_MB} MB.`, { status: 400 });
   const isVideo = VIDEO_TYPES.includes(file.type);
   const doc = !isVideo && !file.type.startsWith('image/') ? docType(file.name) : null;
   if (!file.type.startsWith('image/') && !isVideo && !doc) return new Response('Only images, videos (MP4, WebM, MOV) and documents (PDF, Word, Excel, PowerPoint, OpenDocument, text, CSV) can be uploaded here', { status: 400 });

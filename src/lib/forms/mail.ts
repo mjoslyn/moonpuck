@@ -7,7 +7,7 @@
 // either, mail is logged and skipped, and submissions are still stored.
 import { site } from '../site';
 import { bindings } from '../platform';
-import { env } from '../env';
+import { env, isDemo } from '../env';
 import type { MailKind } from '../mail-log';
 
 interface Smtp {
@@ -77,6 +77,12 @@ export async function sendMail(message: Mail): Promise<boolean> {
   const text = mail.text || textVersion(mail.html);
   const log = async (status: 'sent' | 'failed' | 'not-sent', via: string, error?: string) =>
     (await import('../mail-log')).logMail({ kind: mail.kind, to: mail.to, from: fromHeader(mail.fromName), replyTo: mail.replyTo, subject: mail.subject, html: mail.html, text, secret: mail.secret, status, via, error });
+  // A demo (src/lib/demo) sends only account emails (its invitations, password links), so visitors can't
+  // use its forms, tickets or mentions to email anyone; the rest is logged as not sent.
+  if (mail.kind !== 'account' && isDemo()) {
+    await log('not-sent', 'demo');
+    return false;
+  }
   try {
     const sent = await deliver(mail, text);
     await log(sent ? 'sent' : 'not-sent', sent ?? '');
