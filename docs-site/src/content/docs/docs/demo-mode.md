@@ -21,7 +21,9 @@ Settings, Users or Connections. On a demo:
 - **Email**: only account emails go out (invitations and password links). Form notifications, ticket
   emails and mentions are logged as not sent.
 - **Payments, shipping labels and Mailgun**: off. Their keys are never read, wherever they are set.
-- **Claude**: each account gets 10 answers a day, and the whole demo 150.
+- **Claude**: Compose and the Compose buttons use Claude Haiku 5.5, to keep costs down, and each account
+  gets 10 answers a day, the whole demo 150. Compose's panel tells visitors that a site of their own uses
+  Claude Sonnet 5.5 by default and can choose a larger model for better results.
 - **What they write**: a save is refused when it holds script (tags, event handlers, script links) or
   offensive words. What they publish, and their comments, are also read by a small model (Claude Haiku),
   which catches what a word list misses.
@@ -75,6 +77,7 @@ All are Worker variables:
 - `DEMO_RESET_HOURS`: hours between resets, a number that divides 24. Default 12.
 - `DEMO_CLAUDE_TURNS`: Claude's answers per account a day. Default 10.
 - `DEMO_CLAUDE_DAILY`: Claude's answers for the whole demo a day. Default 150.
+- `DEMO_ANTHROPIC_MODEL`: the model the demo answers with. Default `claude-haiku-5-5`.
 - `DEMO_INVITES_DAILY`: invitations the demo sends a day. Default 200. Each address gets at most 3 a day,
   and each visitor 5.
 

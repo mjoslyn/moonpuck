@@ -21,7 +21,7 @@ that every page using it shares. Builds add or replace its sections. A selected 
 changed in place, and **Save & apply** keeps the change. A template's conversation is kept with it
 (`compose_sessions.template`), never creates a draft page, and has no field updates.
 
-Compose needs Claude connected under Settings > Connections, or `ANTHROPIC_API_KEY`. `ANTHROPIC_MODEL` overrides the model (default `claude-sonnet-5-5`).
+Compose needs Claude connected under Settings > Connections, or `ANTHROPIC_API_KEY`. `ANTHROPIC_MODEL` overrides the model (default `claude-sonnet-5-5`); a larger one, such as `claude-opus-5-5`, gives better pages at a higher cost. A [demo](/docs/demo-mode/) uses `claude-haiku-5-5`.
 
 ## Conversations
 

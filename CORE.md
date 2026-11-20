@@ -2150,9 +2150,14 @@ A public copy of a site where anyone can try the editor (`src/lib/demo/`), on wh
 - **The guard** (`demoGuard`, `src/lib/demo/guard.ts`, from the middleware for every signed-in visitor's
   write and for guests' comments): Claude's routes (`CLAUDE_PATHS`) answer each account
   `DEMO_CLAUDE_TURNS` (10) times a day and the demo `DEMO_CLAUDE_DAILY` (150), past which they answer 429;
-  every string a write carries (`requestStrings`: a JSON body decoded, or a form's fields) is refused with
-  422 when it holds markup that runs script (`unsafeMarkup`: script-carrying tags, event handlers, script
-  addresses, character references decoded first) or an offensive word (`offensive`, `src/lib/demo/content.ts`:
+  every string a write carries is refused with 422 when it holds markup that runs script (`unsafeMarkup`:
+  script-carrying tags, an `on…=` handler anywhere (a `>` in a quoted value doesn't end a tag), script
+  addresses, character references decoded first) or an offensive word. The body is read whatever its
+  Content-Type says, since the routes parse JSON regardless (`readBody`: the raw text, its JSON decoded, its
+  fields as a form and a multipart form's), a body that can't be read is refused (400), and only the upload
+  itself (POST `/api/admin/media`) goes unread. Claude answers with `DEMO_MODEL` (Claude Haiku 5.5, or
+  `DEMO_ANTHROPIC_MODEL`) in place of `ANTHROPIC_MODEL` and `ANTHROPIC_SEO_MODEL` (`env()`), and Compose's
+  panel says so, with how a site of one's own chooses a larger model. Offensive words (`offensive`, `src/lib/demo/content.ts`:
   whole words after `normalize`: case, accents, letter-for-digit swaps, stretched letters; the list in
   `src/lib/demo/words.ts` as cyrb53 hashes, `wordHash`, so the repository doesn't spell the words out,
   written by `npm run demo:words -- <list.txt>` from a list kept elsewhere). What visitors publish (an entry

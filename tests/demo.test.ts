@@ -49,6 +49,10 @@ describe('markup that runs script', () => {
       '<p srcdoc="x">',
     ]) expect(unsafeMarkup(s), s).toBe(true);
   });
+  it('sees a handler after a > inside a quoted attribute, which does not end the tag', () => {
+    expect(unsafeMarkup('<p><code><img alt=">" onerror="fetch(1)" src=x></code></p>')).toBe(true);
+    expect(unsafeMarkup('<img alt=\'a>b\' onload=x()>')).toBe(true);
+  });
   it('lets ordinary rich text through', () => {
     for (const s of ['<p><strong>Hi</strong> <a href="https://example.org" target="_blank" rel="noopener">there</a></p>', 'Turn it on=off', '<em>onwards</em>', 'var(--color-sky)']) expect(unsafeMarkup(s), s).toBe(false);
   });
@@ -68,6 +72,19 @@ describe('the guard', () => {
     expect(await demoGuard(put({ action: 'draft', entry: { title: 'Bullshit' } }), '/api/admin/entries/3', { id: 'u1', role: 'editor' })).not.toBeNull();
     expect(await demoGuard(put({ action: 'draft', entry: { title: 'Bullshit' } }), '/api/admin/entries/3', { id: 'u1', role: 'admin' })).toBeNull();
     expect(await demoGuard(put({ action: 'draft', entry: { title: 'Visiting the Moon' } }), '/api/admin/entries/3', { id: 'u1', role: 'editor' })).toBeNull();
+  });
+  it('reads the body whatever its Content-Type says, as the routes parse JSON regardless', async () => {
+    const payload = JSON.stringify({ action: 'draft', content: { content: [{ type: 'text', props: { attrs: { content: '<img src=x onerror=alert(1)>' } } }] } });
+    const editor = { id: 'u1', role: 'editor' };
+    const as = (type: string, body: string, path = '/api/admin/entries/3', method = 'PUT') =>
+      demoGuard(new Request(`https://demo.example${path}`, { method, headers: { 'content-type': type }, body }), path, editor);
+    // A form type with a JSON body, which a form parser refuses to read.
+    expect((await as('text/plain; form', payload))?.status).toBe(422);
+    expect((await as('multipart/form-data', payload, '/api/admin/db', 'POST'))?.status).toBe(422);
+    // JSON escapes that only the route's JSON parse turns back into markup.
+    expect((await as('application/x-www-form-urlencoded', payload.replace(/</g, '\\u003c')))?.status).toBe(422);
+    // Media routes other than the upload take JSON, and are read.
+    expect((await as('multipart/form-data; boundary=x', JSON.stringify({ caption: '<svg onload=alert(1)>' }), '/api/admin/media/5'))?.status).toBe(422);
   });
   it('sends publishing and comments to the model, not drafts', () => {
     expect(publishes('PUT', '/api/admin/entries/3', [], { action: 'publish' })).toBe(true);
@@ -100,6 +117,14 @@ describe('what a demo keeps off', () => {
     expect(env('ANTHROPIC_API_KEY')).toBe('sk-ant-x');
     delete process.env.STRIPE_SECRET_KEY;
     delete process.env.ANTHROPIC_API_KEY;
+  });
+  it('answers with Claude Haiku 5.5, Compose and quick asks alike', () => {
+    process.env.ANTHROPIC_MODEL = 'claude-opus-5-5';
+    expect(env('ANTHROPIC_MODEL')).toBe('claude-opus-5-5');
+    on();
+    expect(env('ANTHROPIC_MODEL')).toBe('claude-haiku-5-5');
+    expect(env('ANTHROPIC_SEO_MODEL')).toBe('claude-haiku-5-5');
+    delete process.env.ANTHROPIC_MODEL;
   });
   it('sends no email but account emails', async () => {
     on();

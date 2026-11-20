@@ -27,7 +27,13 @@ export const isDemo = () => /^(1|true)$/i.test(hostEnv('DEMO_MODE')?.trim() ?? '
  *  reach people, so on a demo those services are not set up. */
 export const DEMO_OFF_KEYS = /^(STRIPE_|SQUARE_|SHIPPO_|MAILGUN_)/;
 
+/** The model a demo answers with, for Compose and the quick asks alike, to keep its cost down: Claude Haiku 5.5,
+ *  unless DEMO_ANTHROPIC_MODEL names another. */
+export const DEMO_MODEL = 'claude-haiku-5-5';
+const MODEL_KEYS = new Set(['ANTHROPIC_MODEL', 'ANTHROPIC_SEO_MODEL']);
+
 export function env(k: string): string | undefined {
   if (DEMO_OFF_KEYS.test(k) && isDemo()) return undefined;
+  if (MODEL_KEYS.has(k) && isDemo()) return hostEnv('DEMO_ANTHROPIC_MODEL') || DEMO_MODEL;
   return hostEnv(k) ?? saved[k];
 }

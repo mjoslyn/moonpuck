@@ -61,7 +61,9 @@ function decodeRefs(s: string): string {
 }
 
 const TAGS = /<\s*\/?\s*(script|iframe|frame|frameset|object|embed|applet|style|link|meta|base|form|svg|math|template|noscript)\b/i;
-const HANDLER = /<[^>]*[\s/"'`]on[a-z]+\s*=/i;
+// An event handler attribute anywhere, not only up to a tag's first `>`: a `>` inside a quoted value
+// (`<img alt=">" onerror=...>`) doesn't end the tag for a browser, so no pattern may assume it does.
+const HANDLER = /[\s/"'`]on[a-z]+\s*=/i;
 const URL_SCHEMES = /(javascript|vbscript|livescript)\s*:|data\s*:\s*text\/html/i;
 
 /** Whether the text is markup that could run script: script-carrying tags, event handlers, script addresses. */

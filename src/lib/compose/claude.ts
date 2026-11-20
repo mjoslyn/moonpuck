@@ -17,7 +17,8 @@ type Block = Anthropic.Messages.ContentBlockParam;
 
 import { claudeClient, env, NO_KEY } from './client';
 export { env };
-export const COMPOSE_MODEL = env('ANTHROPIC_MODEL') || 'claude-sonnet-5-5';
+/** The model Compose builds with: ANTHROPIC_MODEL, else Claude Sonnet 5.5 (a demo's is Claude Haiku 5.5, src/lib/env.ts). Read when a turn runs. */
+export const composeModel = () => env('ANTHROPIC_MODEL') || 'claude-sonnet-5-5';
 
 export interface UserTurn {
   role: 'user';
@@ -165,7 +166,7 @@ export async function converse(r: ConverseRequest, on: ConverseHooks): Promise<C
   // Searches are answered here and the conversation continues until Claude builds, edits or replies.
   for (let round = 0; round < 6; round++) {
     const stream = client.messages.stream({
-      model: COMPOSE_MODEL,
+      model: composeModel(),
       max_tokens: 64000, // thinking counts toward it; streamed, so no request timeout
       system: [{ type: 'text', text: system(r), cache_control: { type: 'ephemeral', ttl: '1h' } }],
       tools,

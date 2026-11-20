@@ -58,25 +58,41 @@ export async function underDailyLimit(what: string, limits: { key: string; max: 
   return true;
 }
 
-/** The strings a request carries: a JSON body's (decoded), or a form's fields (not its files). */
-export async function requestStrings(request: Request): Promise<string[]> {
-  const type = (request.headers.get('content-type') ?? '').toLowerCase();
+/**
+ * Every string a request carries, read whatever its Content-Type says, since the routes parse their bodies
+ * as JSON regardless of it: the raw body itself; its JSON, decoded (escapes such as \u003c undone); its
+ * fields as an urlencoded form; and a multipart form's fields (not its files). `parsed` is the JSON body, if
+ * it is one. A body that can't be read at all is refused by the caller (`unreadable`), so nothing gets past
+ * by being hard to read.
+ */
+export async function readBody(request: Request): Promise<{ strings: string[]; parsed: unknown; unreadable: boolean }> {
+  let text: string;
   try {
-    if (type.includes('application/json')) return stringsOf(await request.clone().json());
-    if (type.includes('form')) {
-      const out: string[] = [];
-      for (const [k, v] of (await request.clone().formData()).entries()) if (typeof v === 'string') out.push(k, v);
-      return out;
-    }
-    const text = await request.clone().text();
-    try {
-      return stringsOf(JSON.parse(text));
-    } catch {
-      return [text];
-    }
+    text = await request.clone().text();
   } catch {
-    return [];
+    return { strings: [], parsed: null, unreadable: true };
   }
+  const strings = [text];
+  let parsed: unknown = null;
+  try {
+    parsed = JSON.parse(text);
+    stringsOf(parsed, strings);
+  } catch {
+    // Not JSON: read as the forms below, and the raw text above.
+  }
+  try {
+    for (const [k, v] of new URLSearchParams(text)) strings.push(k, v);
+  } catch {
+    // Not a form either.
+  }
+  if ((request.headers.get('content-type') ?? '').toLowerCase().includes('multipart/form-data')) {
+    try {
+      for (const [k, v] of (await request.clone().formData()).entries()) if (typeof v === 'string') strings.push(k, v);
+    } catch {
+      // The raw text, above, still holds every field.
+    }
+  }
+  return { strings, parsed, unreadable: false };
 }
 
 /** The words people would read in those strings: text with letters, tags taken out, without code-like values. */
@@ -136,12 +152,13 @@ export async function demoGuard(request: Request, pathname: string, user: { id: 
     const ok = await claudeAllowed(user.id);
     if (!ok.ok) return refuse(ok.message, 429);
   }
-  // Uploads are files (their size and type are checked by the media API).
-  if (pathname.startsWith('/api/admin/media') && (request.headers.get('content-type') ?? '').includes('multipart')) return null;
-  const strings = await requestStrings(request);
+  // An upload is a file (its size and type are checked by the media API); only the upload itself is let
+  // through unread, never another media route, which take JSON.
+  if (method === 'POST' && /^\/api\/admin\/media\/?$/.test(pathname)) return null;
+  const { strings, parsed, unreadable } = await readBody(request);
+  if (unreadable) return refuse("This demo couldn't read that save. Try again.", 400);
   const blocked = blockedText(strings);
   if (blocked) return refuse(BLOCKED_MESSAGE[blocked]);
-  const body = (request.headers.get('content-type') ?? '').includes('json') ? await request.clone().json().catch(() => null) : null;
-  if (publishes(method, pathname, strings, body) && (await moderate(readableText(strings)))) return refuse(BLOCKED_MESSAGE.words);
+  if (publishes(method, pathname, strings, parsed) && (await moderate(readableText(strings)))) return refuse(BLOCKED_MESSAGE.words);
   return null;
 }

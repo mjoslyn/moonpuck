@@ -2,6 +2,7 @@
 // images, videos, video links and links; Claude builds it, then revises it on request. Used on
 // /admin/compose/ (the first message creates a draft) and docked beside the page editor, where builds
 // replace the sections Claude made before and leave the rest of the page alone.
+import { demoOn } from '../lib/demo/flag';
 import { useEffect, useRef, useState, type DragEvent } from 'react';
 import { MediaModal } from '../puck/fields';
 import type { PuckItem } from '../lib/puck/types';
@@ -483,6 +484,11 @@ export default function Composer({ entryId, templateKey, layout, live, selection
             {busy ? 'Working…' : 'Send'}
           </button>
         </div>
+        {demoOn() && (
+          <p className="mt-2 text-xs text-admin-muted">
+            This demo writes with Claude Haiku 5.5 to keep costs down, and gives each account a few answers a day. On your own site Compose uses Claude Sonnet 5.5, and you can choose a larger model, such as Claude Opus 5.5, for better results (the ANTHROPIC_MODEL setting).
+          </p>
+        )}
       </div>
 
       {picking && (
