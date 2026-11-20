@@ -1,0 +1,17 @@
+---
+// The Comments screen (the admin bar's Comments; editors and admins): every page's and newsletter's comments
+// in one list, and a box to comment on a page (src/admin/CommentsScreen.tsx, /api/admin/share-comments).
+import Admin from '../../../layouts/Admin.astro';
+import CommentsScreen from '../../../admin/CommentsScreen';
+import { CONTENT_TYPES } from '../../../lib/site';
+
+const types = Object.fromEntries(CONTENT_TYPES.map((t) => [t.type, t.singular]));
+---
+<Admin title="Comments">
+  <h1 class="text-3xl font-normal">Comments</h1>
+  <p class="mt-1 mb-6 max-w-2xl text-sm text-admin-muted">
+    Comments on every page and newsletter: from people with a share link and from editors. Resolve a comment once it is
+    dealt with.
+  </p>
+  <CommentsScreen client:load types={types} />
+</Admin>

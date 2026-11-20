@@ -255,6 +255,35 @@ describe('comments', async () => {
     // The guest role can't use the editors' API's data either way.
     expect((await sessionDb({ role: 'guest' }).from('share_comments').select('id')).data).toEqual([]);
   });
+
+  it('lists every page’s comments for the Comments screen, by status and words, and finds pages to comment on', async () => {
+    const locals = { db: sessionDb({ role: 'editor', uid: editorId }), user: { id: editorId, email: 'comment-editor@example.org', role: 'editor', name: 'Cora Editor' } };
+    const call = (body: Record<string, any>) => manage({ request: new Request('https://x/api/admin/share-comments', { method: 'POST', body: JSON.stringify(body) }), locals } as any);
+    const get = async (query: string) => (await list({ url: new URL(`https://x/api/admin/share-comments?${query}`), locals } as any)).json();
+    const a = await (await call({ action: 'add', entry: page, body: 'Screen check one' })).json();
+    const b = await (await call({ action: 'add', entry: other, body: 'Screen check two' })).json();
+    await call({ action: 'resolve', id: b.id });
+
+    const open = await get('all=1&q=Screen check');
+    expect(open.comments.map((c: any) => c.id)).toEqual([a.id]);
+    expect(open.comments[0].on).toMatchObject({ kind: 'entry', id: page, title: 'Commented', type: 'page', editor: `/admin/edit/${page}/`, preview: `/admin/preview/${page}/`, trashed: false });
+    expect(open.open).toBeGreaterThanOrEqual(1);
+    const resolved = await get('all=1&status=resolved&q=Screen check');
+    expect(resolved.comments.map((c: any) => c.id)).toEqual([b.id]);
+    expect(resolved.comments[0]).toMatchObject({ resolved_by_name: 'Cora Editor', on: { title: 'Other' } });
+    const all = await get('all=1&status=all&q=Screen check');
+    expect(all.comments.map((c: any) => c.id)).toEqual([b.id, a.id]);
+    expect(all.total).toBe(2);
+    // Characters the filter syntax reads are left out of a search, never passed on.
+    expect((await get('all=1&status=all&q=check,body.eq.x')).comments.length).toBe(0);
+
+    const pages = await get('pages=commented');
+    expect(pages.map((p: any) => p.id)).toEqual([page]);
+    // Nothing typed: the latest edited.
+    expect((await get('pages=')).map((p: any) => p.id)).toEqual(expect.arrayContaining([page, other]));
+    expect(pages.find((p: any) => p.id === page)).toMatchObject({ title: 'Commented', type_label: 'Page' });
+    await svc.from('share_comments').delete().in('id', [a.id, b.id]);
+  });
 });
 
 /** Mailing Lists on or off (settings.site.mailing.enabled), keeping the site's other settings. */
