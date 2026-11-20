@@ -19,8 +19,8 @@ Auth), in its database.
 | `viewer` | No access |
 
 Admin-only pages are listed in `ADMIN_ONLY` (`src/middleware.ts`). Settings writes are admin-only in
-the site's policies (`src/lib/db/policies.ts`). Admins manage users at `/admin/users/`: roles and
-invitations, with **Resend invitation** for anyone invited who hasn't set a password yet. **Delete**
+the site's policies (`src/lib/db/policies.ts`). Admins manage users at `/admin/users/`: roles, each person's name and
+@handle (**Edit name and handle**, as **Your profile** changes one's own), and invitations, with **Resend invitation** for anyone invited who hasn't set a password yet. **Delete**
 removes a user (not your own account), and what they made stays.
 Editors set their password at `/admin/set-password/`. Invitations (7 days) and password links (Forgot
 password on the sign-in page, an hour) land there. Setting the password signs them in and signs the
@@ -148,4 +148,17 @@ page while this is on, because the check runs in the editor. Templates' Save & a
 ## Editor bar on the site
 
 Pages are cached at the CDN, so the editor bar signed-in editors see on the public site is added in
-the browser (`public/assets/js/editor-bar.js`, `/api/admin/me`).
+the browser (`public/assets/js/editor-bar.js`, `/api/admin/me`). It has:
+
+- **Edit page** on an entry's page, and for admins **Edit template** where there is no page to edit
+  (listings, term pages).
+- **Comments** on an entry's page, with the open count: the page's comments to resolve, reopen and
+  delete, and a box to comment on the whole page (`/api/admin/share-comments`). Its **Comment on
+  blocks** switch loads the page again with `?comment`, which for a signed-in editor renders it with its
+  blocks marked and never cached; `share-comments.js` then takes a comment on any block, and **Done
+  commenting** in the bar turns it off.
+- **Go to**, the command palette (Ctrl+K or ⌘K).
+
+Typing **@** in a comment box suggests editors and admins (`public/assets/js/mentions.js`, the admin's
+`MentionTextarea`); a comment that mentions someone emails them, never its author
+(`src/lib/share/mentions.ts`).

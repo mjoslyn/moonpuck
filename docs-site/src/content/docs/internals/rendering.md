@@ -36,6 +36,11 @@ from its `render.ts` `head`.
 Browser scripts are in `public/assets/js/`. Each enhances the server markup. The page works without
 it.
 
+Everything under `/assets/` is cached a year as immutable (`public/_headers`), so a page adds a version
+to each `/assets/js/` address (`?v=`, `src/lib/asset-version.ts`): a hash of the core's and the site's
+scripts, made by the build (`virtual:asset-version` in `astro.config.mjs`). A deploy that changes any
+script gives browsers new addresses, so they fetch the new scripts.
+
 ## Caching
 
 The CDN caches pages for 60 seconds. After that it serves them stale for up to a week while they

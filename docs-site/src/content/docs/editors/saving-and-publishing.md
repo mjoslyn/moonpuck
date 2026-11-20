@@ -174,6 +174,8 @@ bar at the top of the page shows how many are open. Click it for the list:
 - To add a comment on the whole page, type in the box and click **Add comment**.
 - Click outside the list, or press **Escape**, to close it.
 
+![Comments in the editor bar, with an @mention being picked](../../../assets/guide/editor-bar-comments.png)
+
 To comment on one block of the page:
 
 1. Click **Comments** in the editor bar.
@@ -182,6 +184,8 @@ To comment on one block of the page:
 3. Click a block or section. A small box opens, showing which one it is.
 4. Type the comment and click **Send**. The count on **Comments** goes up.
 5. Click **Done commenting** in the editor bar to use the page normally again.
+
+![Commenting on a heading on the site](../../../assets/guide/comment-on-blocks.png)
 
 #### Mentioning someone
 
