@@ -46,7 +46,25 @@ a.mp-nav-link{color:#F7F0F5;text-decoration:none}
 a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 .mp-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
 .mp-card{border:3px solid #120C1F;border-radius:18px;padding:24px 24px 26px}
-@media (max-width:900px){.mp-nav{display:none!important}.mp-compose{display:none!important}}
+@media (max-width:900px){.mp-nav{display:none!important}.mp-github{display:none!important}.mp-menu-button{display:inline-flex!important}.mp-compose{display:none!important}}
+.mp-header{position:relative;z-index:30}
+.mp-menu-button{display:none;align-items:center;justify-content:center;width:48px;height:48px;border:0;border-radius:999px;background:#F5D8EF;color:#120C1F;cursor:pointer;flex-direction:column;gap:5px;padding:0}
+.mp-menu-button span{display:block;width:20px;height:2.5px;border-radius:2px;background:currentColor;transition:transform .2s ease,opacity .2s ease}
+.mp-menu-button[aria-expanded="true"]{background:#FFA5FF}
+.mp-menu-button[aria-expanded="true"] span:nth-child(1){transform:translateY(7.5px) rotate(45deg)}
+.mp-menu-button[aria-expanded="true"] span:nth-child(2){opacity:0}
+.mp-menu-button[aria-expanded="true"] span:nth-child(3){transform:translateY(-7.5px) rotate(-45deg)}
+.mp-menu-button:focus-visible{outline:3px solid #FFA5FF;outline-offset:3px}
+.mp-menu{position:fixed;inset:0;z-index:20;overflow-y:auto;background:#2350E6;padding:112px 16px 40px;box-sizing:border-box;animation:mp-menu-in .22s ease-out}
+.mp-menu[hidden]{display:none}
+.mp-menu ul{list-style:none;margin:0;padding:0}
+.mp-menu li{border-bottom:1.5px solid rgba(255,165,255,.45)}
+.mp-menu li a{display:block;padding:14px 0;color:#F7F0F5;text-decoration:none;font-family:'Roboto Serif',Georgia,serif;font-variation-settings:"wdth" 54,"opsz" 144;font-size:40px;line-height:1.05;letter-spacing:-.5px}
+.mp-menu li a:hover,.mp-menu li a:focus-visible{color:#FFA5FF;outline:none}
+.mp-menu-pills{display:flex;flex-wrap:wrap;gap:10px;margin-top:32px}
+.mp-menu-open{overflow:hidden}
+@keyframes mp-menu-in{from{opacity:0;transform:translateY(-8px)}}
+@media (prefers-reduced-motion:reduce){.mp-menu{animation:none}.mp-menu-button span{transition:none}}
 @media (max-width:600px){.mp-wrap{padding-inline:16px}.mp-h1{font-size:60px!important}.mp-h2{font-size:44px!important}.mp-step{font-size:40px!important}.mp-lead{font-size:24px!important}.mp-rail{display:none!important}}
 .mp-dev-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:56px}.mp-dev-card{display:flex;flex-direction:column;gap:10px;padding:24px;background:#2C3C85;border:3px solid #120C1F;border-radius:18px;color:#F7F0F5;text-decoration:none}.mp-dev-card:hover{color:#F7F0F5;background:#34479A}.mp-dev-card:focus-visible{outline:3px solid #FFA5FF;outline-offset:3px}.mp-dev-card code{font-size:15px;color:#FDF152}.mp-dev-code{margin:16px 0 0;background:#0F1840;border:3px solid #120C1F;border-radius:18px;color:#DCD8FF;padding:28px;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:14px;line-height:1.8;overflow-x:auto}
 .mp-pillars{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;padding:0 0 112px}.mp-pillar{border-top:2px solid #FFA5FF;padding-top:18px;color:#F7F0F5}
@@ -69,7 +87,7 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 <!-- HERO -->
 <section style="background: #2350E6; color: #F7F0F5; overflow: hidden">
 <div class="mp-wrap">
-<header style="display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 26px 0">
+<header class="mp-header" style="display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 26px 0">
 <a href="/" class="mp-nav-link" style="display: flex; align-items: center; gap: 8px">
 <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><path d="M22 3 A14 14 0 1 0 31 22 A11 11 0 0 1 22 3 Z" fill="#FFA5FF"></path></svg>
 <span class="mp-serif" style="font-size: 38px; line-height: 1; color: #FFA5FF; letter-spacing: -0.5px">moonpuck</span>
@@ -82,8 +100,23 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 <a href="/docs/" class="mp-nav-link mp-label" style="font-size: 13px">Docs</a>
 <a href="#build" class="mp-nav-link mp-label" style="font-size: 13px">We'll build it</a>
 </nav>
-<a href="https://github.com/mjoslyn/moonpuck" class="mp-pill" style="background: #F5D8EF; color: #120C1F">GitHub</a>
+<a href="https://github.com/mjoslyn/moonpuck" class="mp-pill mp-github" style="background: #F5D8EF; color: #120C1F">GitHub</a>
+<button type="button" class="mp-menu-button" aria-controls="mp-menu" aria-expanded="false" aria-label="Menu"><span></span><span></span><span></span></button>
 </header>
+<nav id="mp-menu" class="mp-menu" aria-label="Main" hidden>
+<ul>
+<li><a href="#features">Features</a></li>
+<li><a href="#compose">Compose</a></li>
+<li><a href="#events">Highlights</a></li>
+<li><a href="https://dev.moonpuck.com/">Demo</a></li>
+<li><a href="/docs/">Docs</a></li>
+<li><a href="#build">We'll build it</a></li>
+</ul>
+<div class="mp-menu-pills">
+<a href="https://dev.moonpuck.com/admin/login/" class="mp-pill" style="background: #F5D8EF; color: #120C1F">Try the editor</a>
+<a href="https://github.com/mjoslyn/moonpuck" class="mp-pill" style="border: 2px solid #F7F0F5; color: #F7F0F5">GitHub</a>
+</div>
+</nav>
 
 <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: center; padding: 40px 0 24px">
 <h1 class="mp-serif mp-h1" style="flex: 1 1 440px; min-width: 0; margin: 0; font-size: 112px; line-height: 0.98; letter-spacing: -1.5px; color: #F7F0F5">Everything your site needs. On Cloudflare.</h1>
@@ -508,6 +541,33 @@ a.mp-nav-link:hover{text-decoration:underline;text-underline-offset:4px}
 </div>
 </footer>
 </div>
+<script is:inline>
+// The menu on small screens: the button opens a sheet over the page; Escape, a link or the button closes it.
+(() => {
+  const button = document.querySelector('.mp-menu-button');
+  const menu = document.getElementById('mp-menu');
+  if (!button || !menu) return;
+  const set = (open) => {
+    menu.hidden = !open;
+    button.setAttribute('aria-expanded', String(open));
+    button.setAttribute('aria-label', open ? 'Close menu' : 'Menu');
+    document.documentElement.classList.toggle('mp-menu-open', open);
+    if (open) menu.querySelector('a')?.focus();
+  };
+  button.addEventListener('click', () => set(menu.hidden));
+  menu.addEventListener('click', (e) => {
+    if (e.target.closest('a')) set(false);
+  });
+  addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !menu.hidden) {
+      set(false);
+      button.focus();
+    }
+  });
+  // Back to a wide screen: the sheet goes.
+  matchMedia('(min-width: 901px)').addEventListener('change', (e) => e.matches && set(false));
+})();
+</script>
 <script is:inline>
 // The contact form (worker.js, POST /api/contact): sent in place, its outcome shown above it. Without this
 // it posts as usual and the page comes back with ?contact=<outcome>.
