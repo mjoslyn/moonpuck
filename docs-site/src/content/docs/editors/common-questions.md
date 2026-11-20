@@ -39,6 +39,8 @@ to give your account the editor role (see [People and access](/admins/people/)).
      and underscores. Leave it empty to use the start of your email address.
 3. Click **Save**. A handle someone else has is refused.
 
+An admin can also change them for you on the **Users** screen.
+
 ### Why was I signed out?
 
 You stay signed in while you keep using the site. After seven days without using it, the site asks you

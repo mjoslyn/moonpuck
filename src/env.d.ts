@@ -24,3 +24,9 @@ declare module '*.bin' {
   const data: ArrayBuffer;
   export default data;
 }
+
+/** The build's hash of the core's and the site's scripts (astro.config.mjs; '' in tests). */
+declare module 'virtual:asset-version' {
+  const version: string;
+  export default version;
+}

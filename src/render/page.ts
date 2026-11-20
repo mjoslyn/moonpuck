@@ -21,6 +21,7 @@ import { esc } from './html';
 import { headMeta } from './meta';
 import { findRedirect } from '../lib/redirects';
 import { blockIdsOf } from '../lib/share/blocks';
+import { versionScripts } from '../lib/asset-version';
 import { safeDecode } from '../lib/url';
 import { chosenTemplate, defaultTaxonomyTemplates, defaultTemplates, listingOn, termPagesOn, termTemplate, type TaxonomyTemplates, type TemplateMap } from '../lib/templates';
 import { seoOf } from '../lib/seo';
@@ -445,5 +446,5 @@ ${scripts.join('\n')}
 ${snippetAt(snippets, 'footer')}</body>
 </html>
 `;
-  return { status: queried.kind === '404' || queried.notFound ? 404 : 200, html, personal: !!ctx.personal || !!commenting, locked: !!queried.entry?.locked };
+  return { status: queried.kind === '404' || queried.notFound ? 404 : 200, html: versionScripts(html), personal: !!ctx.personal || !!commenting, locked: !!queried.entry?.locked };
 }

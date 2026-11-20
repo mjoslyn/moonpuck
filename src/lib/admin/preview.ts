@@ -12,6 +12,7 @@ import type { PuckItem } from '../puck/types';
 import type { Db } from '../db/query';
 import { siteDb } from '../db/site';
 import { blockIdsOf } from '../share/comments';
+import { scriptUrl } from '../asset-version';
 
 export interface PreviewOptions {
   /** Someone with a share link: the page as visitors see it (no members-only content), read as the server
@@ -72,7 +73,7 @@ export async function renderPreview(dbIn: Db, id: number, origin: string, overri
     .replace(/<title>/, '<title>Preview · ')
     .replace(/(<body[^>]*>)/, `$1\n${bar}`)
     // Comments on the page's blocks: a guest gives a name, an editor comments as themselves.
-    .replace(/<\/body>/, `<script src="/assets/js/share-comments.js" data-kind="entry" data-id="${e.id}"${opts.guest ? ' data-guest="1"' : ''} defer></script>\n</body>`);
+    .replace(/<\/body>/, `<script src="${scriptUrl('/assets/js/share-comments.js')}" data-kind="entry" data-id="${e.id}"${opts.guest ? ' data-guest="1"' : ''} defer></script>\n</body>`);
   return new Response(out, { status: status === 404 ? 200 : status, headers: { 'Content-Type': 'text/html; charset=UTF-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex', ...(opts.guest ? { 'Referrer-Policy': 'same-origin' } : {}) } });
 }
 

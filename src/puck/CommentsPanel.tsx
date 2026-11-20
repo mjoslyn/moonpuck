@@ -93,7 +93,7 @@ export function CommentsPanel() {
           <span className="mb-1 block text-xs font-medium text-admin-muted">Comment on {selected ? `the selected ${typeLabel(selected.type).toLowerCase()}` : 'the whole page'}</span>
           <MentionTextarea className="w-full rounded border border-admin-ink/15 px-2 py-1.5 text-sm outline-none focus:border-admin-accent" rows={3} maxLength={2000} value={text} onChange={setText} />
         </label>
-        <p className="mt-1 text-xs text-admin-muted">Select a block on the page to comment on it. Comments on new blocks need the page saved first. Type @ to mention an editor or admin: they get an email.</p>
+        <p className="mt-1 text-xs text-admin-muted">Select a block on the page to comment on it. Comments on new blocks need the page saved first. Type @ and a name to mention an editor or admin: pick them from the list, and they get an email with the comment.</p>
         {error && (
           <p role="alert" className="mt-1 text-xs text-[#c4592a]">
             {error}

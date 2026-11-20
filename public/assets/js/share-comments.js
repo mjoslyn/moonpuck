@@ -14,6 +14,20 @@
   const id = me.dataset.id;
   const guest = me.dataset.guest === '1';
   const fromBar = me.dataset.bar === '1';
+  // @mention suggestions (mentions.js), loaded the first time a box wants them, from beside this script
+  // (with its ?v= version).
+  let mentionsLoading = null;
+  const mentionsIn = (box) => {
+    if (window.siteMentions) return window.siteMentions(box);
+    mentionsLoading ??= new Promise((done) => {
+      const s = document.createElement('script');
+      s.src = (me?.src || '/assets/js/share-comments.js').replace(/\/[^/?#]+(?=\?|$)/, '/mentions.js');
+      s.onload = done;
+      s.onerror = done;
+      document.head.append(s);
+    });
+    mentionsLoading.then(() => window.siteMentions?.(box));
+  };
   const NAME_KEY = 'share-comments-name';
   const LABELS = { text: 'Paragraph', heading: 'Heading', image: 'Image', section: 'Section', columns: 'Columns', column: 'Column', buttons: 'Buttons', button: 'Button', list: 'List', quote: 'Quote', cover: 'Cover', hero: 'Hero', gallery: 'Gallery', 'media-text': 'Media and text', collection: 'Collection', form: 'Form', embed: 'Embed', video: 'Video', file: 'File' };
   const label = (type) => LABELS[type] || (type ? type.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase()) : 'Block');
@@ -47,6 +61,7 @@
 .sc-row button{border:1px solid #c9ccd1;background:#fff;border-radius:4px;padding:6px 12px;font:inherit;cursor:pointer}
 .sc-row button.sc-send{background:#1c2331;color:#fff;border-color:#1c2331}
 .sc-error{color:#b3261e;font-size:12px}
+.sc-panel .sc-hint{margin:4px 0 0;color:#555f6d;font-size:12px}
 .sc-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}`;
   document.head.append(css);
 
@@ -125,6 +140,14 @@
     body.required = true;
     body.maxLength = 2000;
     l2.append(body);
+    // Editors can @mention editors and admins; guests' comments notify nobody.
+    let hint = null;
+    if (!guest) {
+      mentionsIn(body);
+      hint = document.createElement('p');
+      hint.className = 'sc-hint';
+      hint.textContent = 'Type @ and a name to mention an editor or admin: pick them from the list, and they get an email with the comment.';
+    }
     const error = document.createElement('p');
     error.className = 'sc-error';
     error.setAttribute('role', 'alert');
@@ -138,7 +161,7 @@
     send.className = 'sc-send';
     send.textContent = 'Send';
     row.append(cancel, send);
-    panel.append(l2, error, row);
+    panel.append(l2, ...(hint ? [hint] : []), error, row);
     document.body.append(panel);
     (name && !name.value ? name : body).focus();
     cancel.addEventListener('click', () => (closePanel(), block.focus()));

@@ -7,6 +7,40 @@ import tailwindcss from '@tailwindcss/vite';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
+
+/**
+ * A hash of the core's and the site's scripts (public/assets/js/, src/site/public/assets/js/), names and
+ * contents: pages put it on their script addresses (src/lib/asset-version.ts, through `assetVersionModule`), so a deploy that changes
+ * a script reaches browsers holding the old one, which /assets/ caches a year.
+ */
+function assetVersion() {
+  const hash = createHash('sha256');
+  const root = path.dirname(fileURLToPath(import.meta.url));
+  /** @param {string} dir */
+  const walk = (dir) => {
+    if (!fs.existsSync(dir)) return;
+    for (const name of fs.readdirSync(dir).sort()) {
+      const file = path.join(dir, name);
+      if (fs.statSync(file).isDirectory()) walk(file);
+      else hash.update(path.relative(root, file)).update(fs.readFileSync(file));
+    }
+  };
+  walk(path.join(root, 'public/assets/js'));
+  walk(path.join(root, 'src/site/public/assets/js'));
+  return hash.digest('hex').slice(0, 10);
+}
+
+/**
+ * The version as a module of its own, `virtual:asset-version` (src/lib/asset-version.ts), not a Vite
+ * `define`: a define of our own there sends React's production JSX runtime to the dev server's islands.
+ * @type {import('vite').Plugin}
+ */
+const assetVersionModule = {
+  name: 'asset-version',
+  resolveId: (id) => (id === 'virtual:asset-version' ? '\0virtual:asset-version' : undefined),
+  load: (id) => (id === '\0virtual:asset-version' ? `export default ${JSON.stringify(assetVersion())};` : undefined),
+};
 
 /**
  * The site's own routes (src/site/routes.json: { pattern, entrypoint }), added beside src/pages.
@@ -88,5 +122,5 @@ export default defineConfig({
   security: { checkOrigin: false },
   trailingSlash: 'ignore',
   build: { format: 'directory' },
-  vite: { plugins: [tailwindcss()] },
+  vite: { plugins: [tailwindcss(), assetVersionModule] },
 });

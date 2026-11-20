@@ -193,11 +193,17 @@ opens:
 - **Escape** closes the list.
 
 Each person you mention gets an email with the comment and a link to the page. You don't get one for
-mentioning yourself. Mentions work in the editor's **Comments** panel, in **Comments** in the editor bar on the site, on a campaign's comments, and in the
-**Comment** box on your own **Preview** (type the handle there, with no list). People commenting through a
-link can't mention anyone.
+mentioning yourself. Mentions, and the list, work everywhere you comment as an editor:
+
+- the editor's **Comments** panel
+- **Comments** in the editor bar on the site, and the box that opens when you click a block there
+- the **Comment** box on your own **Preview**
+- a campaign's comments
+
+People commenting through a link can't mention anyone.
 
 Your handle is on **Your profile** (see [Changing your name or handle](/editors/common-questions/#how-do-i-change-my-name-or-handle)).
+An admin can change it for you on the **Users** screen.
 
 ### Turning a link off
 

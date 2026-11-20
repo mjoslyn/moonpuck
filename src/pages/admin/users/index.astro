@@ -3,10 +3,13 @@ import Admin from '../../../layouts/Admin.astro';
 import { SITE_TZ } from '../../../lib/site';
 import { serviceClient } from '../../../lib/db/site';
 import { awaitingPassword, listUsers } from '../../../lib/auth';
+import { HANDLE_MAX, mentionablePeople } from '../../../lib/share/mentions';
 
 // Accounts (src/lib/auth; this page is admins only) with their roles from profiles.
 const list = await listUsers();
-const { data: profiles } = await serviceClient().from('profiles').select('id, role, display_name');
+const { data: profiles } = await serviceClient().from('profiles').select('id, role, display_name, handle');
+// Editors' and admins' @handles, chosen or made from their address (src/lib/share/mentions.ts).
+const handles = new Map((await mentionablePeople()).map((p) => [p.id, p.handle]));
 const waiting = await awaitingPassword();
 const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
 // Members are on the Members screen, unless they also edit the site.
@@ -14,7 +17,7 @@ const { data: memberRows } = await serviceClient().from('members').select('user_
 const members = new Set((memberRows ?? []).map((m) => m.user_id));
 const users = list
   .filter((u) => !members.has(u.id) || ['editor', 'admin'].includes(byId.get(u.id)?.role ?? ''))
-  .map((u) => ({ id: u.id, email: u.email ?? '', name: byId.get(u.id)?.display_name ?? '', role: byId.get(u.id)?.role ?? 'viewer', lastSignIn: u.lastSignInAt, invited: waiting.has(u.id) }))
+  .map((u) => ({ id: u.id, email: u.email ?? '', name: byId.get(u.id)?.display_name ?? '', ownHandle: byId.get(u.id)?.handle ?? '', handle: handles.get(u.id) ?? '', role: byId.get(u.id)?.role ?? 'viewer', lastSignIn: u.lastSignInAt, invited: waiting.has(u.id) }))
   .sort((a, b) => (a.role === b.role ? a.email.localeCompare(b.email) : ['admin', 'editor', 'viewer'].indexOf(a.role) - ['admin', 'editor', 'viewer'].indexOf(b.role)));
 const me = Astro.locals.user.id;
 const ok = Astro.url.searchParams.get('ok');
@@ -54,7 +57,28 @@ const when = (s?: string | null) => (s ? new Date(s).toLocaleDateString('en-US',
         <tr class="border-t border-admin-ink/5">
           <td class="px-4 py-2.5">
             <div class="font-medium">{u.email}</div>
-            {u.name && <div class="text-xs text-admin-muted">{u.name}</div>}
+            {(u.name || u.handle) && <div class="text-xs text-admin-muted">{[u.name, u.handle && `@${u.handle}`].filter(Boolean).join(' · ')}</div>}
+            {/* Their name and handle, as Your profile changes one's own. */}
+            <details class="mt-1 text-xs">
+              <summary class="cursor-pointer text-admin-muted underline hover:text-admin-accent">Edit name and handle</summary>
+              <form method="post" action="/api/admin/users" class="mt-2 flex flex-wrap items-end gap-2">
+                <input type="hidden" name="action" value="profile" />
+                <input type="hidden" name="id" value={u.id} />
+                <label class="block">
+                  <span class="mb-0.5 block font-medium text-admin-ink">Name</span>
+                  <input name="name" required maxlength={80} value={u.name} class="w-44 rounded border border-admin-ink/20 bg-white px-2 py-1 text-sm outline-none focus:border-admin-accent" />
+                </label>
+                <label class="block">
+                  <span class="mb-0.5 block font-medium text-admin-ink">Handle</span>
+                  <span class="flex items-center rounded border border-admin-ink/20 bg-white focus-within:border-admin-accent">
+                    <span class="pl-2 text-admin-muted">@</span>
+                    <input name="handle" maxlength={HANDLE_MAX} autocomplete="off" spellcheck="false" value={u.ownHandle} placeholder={u.ownHandle ? '' : u.handle} class="w-32 rounded px-1 py-1 text-sm outline-none" />
+                  </span>
+                </label>
+                <button class="rounded-sm bg-admin-ink px-3 py-1.5 font-semibold text-white hover:bg-admin-accent">Save</button>
+              </form>
+              <p class="mt-1 text-admin-muted">Leave the handle empty to use the start of their email address. Editors and admins type it to mention them in comments.</p>
+            </details>
           </td>
           <td class="px-4 py-2.5">
             {u.id === me ? (

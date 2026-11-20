@@ -107,6 +107,7 @@ export default function CampaignComments({ campaignId, design, tz }: { campaignI
               Add
             </button>
           </div>
+          <p className="text-xs text-admin-muted">Type @ and a name to mention an editor or admin: pick them from the list, and they get an email with the comment.</p>
           {error && (
             <p role="alert" className="text-xs text-[#c4592a]">
               {error}

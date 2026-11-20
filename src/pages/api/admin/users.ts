@@ -1,11 +1,13 @@
 // Users (admins only; see middleware). Form posts, back to /admin/users/:
 // action=role (id, role: viewer | editor | admin), action=invite (email, role), action=resend (id: an
 // invitation not yet taken up, sent again), action=delete (id: the account, with its profile and any
-// membership; what it made stays, its author left empty).
+// membership; what it made stays, its author left empty), action=profile (id, name, handle: their name
+// and @handle, as Your profile saves one's own, saveProfile).
 import type { APIRoute } from 'astro';
 import { serviceClient } from '../../../lib/db/site';
 import { invite, resendInvite } from '../../../lib/admin/invite';
 import { deleteUser, userById } from '../../../lib/auth';
+import { saveProfile } from '../../../lib/share/mentions';
 
 const ROLES = ['viewer', 'editor', 'admin'];
 
@@ -37,6 +39,13 @@ export const POST: APIRoute = async ({ request, locals, redirect, url }) => {
   if (action === 'resend') {
     const res = await resendInvite(String(form.get('id') ?? ''), 'admin', url.origin);
     return 'error' in res ? back(res.error) : back(`A new invitation went to ${res.email}. ${res.note}`, true);
+  }
+  if (action === 'profile') {
+    const id = String(form.get('id') ?? '');
+    const user = id ? await userById(id) : null;
+    if (!user) return back('No such account.');
+    const r = await saveProfile(id, { name: form.get('name'), handle: form.get('handle') });
+    return r.ok ? back(`${user.email}'s name and handle were saved.`, true) : back(r.error);
   }
   if (action === 'delete') {
     const id = String(form.get('id') ?? '');

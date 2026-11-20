@@ -483,9 +483,13 @@ emails them after the answer (`notifyMentions`, kind `admin`: the comment, the b
 editor or the campaign screen; never the author; guests' comments notify nobody). Handles (`withHandles`):
 `profiles.handle` (migration `*_profiles_handle.sql`, unique), else the email's local part cleaned, a taken
 one numbered in order of address. The editor's Comments panel and the campaign screen's box suggest people as
-`@` is typed (`src/admin/MentionTextarea.tsx`, `GET /api/admin/share-comments?people`: ids, names and handles
+`@` is typed, and so do the site's comment boxes for editors (the editor bar's and a block's in comment
+mode or a preview: `public/assets/js/mentions.js`, `siteMentions`, loaded by `editor-bar.js` and
+`share-comments.js` from beside themselves, with their `?v=`), each with a line saying how (`src/admin/MentionTextarea.tsx`, `GET /api/admin/share-comments?people`: ids, names and handles
 of editors and admins only) and show handles in bold (`withMentions`). **Your profile** (`/admin/profile/`,
-the account menu; `saveProfile`, written as the server for that person) changes one's own name and handle
+the account menu; `saveProfile`, written as the server for that person) changes one's own name and handle,
+and an admin changes anyone's on the Users screen (**Edit name and handle**, `action=profile` on
+`/api/admin/users`, the same `saveProfile`, which also shows each editor's and admin's handle)
 (`cleanHandle`: 2 to 30 letters, digits, `.`, `-`, `_`; empty for the made one; one someone has refused).
 
 ## Redirects
@@ -789,7 +793,11 @@ conversation.
   `forms.css` and `events.css`; the page shell links the compiled file. Swiper (sliders)
   and Leaflet (maps) are served from the site, in versioned folders under `public/assets/vendor/`
   (`src/render/vendor.ts`), not a CDN, whose connection would hold up the page; their stylesheets are
-  linked only on pages that use them (`ctx.assets`). Scripts are in `public/assets/js/`. Fonts are served
+  linked only on pages that use them (`ctx.assets`). Scripts are in `public/assets/js/`. Everything under
+  `/assets/` is cached a year as immutable (`public/_headers`), so pages give each `/assets/js/` address
+  `?v=<version>` (`versionScripts` on `renderRequest`'s HTML, `scriptUrl`; `src/lib/asset-version.ts`), a
+  hash of the core's and the site's scripts made by the build (`virtual:asset-version`, a module `astro.config.mjs` makes, not a Vite `define`, which would hand the dev server's islands React's production JSX runtime):
+  a deploy that changes any script gives browsers new addresses. Without a build (tests) there is none. Fonts are served
   the same way: the theme's from the core's library (see Theme); a font outside it from the site's
   `src/site/public/assets/fonts/`, its `@font-face` in the site's `theme.css`, the theme naming its stack.
 - Pages are cached at the CDN through Astro's route cache (`cache` in `astro.config.mjs`, the Cloudflare
@@ -1807,7 +1815,7 @@ at Stripe) are still recorded. A gift gives no membership.
 opens the Editor guide for editors and the Admin guide for admins (`docs-site/src/content/docs/editors/` and
 `admins/`, published with the docs at moonpuck.com; `helpUrl`, `src/lib/help.ts`; `HELP_URL` points it
 elsewhere, such as a site's own guide, and `ADMIN_HELP_URL` points admins' somewhere else again). Editors manage content,
-templates, media, forms and compose; site settings and users (`/admin/users/`: roles, invitations, Resend invitation for those invited who haven't set a password, signed in by a link or not, `src/lib/admin/invite.ts`; Delete, not your own account: the profile and any membership go, what they made stays with its author left empty) are
+templates, media, forms and compose; site settings and users (`/admin/users/`: roles, names and handles, invitations, Resend invitation for those invited who haven't set a password, signed in by a link or not, `src/lib/admin/invite.ts`; Delete, not your own account: the profile and any membership go, what they made stays with its author left empty) are
 for admins, as is the redirects API (`ADMIN_ONLY` in `src/middleware.ts`; settings writes are admin-only in the policies,
 `src/lib/db/policies.ts`; the users API checks the role itself too, since making accounts is the server's). Editors are trusted with the
 site's markup: the HTML block (and an Embed block's HTML) is put on the page as written, at the admin's

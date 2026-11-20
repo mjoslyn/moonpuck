@@ -60,11 +60,12 @@ export async function mentionablePeople(): Promise<Person[]> {
   return withHandles(rows.filter((r) => r.users?.email).map((r) => ({ id: r.id, name: r.display_name || r.users!.email, email: r.users!.email, handle: r.handle })));
 }
 
-/** Change a person's own name and handle (their profile). An empty handle goes back to the one made from
- * their address. Refused: a handle someone else has now, made or chosen. */
+/** Change a person's name and handle (their profile): their own, from Your profile, or anyone's, from an
+ * admin's Users screen. An empty handle goes back to the one made from their address. Refused: a handle
+ * someone else has now, made or chosen. */
 export async function saveProfile(id: string, input: { name?: unknown; handle?: unknown }): Promise<{ ok: true } | { ok: false; error: string }> {
   const name = String(input.name ?? '').trim().slice(0, 80);
-  if (!name) return { ok: false, error: 'Add your name.' };
+  if (!name) return { ok: false, error: 'Add a name.' };
   const h = cleanHandle(String(input.handle ?? ''));
   if ('error' in h) return { ok: false, error: h.error };
   if (h.handle && (await mentionablePeople()).some((p) => p.id !== id && p.handle === h.handle)) return { ok: false, error: `@${h.handle} is someone else’s. Choose another.` };

@@ -26,6 +26,19 @@ Give people the **Editor** role unless they really need settings. It is easy to 
 
 Pick a different role beside their name and click **Save**.
 
+## Changing someone's name or handle
+
+Each person's name and **@handle** show under their email address. To change them:
+
+1. Click **Edit name and handle** under their email address.
+2. Change either:
+   - **Name**: shown on their comments and in the admin.
+   - **Handle**: what editors and admins type after **@** to mention them in a comment. Letters,
+     digits, dots, dashes and underscores. Leave it empty to use the start of their email address.
+3. Click **Save**. A handle someone else has is refused.
+
+People can also change their own on **Your profile**.
+
 ## Removing someone
 
 Click **Delete** beside their name. They can no longer sign in. Pages they wrote stay on the site.

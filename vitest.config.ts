@@ -3,6 +3,8 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // Tests have no build, so no scripts' version (src/lib/asset-version.ts).
+  plugins: [{ name: 'asset-version', resolveId: (id) => (id === 'virtual:asset-version' ? '\0virtual:asset-version' : undefined), load: (id) => (id === '\0virtual:asset-version' ? "export default '';" : undefined) }],
   test: {
     include: ['tests/**/*.test.ts', 'src/site/**/*.test.ts'],
     environment: 'node',

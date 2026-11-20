@@ -9,6 +9,21 @@
 // which this bar then turns on and off in place (Done commenting). Pages are cached and shared, so this runs in the browser: only
 // visitors with a sign-in cookie ask who they are.
 (() => {
+  const me = document.currentScript;
+  // @mention suggestions (mentions.js), loaded the first time a box wants them, from beside this script
+  // (with its ?v= version).
+  let mentionsLoading = null;
+  const mentionsIn = (box) => {
+    if (window.siteMentions) return window.siteMentions(box);
+    mentionsLoading ??= new Promise((done) => {
+      const s = document.createElement('script');
+      s.src = (me?.src || '/assets/js/editor-bar.js').replace(/\/[^/?#]+(?=\?|$)/, '/mentions.js');
+      s.onload = done;
+      s.onerror = done;
+      document.head.append(s);
+    });
+    mentionsLoading.then(() => window.siteMentions?.(box));
+  };
   // site.signed_in: set beside the session's own cookie, which scripts can't read (src/lib/auth).
   if (!document.cookie.split('; ').some((c) => c.startsWith('site.signed_in='))) return;
   const body = document.body;
@@ -157,6 +172,33 @@
     // @handles in bold, the rest escaped.
     const mentions = (s) => esc(s).replace(/(^|[^\w@.])(@[a-z0-9._-]+)/gi, '$1<b>$2</b>');
 
+    // The panel is built once (its comment box keeps its text, cursor and @mention list across
+    // refreshes); draw() fills in what changes.
+    let shell = null;
+    const build = () => {
+      panel.innerHTML =
+        '<h2>Comments on this page</h2>' +
+        '<div class="c-comments__mode"><span id="c-comments-mode">Comment on blocks<small>Click a block on the page to comment on it.</small></span><button type="button" role="switch" class="c-switch" data-mode aria-labelledby="c-comments-mode"></button></div>' +
+        '<form><label><small>Comment on the whole page</small><textarea name="body" maxlength="2000" required></textarea></label>' +
+        '<small>Type @ and a name to mention an editor or admin: pick them from the list, and they get an email with the comment.</small>' +
+        '<p class="is-error" role="alert" hidden></p>' +
+        '<p style="margin:8px 0 0"><button type="submit" class="is-primary">Add comment</button></p></form>' +
+        '<div class="c-comments__head"><span data-head></span><span data-resolved></span></div>' +
+        '<p class="c-comments__empty" hidden>No open comments.</p>' +
+        '<ol></ol>';
+      shell = {
+        mode: panel.querySelector('[data-mode]'),
+        box: panel.querySelector('textarea'),
+        error: panel.querySelector('.is-error'),
+        submit: panel.querySelector('button[type="submit"]'),
+        head: panel.querySelector('[data-head]'),
+        resolved: panel.querySelector('[data-resolved]'),
+        empty: panel.querySelector('.c-comments__empty'),
+        list: panel.querySelector('ol'),
+      };
+      shell.box.addEventListener('input', () => (draft = shell.box.value));
+      mentionsIn(shell.box);
+    };
     const draw = () => {
       const open = (rows || []).filter((r) => r.status === 'open');
       const resolved = (rows || []).filter((r) => r.status !== 'open');
@@ -164,38 +206,29 @@
       count.hidden = !open.length;
       button.setAttribute('aria-label', `Comments, ${open.length} open`);
       if (panel.hidden) return;
+      if (!shell) build();
       const shown = showResolved ? [...open, ...resolved] : open;
-      const focused = document.activeElement?.closest?.('.c-comments') ? document.activeElement.name || '' : '';
-      panel.innerHTML =
-        '<h2>Comments on this page</h2>' +
-        `<div class="c-comments__mode"><span id="c-comments-mode">Comment on blocks<small>Click a block on the page to comment on it.</small></span><button type="button" role="switch" class="c-switch" data-mode aria-checked="${commenting()}" aria-labelledby="c-comments-mode"></button></div>` +
-        '<form><label><small>Comment on the whole page</small><textarea name="body" maxlength="2000" required></textarea></label>' +
-        "<small>Type @ and someone's handle to email them. To comment on one block, turn on Comment on blocks.</small>" +
-        (error ? `<p class="is-error" role="alert">${esc(error)}</p>` : '') +
-        `<p style="margin:8px 0 0"><button type="submit" class="is-primary"${busy ? ' disabled' : ''}>Add comment</button></p></form>` +
-        `<div class="c-comments__head"><span>${rows ? `${open.length} open` : 'Loading…'}</span>` +
-        (resolved.length ? `<label><input type="checkbox" name="resolved"${showResolved ? ' checked' : ''}> Show resolved (${resolved.length})</label>` : '') +
-        '</div>' +
-        (rows && !shown.length ? '<p class="c-comments__empty">No open comments.</p>' : '') +
-        '<ol>' +
-        shown
-          .map(
-            (r) =>
-              `<li class="${r.status === 'open' ? '' : 'is-resolved'}"><div class="c-comments__on"><b>${esc(typeLabel(r.block_type))}</b>${r.quote ? `: ${esc(r.quote.slice(0, 80))}` : ''}</div>` +
-              `<p>${mentions(r.body)}</p>` +
-              `<small>${esc(r.author)}${r.guest ? ' (share link)' : ''} · ${when(r.created_at)}${r.status === 'resolved' && r.resolved_at ? ` · resolved ${when(r.resolved_at)}${r.resolved_by_name ? ` by ${esc(r.resolved_by_name)}` : ''}` : ''}</small>` +
-              `<div class="c-comments__actions"><button type="button" data-act="${r.status === 'open' ? 'resolve' : 'reopen'}" data-id="${r.id}"${busy ? ' disabled' : ''}>${r.status === 'open' ? 'Resolve' : 'Reopen'}</button>` +
-              (confirming === r.id
-                ? `<button type="button" class="is-danger" data-act="delete" data-id="${r.id}"${busy ? ' disabled' : ''}>Delete for good</button><button type="button" data-act="keep">Keep it</button>`
-                : `<button type="button" class="is-danger" data-act="ask" data-id="${r.id}">Delete</button>`) +
-              '</div></li>',
-          )
-          .join('') +
-        '</ol>';
-      const box = panel.querySelector('textarea');
-      box.value = draft;
-      box.addEventListener('input', () => (draft = box.value));
-      if (focused === 'body') box.focus();
+      shell.mode.setAttribute('aria-checked', String(commenting()));
+      if (shell.box.value !== draft) shell.box.value = draft;
+      shell.error.textContent = error;
+      shell.error.hidden = !error;
+      shell.submit.disabled = busy;
+      shell.head.textContent = rows ? `${open.length} open` : 'Loading…';
+      shell.resolved.innerHTML = resolved.length ? `<label><input type="checkbox" name="resolved"${showResolved ? ' checked' : ''}> Show resolved (${resolved.length})</label>` : '';
+      shell.empty.hidden = !(rows && !shown.length);
+      shell.list.innerHTML = shown
+        .map(
+          (r) =>
+            `<li class="${r.status === 'open' ? '' : 'is-resolved'}"><div class="c-comments__on"><b>${esc(typeLabel(r.block_type))}</b>${r.quote ? `: ${esc(r.quote.slice(0, 80))}` : ''}</div>` +
+            `<p>${mentions(r.body)}</p>` +
+            `<small>${esc(r.author)}${r.guest ? ' (share link)' : ''} · ${when(r.created_at)}${r.status === 'resolved' && r.resolved_at ? ` · resolved ${when(r.resolved_at)}${r.resolved_by_name ? ` by ${esc(r.resolved_by_name)}` : ''}` : ''}</small>` +
+            `<div class="c-comments__actions"><button type="button" data-act="${r.status === 'open' ? 'resolve' : 'reopen'}" data-id="${r.id}"${busy ? ' disabled' : ''}>${r.status === 'open' ? 'Resolve' : 'Reopen'}</button>` +
+            (confirming === r.id
+              ? `<button type="button" class="is-danger" data-act="delete" data-id="${r.id}"${busy ? ' disabled' : ''}>Delete for good</button><button type="button" data-act="keep">Keep it</button>`
+              : `<button type="button" class="is-danger" data-act="ask" data-id="${r.id}">Delete</button>`) +
+            '</div></li>',
+        )
+        .join('');
     };
     const load = () =>
       fetch(`${api}?entry=${encodeURIComponent(entry)}`, { credentials: 'same-origin', cache: 'no-store' })

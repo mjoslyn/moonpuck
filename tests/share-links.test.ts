@@ -437,6 +437,26 @@ describe('@mentions and profiles', async () => {
     expect(await saveProfile(ids[0], { name: 'Dana', handle: '' })).toEqual({ ok: true });
     expect((await mentionablePeople()).find((p) => p.id === ids[0])?.handle).toBe('dana');
   });
+
+  it('lets an admin change someone’s name and handle on the Users screen, and nobody else', async () => {
+    const { POST: users } = await import('../src/pages/api/admin/users');
+    const post = (role: string, fields: Record<string, string>) => {
+      const body = new FormData();
+      for (const [k, v] of Object.entries(fields)) body.set(k, v);
+      return users({ request: new Request('https://x/api/admin/users', { method: 'POST', body }), locals: { user: { id: ids[1], role } }, url: new URL('https://x/api/admin/users'), redirect: (to: string, status: number) => new Response(null, { status, headers: { Location: to } }) } as any);
+    };
+    const ok = await post('admin', { action: 'profile', id: ids[0], name: 'Dana Admin-set', handle: 'danaset' });
+    expect(decodeURIComponent(ok.headers.get('Location') ?? '')).toContain('?ok=');
+    expect((await svc.from('profiles').select('display_name, handle').eq('id', ids[0]).single()).data).toEqual({ display_name: 'Dana Admin-set', handle: 'danaset' });
+    // A handle someone else has is refused, as on Your profile (the other Dana's, made from her address,
+    // is now plain @dana).
+    expect((await mentionablePeople()).find((p) => p.id === ids[1])?.handle).toBe('dana');
+    const taken = await post('admin', { action: 'profile', id: ids[0], name: 'Dana', handle: 'dana' });
+    expect(decodeURIComponent(taken.headers.get('Location') ?? '')).toMatch(/\?error=@dana is someone else/);
+    expect((await post('editor', { action: 'profile', id: ids[0], name: 'Nope', handle: '' })).status).toBe(403);
+    expect((await svc.from('profiles').select('display_name').eq('id', ids[0]).single()).data?.display_name).toBe('Dana Admin-set');
+    await saveProfile(ids[0], { name: 'Dana', handle: '' });
+  });
 });
 
 describe('sharing a version', async () => {
