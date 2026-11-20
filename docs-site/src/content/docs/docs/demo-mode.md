@@ -9,6 +9,8 @@ Demo mode turns a copy of a site into a public demo. Visitors ask for an invitat
 get an editor's account by email, and try the editor. Every 12 hours the demo goes back to its starting
 point: what visitors made, the files they uploaded and their accounts are deleted.
 
+Moonpuck's own demo, Copernicus Base, runs this way: [dev.moonpuck.com](https://dev.moonpuck.com/).
+
 ## What visitors can and can't do
 
 Visitors are **editors**: they edit pages, templates, media and forms, and use Compose. They can't reach
