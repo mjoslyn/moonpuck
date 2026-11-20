@@ -2147,6 +2147,15 @@ A public copy of a site where anyone can try the editor (`src/lib/demo/`), on wh
   (10) for visitors (the media API); the editor offers no HTML or Embed block (`DEMO_OFF_BLOCKS`,
   `buildConfig`, reading `window.__demo` from `AdminTheme.astro`, `demoOn` in `src/lib/demo/flag.ts`) and
   the renderer shows neither's markup (an HTML block nothing, an Embed block its link).
+- **The allowlist** (`src/lib/demo/sanitize.ts`, `sanitizeHtml`, on htmlparser2, safe in the browser): on a
+  demo the render engine cleans every block's settings before its renderer sees them (`cleanAttrs`, in
+  `renderItem`), and entry titles and excerpts kept as markup too (`entryTitle`, the excerpt block): every
+  string holding `<` keeps only the editor's formatting tags (`TAGS`, with their attributes and `class`,
+  `style` without `url()` and the like, `title`, `lang`, `dir`), links and images to web, mail, phone or
+  site addresses (`safeUrl`; a new tab's link gets `noopener`), and the text of unknown tags; script-carrying
+  elements go with their content, every other attribute and comments go; a setting naming an address (`href`,
+  `url`, `src`, `link`...) that would run script is blanked. So whatever is stored, by whatever path, renders
+  without script, on the site, in previews and in the editor's canvas.
 - **The guard** (`demoGuard`, `src/lib/demo/guard.ts`, from the middleware for every signed-in visitor's
   write and for guests' comments): Claude's routes (`CLAUDE_PATHS`) answer each account
   `DEMO_CLAUDE_TURNS` (10) times a day and the demo `DEMO_CLAUDE_DAILY` (150), past which they answer 429;

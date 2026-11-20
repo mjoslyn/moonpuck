@@ -2,6 +2,8 @@
 import type { PuckItem } from '../lib/puck/types';
 import type { Block, Env, Inner, Renderer } from './env';
 import { visibilityPasses } from './blocks/visibility';
+import { demoOn } from '../lib/demo/flag';
+import { cleanAttrs } from '../lib/demo/sanitize';
 
 const registry = new Map<string, Renderer>();
 let fallback: Renderer = () => '';
@@ -31,7 +33,10 @@ export function renderItem(item: PuckItem, env: Env): string {
   // Visibility rules apply to every block.
   const vis = item.props.attrs?.visibility;
   if (vis?.enabled && !visibilityPasses(vis.rules ?? {})) return '';
-  let out = rendererFor(item.type)(toBlock(item), env, innerFor(item, env));
+  // On a demo (src/lib/demo) a block's settings are cleaned to an allowlist first, so nothing stored can run script.
+  const block = toBlock(item);
+  if (demoOn()) block.attrs = cleanAttrs(block.attrs ?? {});
+  let out = rendererFor(item.type)(block, env, innerFor(item, env));
   if (env.ctx.markBlocks?.has(item.props.id)) out = markBlock(out, item);
   // A block is recorded after its inner blocks, so styles load in that order.
   if (!env.ctx.rendered.includes(item.type)) env.ctx.rendered.push(item.type);

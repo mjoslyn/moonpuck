@@ -24,6 +24,8 @@ Settings, Users or Connections. On a demo:
 - **Claude**: Compose and the Compose buttons use Claude Haiku 5.5, to keep costs down, and each account
   gets 10 answers a day, the whole demo 150. Compose's panel tells visitors that a site of their own uses
   Claude Sonnet 5.5 by default and can choose a larger model for better results.
+- **Markup**: everything a demo shows is cleaned to an allowlist first: the editor's formatting, links
+  and images stay, and anything that could run script is removed, whoever wrote it and however it was saved.
 - **What they write**: a save is refused when it holds script (tags, event handlers, script links) or
   offensive words. What they publish, and their comments, are also read by a small model (Claude Haiku),
   which catches what a word list misses.

@@ -3,6 +3,8 @@
 // Excerpt, Featured image and Field show the term: its name, description, featured image (else its
 // taxonomy's) and fields. On a type's listing page, outside a collection, Featured image shows the
 // listing's (Settings > Types).
+import { demoOn } from '../../lib/demo/flag';
+import { sanitizeHtml } from '../../lib/demo/sanitize';
 import type { Renderer } from '../env';
 import type { Entry } from '../../lib/types';
 import { mediaImage, mediaImgTag, markImages, mediaUrl } from '../../lib/media/image';
@@ -26,7 +28,8 @@ import { entryImageHeight } from '../../lib/content/image-height';
 const esc = (s: unknown) => String(s ?? '').replace(/&(?!(?:#\d+|#x[0-9a-f]+|[a-z][a-z0-9]*);)/gi, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 /** The entry's title as HTML: the imported rendered title (entities, smart quotes), else the escaped title. */
-export const entryTitle = (e: Entry) => e.title_rendered ?? esc(e.title);
+// On a demo (src/lib/demo), titles and excerpts kept as markup are cleaned to its allowlist.
+export const entryTitle = (e: Entry) => (e.title_rendered != null ? (demoOn() ? sanitizeHtml(e.title_rendered) : e.title_rendered) : esc(e.title));
 
 /** URL of an image field's value: a media id, or a URL as stored. */
 export function imageFieldUrl(ctx: { loader: { mediaById: (id: number) => { path: string } | undefined } }, value: unknown): string {
@@ -81,6 +84,7 @@ export const entryExcerpt: Renderer = (b, env) => {
   if (!post) return '';
   const a = b.attrs;
   let excerpt = post.excerpt_rendered ?? post.excerpt ?? '';
+  if (demoOn()) excerpt = sanitizeHtml(excerpt);
   if (!excerpt && post.term) return '';
   const more = a.moreText ? `<a class="c-entry-excerpt__more" href="${linkOf(post)}">${a.moreText}</a>` : '';
   if (more) excerpt = excerpt.replace(/ \[&hellip;\]$/, '');
