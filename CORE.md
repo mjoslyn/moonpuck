@@ -473,7 +473,7 @@ as themselves (`author_id`); a guest needs that page's or newsletter's cookie fi
 isn't `login` (`link_id`, with the name given; `GUEST_COMMENTS_PER_HOUR`, 30, per link, checked again after the insert so comments sent at once can't pass it together). The block must be
 in what is stored (the content, its unpublished changes, the design: `blocksOf`); the comment keeps its
 type and a few of its words (`quote`), up to `COMMENT_MAX` (2,000) characters of plain text, shown escaped.
-Editors see them in the page editor's **Comments** panel (`src/puck/CommentsPanel.tsx`: open first, Show
+Editors see them in the editor bar's **Comments** on the page itself (see How rendering works), in the page editor's **Comments** panel (`src/puck/CommentsPanel.tsx`: open first, Show
 selects the block, Resolve, Reopen, Delete, and Add a comment on the selected block or the whole page) and
 on the campaign screen (`src/admin/CampaignComments.tsx`), through `GET` and `POST
 /api/admin/share-comments` (`add`, `resolve`, `reopen`, `delete`; only for what the editor can read; it
@@ -807,6 +807,10 @@ conversation.
   (`public/assets/js/editor-bar.js`, `/api/admin/me`) added in the browser, so cached pages stay shared;
   it asks only when the `site.signed_in` cookie is there (see Accounts). The bar's **Go to** (and Ctrl+K
   or ⌘K) opens the command palette there too (see Editor), asking `GET /api/admin/commands?q=` as they type.
+  On an entry's page (`data-edit-entry`) the bar's **Comments** (its open count on the button) opens a panel
+  of that page's comments (see Share links), open first: Resolve, Reopen, Delete (asked again in the panel),
+  Show resolved, and a box to comment on the whole page; `GET` and `POST /api/admin/share-comments`, as the
+  page editor's panel. The live page doesn't mark its blocks, so commenting on one links to the preview.
 
 ## Media
 

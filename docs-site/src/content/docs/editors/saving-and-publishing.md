@@ -165,6 +165,16 @@ You see them in the editor's **Comments** panel (the speech bubble in the left r
 - To add your own, select a block on the page (or nothing, for the whole page), type in the box at the top
   of the panel and click **Add comment**.
 
+You also see a page's comments on the site itself. While you are signed in, **Comments** in the dark editor
+bar at the top of the page shows how many are open. Click it for the list:
+
+- **Resolve**, **Reopen** and **Delete** work as in the editor's panel. **Delete** asks again: click
+  **Delete for good**, or **Keep it**.
+- Tick **Show resolved** to see resolved comments too.
+- To add a comment on the whole page, type in the box and click **Add comment**. To comment on one block,
+  click **the preview** and use its **Comment** button.
+- Click outside the list, or press **Escape**, to close it.
+
 #### Mentioning someone
 
 In a comment, type **@** and the start of an editor's or admin's handle or name. A list of matching people
@@ -175,7 +185,7 @@ opens:
 - **Escape** closes the list.
 
 Each person you mention gets an email with the comment and a link to the page. You don't get one for
-mentioning yourself. Mentions work in the editor's **Comments** panel, on a campaign's comments, and in the
+mentioning yourself. Mentions work in the editor's **Comments** panel, in **Comments** in the editor bar on the site, on a campaign's comments, and in the
 **Comment** box on your own **Preview** (type the handle there, with no list). People commenting through a
 link can't mention anyone.
 
